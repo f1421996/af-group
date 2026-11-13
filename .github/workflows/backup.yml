@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   backup:
@@ -49,9 +50,70 @@ jobs:
           echo "tables with data: $(grep -cE "TABLE DATA" <<< "$LIST")"
 
       - name: Upload backup (kept 60 days)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: af-backup-${{ env.STAMP }}
           path: af-backup-${{ env.STAMP }}.dump
           retention-days: 60
           if-no-files-found: error
+
+  restore-test:
+    # Proves the dump is restorable: restore into a throw-away Postgres 17 and compare row counts with live.
+    needs: backup
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      pg:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: af-backup-*
+          path: dl
+          merge-multiple: true
+
+      - name: Restore into scratch Postgres and compare with live
+        env:
+          LIVE_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -uo pipefail
+          BIN=/usr/lib/postgresql/17/bin
+          F=$(ls dl/*.dump | head -1)
+          export PGPASSWORD=test
+          T="$BIN/psql -h localhost -U postgres -d postgres -At"
+          # roles that Supabase dumps reference
+          for r in anon authenticated service_role supabase_auth_admin authenticator dashboard_user supabase_admin; do
+            $T -c "create role $r nologin" 2>/dev/null || true
+          done
+          $T -c "create extension if not exists pgcrypto" >/dev/null 2>&1 || true
+          $BIN/pg_restore -h localhost -U postgres -d postgres --no-owner --no-privileges "$F" 2> restore.err
+          echo "pg_restore finished (non-fatal messages: $(wc -l < restore.err))"
+          head -15 restore.err || true
+          FAIL=0
+          for t in invoices invoice_lines products product_stock materials customers payments product_recipe supplier_invoices; do
+            R=$($T -c "select count(*) from public.$t")
+            L=$($BIN/psql "$LIVE_URL" -At -c "select count(*) from public.$t")
+            echo "$t: restored=$R live=$L"
+            # live may have gained a few rows since the dump; restored must be >0 and within 2% / 5 rows
+            if [ "$R" -le 0 ] || [ $(( L - R )) -gt $(( L / 50 + 5 )) ] || [ $(( R - L )) -gt $(( L / 50 + 5 )) ]; then
+              echo "::error::Row count mismatch on $t (restored=$R live=$L)"; FAIL=1
+            fi
+          done
+          U=$($T -c "select count(*) from auth.users")
+          UL=$($BIN/psql "$LIVE_URL" -At -c "select count(*) from auth.users")
+          echo "auth.users: restored=$U live=$UL"
+          [ "$U" = "$UL" ] || { echo "::error::auth.users mismatch"; FAIL=1; }
+          exit $FAIL
