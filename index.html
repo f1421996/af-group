@@ -3628,13 +3628,20 @@ function vShort(){
   const tE=E.reduce((a,x)=>a+(+x.short),0),tO=O.reduce((a,x)=>a+(+x.short),0);
   const eCost=E.reduce((a,x)=>a+(x.last_cost!=null?(+x.short)*(+x.last_cost):0),0),oCost=O.reduce((a,x)=>a+(x.last_kg!=null?(+x.short)/1000*(+x.last_kg):0),0);
   return `<div class="row" style="justify-content:space-between"><div><h2>🧾 النواقص والشراء</h2><p class="sub" style="margin:4px 0 0">الفوارغ والزيت الناقصين لكل الأوردرات المفتوحة مجمّعين (المطلوب − اللي على الرف)</p></div>
-   <div class="row"><button class="btn sm" data-x="shRef">↻ تحديث</button><button class="btn sm pri" data-x="shPrint">🖨 اطبع / PDF</button><button class="btn sm" data-x="shCopy">📋 نسخ</button><button class="btn sm" data-x="shWA">📲 واتساب للمورد</button></div></div>
+   <div class="row"><button class="btn sm" data-x="shRef">↻ تحديث</button><button class="btn sm pri" data-x="shPrint">🖨 اطبع / PDF</button><button class="btn sm" data-x="shCopy">📋 نسخ</button><button class="btn sm" data-x="shWA" data-k="e">📲 واتساب فوارغ</button><button class="btn sm" data-x="shWA" data-k="o">📲 واتساب زيوت</button></div></div>
   <div class="panel"><h3 style="margin:0 0 6px">الأوردرات المحسوبة <span class="sub">(شيل العلامة عشان تستبعد أوردر)</span></h3><div class="row" style="gap:6px;flex-wrap:wrap">${D2.invoices.map(i=>`<label class="chip ${ex.has(i.id)?'':'ok'}" style="cursor:pointer"><input type="checkbox" data-sh="inv" value="${i.id}" ${ex.has(i.id)?'':'checked'}> ${pgTag(i.page)} ${esc(i.cust||'')} <bdi dir="ltr" class="sub">${esc(i.no)}</bdi></label>`).join('')}</div></div>
   <div class="grid g4"><div class="panel kpi"><small>فوارغ ناقصة</small><b class="num">${fmt(tE)}</b><span>قطعة · ${E.length} صنف</span></div><div class="panel kpi"><small>زيت ناقص</small><b class="num">${fmt(Math.round(tO))}</b><span>جم (${fmtG(tO/1000)} كجم) · ${O.length} زيت</span></div>${cost?`<div class="panel kpi"><small>تكلفة الفوارغ (آخر سعر)</small><b class="num">${fmt(Math.round(eCost))}</b><span>ج</span></div><div class="panel kpi"><small>تكلفة الزيت (آخر سعر)</small><b class="num">${fmt(Math.round(oCost))}</b><span>ج</span></div>`:''}</div>
   <div class="row" style="margin:6px 0"><input type="search" id="shF" value="${esc(f)}" placeholder="دوّر على صنف…" style="flex:1;max-width:320px"></div>
   ${shTable('🍶 الفوارغ',E,'pc',cost)}${shTable('🛢 الزيوت',O,'g',cost)}`}
 const shGk=g=>{g=Math.round(+g||0);return g>=1000?`${fmt(g)} جم (${fmtG(g/1000)} كجم)`:`${fmt(g)} جم`};
-function shText(D2){return `طلبية فوارغ وزيوت ${dshow(today())}\n\n`+(D2.empties.length?'🍶 فوارغ (قطعة):\n'+D2.empties.map(x=>`- ${x.name}: ناقص ${fmt(+x.short)} (مطلوب ${fmt(+x.need)} − موجود ${fmt(Math.max(0,+x.have))})`).join('\n')+'\n\n':'')+(D2.oils.length?'🛢 زيوت (بالجرام):\n'+D2.oils.map(x=>`- ${x.name}: ناقص ${shGk(x.short)} (مطلوب ${fmt(Math.round(+x.need))} − موجود ${fmt(Math.max(0,Math.round(+x.have)))})`).join('\n'):'')}
+const RLM='‏';
+const shQty=(x,u)=>{if(u==='g'){const g=Math.round(+x.short||0);return g>=1000?`${fmtG(g/1000)} كجم`:`${fmt(g)} جم`}return `${fmt(+x.short)} قطعة`};
+const LRM='‎',shNm=n=>String(n||'').replace(/[0-9A-Za-z][0-9A-Za-z .&'+-]*[0-9A-Za-z]|[A-Za-z]/g,m=>LRM+m+LRM);
+const shList=(L,u)=>L.map((x,i)=>`${RLM}${i+1}. ${shNm(x.name)}${RLM} ← *${shQty(x,u)}*`).join('\n');
+function shWAText(D2,k){const d=dshow(today());
+  if(k==='e')return `${RLM}*طلبية فوارغ · AF Group*\n${RLM}${d} · ${D2.empties.length} صنف\n\n${shList(D2.empties,'pc')}\n\n${RLM}شكراً 🙏`;
+  return `${RLM}*طلبية زيوت · AF Group*\n${RLM}${d} · ${D2.oils.length} صنف\n\n${shList(D2.oils,'g')}\n\n${RLM}شكراً 🙏`}
+function shText(D2){return `${RLM}طلبية فوارغ وزيوت ${dshow(today())}\n\n`+(D2.empties.length?`${RLM}🍶 فوارغ (${D2.empties.length}):\n`+D2.empties.map((x,i)=>`${RLM}${i+1}. ${shNm(x.name)}${RLM} ← ناقص ${shQty(x,'pc')} (مطلوب ${fmt(+x.need)} · موجود ${fmt(Math.max(0,+x.have))})`).join('\n')+'\n\n':'')+(D2.oils.length?`${RLM}🛢 زيوت (${D2.oils.length}):\n`+D2.oils.map((x,i)=>`${RLM}${i+1}. ${shNm(x.name)}${RLM} ← ناقص ${shQty(x,'g')} (مطلوب ${fmt(Math.round(+x.need))} · موجود ${fmt(Math.max(0,Math.round(+x.have)))} جم)`).join('\n'):'')}
 function shTable(t,L,u,cost){if(!L.length)return `<div class="panel"><h3>${t}</h3><p class="sub">مفيش نواقص 👌</p></div>`;
   return `<div class="panel"><h3>${t} (${L.length})</h3><div class="tbl scroll"><table><thead><tr><th>الصنف</th><th class="n">مطلوب</th><th class="n">موجود</th><th class="n">ناقص</th>${cost?'<th class="n">آخر سعر</th><th>آخر مورد</th>':''}<th>الأوردرات</th></tr></thead><tbody>
   ${L.map(x=>`<tr><td><b>${esc(x.name)}</b></td><td class="n">${fmt(+x.need)}</td><td class="n" style="${+x.have<0?'color:var(--bad)':''}">${fmt(+x.have)}</td><td class="n"><b style="color:var(--bad)">${fmt(+x.short)}</b>${u==='g'?' <span class="sub">جم</span>':''}</td>${cost?`<td class="n">${u==='g'?(x.last_kg!=null?fmt(+x.last_kg)+' /كجم':'—'):(x.last_cost!=null?fmt(+x.last_cost):'—')}</td><td class="sub">${esc(x.last_sup||'—')}</td>`:''}<td class="sub" style="max-width:220px">${esc(x.invs||'')}</td></tr>`).join('')}</tbody></table></div></div>`}
@@ -3646,7 +3653,7 @@ document.addEventListener('input',e=>{if(e.target.id==='shF'){SH.f=e.target.valu
 document.addEventListener('click',async e=>{if(OP)return;const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;
   if(x==='shRef'){SH.data=null;render();return}
   if(x==='shPrint'){printHTML(shHTML(),'نواقص '+today());return}
-  if(x==='shWA'||x==='shCopy'){const D2=SH.data;if(!D2)return;const t=shText(D2);if(x==='shCopy'){try{await navigator.clipboard.writeText(t);toast('اتنسخت القايمة')}catch(e){toast('مقدرتش أنسخ')}return}window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');return}
+  if(x==='shWA'||x==='shCopy'){const D2=SH.data;if(!D2)return;const wk=x==='shWA'?(b.dataset.k||'e'):null;if(wk&&!(wk==='e'?D2.empties:D2.oils).length){toast(wk==='e'?'مفيش فوارغ ناقصة':'مفيش زيوت ناقصة');return}const t=wk?shWAText(D2,wk):shText(D2);if(x==='shCopy'){try{await navigator.clipboard.writeText(t);toast('اتنسخت القايمة')}catch(e){toast('مقدرتش أنسخ')}return}window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');return}
 });
 /* ---------- v77: supplier invoice PDF import ---------- */
 const PDFJS_V='3.11.174';
