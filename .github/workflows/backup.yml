@@ -42,10 +42,11 @@ jobs:
           [ "$SIZE" -gt 200000 ] || { echo "::error::Dump suspiciously small ($SIZE bytes)"; exit 1; }
           LIST=$(/usr/lib/postgresql/17/bin/pg_restore --list "$F")
           for t in invoices invoice_lines products product_stock materials customers payments; do
-            echo "$LIST" | grep -qE "TABLE DATA public $t " || { echo "::error::Table $t missing from dump"; exit 1; }
+            echo "$LIST" | grep -qE "TABLE DATA public $t( |$)" || { echo "::error::Table $t missing from dump"; exit 1; }
           done
-          echo "$LIST" | grep -qE "TABLE DATA auth users " || { echo "::error::auth.users missing"; exit 1; }
+          echo "$LIST" | grep -qE "TABLE DATA auth users( |$)" || { echo "::error::auth.users missing"; exit 1; }
           echo "OK: all key tables present"
+          echo "$LIST" | grep -cE "TABLE DATA" | xargs echo "tables with data:"
 
       - name: Upload backup (kept 60 days)
         uses: actions/upload-artifact@v4
