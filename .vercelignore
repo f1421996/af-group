@@ -1,4 +1,5 @@
 .github
 docs
+migrations
 README.md
 .gitignore

@@ -1,0 +1,40 @@
+name: Daily health check
+
+on:
+  schedule:
+    - cron: '0 4 * * *'   # 04:00 UTC = 06:00 Cairo (winter) / 07:00 (summer)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  health:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Run health_check() on production
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -uo pipefail
+          test -n "$DB_URL" || { echo "::error::Secret SUPABASE_DB_URL is missing"; exit 1; }
+          psql "$DB_URL" -At -F '|' -c "select severity, n, check_name, coalesce(detail,'') from health_check()" > health.txt || { echo "::error::health_check() could not run"; exit 1; }
+          {
+            echo "## فحص صحة النظام"
+            echo
+            echo "| الحالة | العدد | الفحص | تفاصيل |"
+            echo "|---|---|---|---|"
+            while IFS='|' read -r sev n name detail; do
+              case "$sev" in fail) icon="❌";; warn) icon="⚠️";; *) icon="ℹ️";; esac
+              [ "$n" = "0" ] && icon="✅"
+              echo "| $icon $sev | $n | $name | $detail |"
+            done < health.txt
+          } >> "$GITHUB_STEP_SUMMARY"
+          FAILS=$(awk -F'|' '$1=="fail" && $2>0' health.txt | wc -l)
+          cat health.txt
+          if [ "$FAILS" -gt 0 ]; then
+            echo "::error::$FAILS health check(s) failed - open the run summary for details"
+            exit 1
+          fi
+          echo "All critical checks passed"
