@@ -1,0 +1,55 @@
+name: Daily database backup
+
+on:
+  schedule:
+    - cron: '0 22 * * *'   # 22:00 UTC = 00:00 Cairo (winter) / 01:00 (summer)
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Install PostgreSQL 17 client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client-17
+
+      - name: Dump database (public + auth)
+        env:
+          DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          test -n "$DB_URL" || { echo "::error::Secret SUPABASE_DB_URL is missing"; exit 1; }
+          STAMP=$(date -u +%Y-%m-%d_%H%M)
+          pg_dump "$DB_URL" --format=custom --compress=9 --no-owner --no-privileges \
+            --schema=public --schema=auth --file="af-backup-$STAMP.dump"
+          echo "STAMP=$STAMP" >> "$GITHUB_ENV"
+
+      - name: Verify the dump is real
+        run: |
+          set -euo pipefail
+          F="af-backup-$STAMP.dump"
+          SIZE=$(stat -c %s "$F")
+          echo "dump size: $SIZE bytes"
+          [ "$SIZE" -gt 200000 ] || { echo "::error::Dump suspiciously small ($SIZE bytes)"; exit 1; }
+          LIST=$(pg_restore --list "$F")
+          for t in invoices invoice_lines products product_stock materials customers payments; do
+            echo "$LIST" | grep -qE "TABLE DATA public $t " || { echo "::error::Table $t missing from dump"; exit 1; }
+          done
+          echo "$LIST" | grep -qE "TABLE DATA auth users " || { echo "::error::auth.users missing"; exit 1; }
+          echo "OK: all key tables present"
+
+      - name: Upload backup (kept 60 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: af-backup-${{ env.STAMP }}
+          path: af-backup-${{ env.STAMP }}.dump
+          retention-days: 60
+          if-no-files-found: error
