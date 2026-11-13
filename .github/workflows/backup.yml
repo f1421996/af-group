@@ -89,7 +89,8 @@ jobs:
         env:
           LIVE_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          set -uo pipefail
+          set +e   # pg_restore exits 1 on harmless Supabase-role messages; we judge by row counts instead
+          set -u
           BIN=/usr/lib/postgresql/17/bin
           F=$(ls dl/*.dump | head -1)
           export PGPASSWORD=test
@@ -99,7 +100,9 @@ jobs:
             $T -c "create role $r nologin" 2>/dev/null || true
           done
           $T -c "create extension if not exists pgcrypto" >/dev/null 2>&1 || true
+          echo "restoring: $F"
           $BIN/pg_restore -h localhost -U postgres -d postgres --no-owner --no-privileges "$F" 2> restore.err
+          echo "pg_restore exit code: $? (1 is normal here)"
           echo "pg_restore finished (non-fatal messages: $(wc -l < restore.err))"
           head -15 restore.err || true
           FAIL=0
