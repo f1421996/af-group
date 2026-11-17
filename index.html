@@ -1058,7 +1058,7 @@ async function loadAll(){
   try{
     const r=ME.role;
     const [pages,prods,prices,costs,stock,custs,cprices,invs,lines,lcosts,aliases,purch,pays,rets,rlines,exps,links,ords,queue,canc,purAll,moves,rec,mats,mcosts,rcps,rcosts,concs,cmps,audit,profs,mlog,mpur,dreps,lows,fups,sups,smoves,sinv,sinvl,fas,saliases,cclose]=await Promise.all([
-      all('pages','*'),all('products','id,code,brand,name,track,hidden,cnt_no,size_ml,stock_of',x=>x.order('code')),all('product_prices','product_id,page_id,price'),
+      all('pages','*'),all('products','id,code,brand,name,track,hidden,cnt_no,size_ml,stock_of,family',x=>x.order('code')),all('product_prices','product_id,page_id,price'),
       r==='owner'?all('product_costs','product_id,cost'):[],
       ['owner','billing','stock'].includes(r)?all('product_stock','product_id,qty'):[],
       r!=='stock'?all('customers','*',x=>x.is('deleted_at',null)):[],
@@ -1100,7 +1100,7 @@ async function loadAll(){
       r==='owner'?all('sup_aliases','key,product_id,material_id').catch(()=>[]):[],
       r==='owner'?all('cash_closings','*',x=>x.order('created_at',{ascending:false})).catch(()=>[]):[]]);
     const pr={},co={},st={};prices.forEach(x=>{(pr[x.product_id]??={})[x.page_id]=+x.price});costs.forEach(x=>co[x.product_id]=x.cost==null?null:+x.cost);stock.forEach(x=>st[x.product_id]=+x.qty);
-    S.allProducts=prods.map(p=>({id:p.id,code:p.code,cnt_no:p.cnt_no,size_ml:p.size_ml==null?null:+p.size_ml,brand:p.brand,name:p.name,track:p.track,hidden:!!p.hidden,stock_of:p.stock_of||null,prices:{ol:null,eb:null,mg:null,rd:null,dn:null,...(pr[p.id]||{})},cost:co[p.id]??null,stock:st[p.id]??0}));
+    S.allProducts=prods.map(p=>({id:p.id,code:p.code,cnt_no:p.cnt_no,size_ml:p.size_ml==null?null:+p.size_ml,brand:p.brand,fam:p.family||null,name:p.name,track:p.track,hidden:!!p.hidden,stock_of:p.stock_of||null,prices:{ol:null,eb:null,mg:null,rd:null,dn:null,...(pr[p.id]||{})},cost:co[p.id]??null,stock:st[p.id]??0}));
     {const pm={};S.allProducts.forEach(p=>pm[p.id]=p);S.allProducts.forEach(p=>{if(p.stock_of&&pm[p.stock_of])p.stock=pm[p.stock_of].stock});}
     S.products=S.allProducts.filter(p=>!p.hidden);
     const sp={};cprices.forEach(x=>{(sp[x.customer_id]??={})[x.product_id]=+x.price});
@@ -2295,7 +2295,12 @@ document.addEventListener('keydown',e=>{if(!RCV)return;if(e.key==='Enter'&&e.tar
 /* ---------- INVOICE TEMPLATES ---------- */
 const OL_LOGO=`<svg viewBox="0 0 620 270" style="height:110px;direction:ltr" direction="ltr" xmlns="http://www.w3.org/2000/svg"><text x="48" y="82" font-family="Archivo Black" font-size="54" fill="#f3e9d2" letter-spacing="2">THE</text><g stroke="#f3e9d2" stroke-width="5" stroke-linecap="round"><line x1="200" y1="44" x2="575" y2="44" opacity=".95"/><line x1="215" y1="58" x2="575" y2="58" opacity=".75"/><line x1="230" y1="72" x2="575" y2="72" opacity=".5"/><line x1="48" y1="97" x2="186" y2="97" stroke-width="4"/></g><text x="310" y="218" text-anchor="middle" font-family="Playfair Display" font-weight="900" font-size="172" fill="#f3e9d2" letter-spacing="-3">Outlet</text><line x1="70" y1="252" x2="205" y2="252" stroke="#c08a5c" stroke-width="2"/><line x1="415" y1="252" x2="550" y2="252" stroke="#c08a5c" stroke-width="2"/><text x="310" y="258" text-anchor="middle" font-family="Montserrat" font-weight="600" font-size="17" fill="#c08a5c" letter-spacing="9">PERFUME</text></svg>`;
 const RD_MARK=`<svg viewBox="0 0 100 100" width="74" height="74"><g fill="none" stroke="#1f4d3a" stroke-width="5"><rect x="22" y="22" width="56" height="56"/><rect x="22" y="22" width="56" height="56" transform="rotate(45 50 50)"/></g><circle cx="50" cy="50" r="11" fill="#b08a4a"/></svg>`;
-const mergeL=ls=>{const m=[],k={};ls.forEach(l=>{const key=(l.pid||l.name)+'|'+l.price;if(k[key])k[key].qty=+k[key].qty+ +l.qty;else{k[key]={...l,qty:+l.qty};m.push(k[key])}});return m};
+/* v90: display-only grouping by product family; stored line order (pos) is never changed */
+const invSortOn=()=>{try{return localStorage.getItem('af_invsort')!=='orig'}catch(e){return true}};
+const famOf=l=>{const p=l.pid&&(S.allProducts||S.products||[]).find(x=>x.id===l.pid);return (p&&p.fam)||String(l.name||'').trim().split(/\s+/)[0]||''};
+const sortL=ls=>{if(!invSortOn())return ls;const fi={},pi={};ls.forEach((l,n)=>{const f=famOf(l),k=l.pid||l.name;if(!(f in fi))fi[f]=n;if(!(k in pi))pi[k]=n});
+  return ls.map((l,n)=>({l,n})).sort((a,b)=>fi[famOf(a.l)]-fi[famOf(b.l)]||pi[a.l.pid||a.l.name]-pi[b.l.pid||b.l.name]||(+a.l.price)-(+b.l.price)||a.n-b.n).map(x=>x.l)};
+const mergeL=ls=>{const m=[],k={};ls.forEach(l=>{const key=(l.pid||l.name)+'|'+l.price;if(k[key])k[key].qty=+k[key].qty+ +l.qty;else{k[key]={...l,qty:+l.qty};m.push(k[key])}});return sortL(m)};
 function tpl(i){
   const c=i.cust,D=`<bdi dir="ltr">${dshow(i.date)}</bdi>`,pcs=invPcs(i),sub=invSub(i),tot=invTot(i),sh=+i.ship||0,pv=+i.prev||0;
   const rows=(num)=>mergeL(i.lines).map((l,k)=>`<tr>${num?`<td class="nn">${k+1}</td>`:''}<td class="it">${esc(l.name)}</td><td>${l.qty}</td><td>${fmt(l.price)}</td><td>${fmt(l.qty*l.price)}</td></tr>`).join('');
@@ -2339,7 +2344,7 @@ function showInvoice(id){
     sb.rpc('invoice_line_status',{p_inv:id}).then(({data,error})=>{invFetch=null;if(error||!data)return;invST[id]={...data,t:Date.now()};if($('#a4wrap')&&shownInv===id)showInvoice(id)}).catch(()=>{invFetch=null})}
   const fname=`${i.cust.name.replace(/[\\/:*?"<>|]/g,'')} - ${i.date}.pdf`;
   const pr=invProfit(i);
-  $('#modal').innerHTML=`<div class="mbox"><div class="row" style="justify-content:space-between"><div><h2 dir="ltr" style="text-align:right">${esc(i.no)}</h2><div class="sub">${pgTag(i.page)} · ${esc(i.cust.name)}</div></div><div class="row">${can('profit')?(()=>{const q=i.lines.filter(l=>l.cost!=null).reduce((a,l)=>a+ +l.qty,0),av=q?pr.p/q:null;return `<span class="chip ${av==null?'':av<0?'bad':av<PF_T?'warn':'ok'}">ربح ${fmt(pr.p)}${av!=null?` · القطعة ${fmt(Math.round(av))}`:''}${pr.miss?' · ناقص تكلفة':''}</span>`})():''}${can('stock')?`<button class="btn sm" data-x="ffTog" data-id="${i.id}" data-v="${i.fulfilled?0:1}">${i.fulfilled?'↩ رجّعها للتجهيز':'📦 اتجهزت'}</button>`:''}<button class="btn sm" data-x="invWA" data-id="${i.id}">📲 واتساب</button>${canG()?`<button class="btn sm" data-x="stkCopy" data-id="${i.id}">🏭 نسخة المخزن</button>`:''}${can('invoice')?`<button class="btn sm" data-editinv="${i.id}">تعديل</button>`:''}${['owner','billing'].includes(role)?`<button class="btn sm danger" data-x="cnOpen">إلغاء الفاتورة</button>`:''}<button class="btn sm pri" data-print="${i.id}">اطبع / PDF</button><button class="btn sm" data-close="1">إغلاق</button></div></div>
+  $('#modal').innerHTML=`<div class="mbox"><div class="row" style="justify-content:space-between"><div><h2 dir="ltr" style="text-align:right">${esc(i.no)}</h2><div class="sub">${pgTag(i.page)} · ${esc(i.cust.name)}</div></div><div class="row">${can('profit')?(()=>{const q=i.lines.filter(l=>l.cost!=null).reduce((a,l)=>a+ +l.qty,0),av=q?pr.p/q:null;return `<span class="chip ${av==null?'':av<0?'bad':av<PF_T?'warn':'ok'}">ربح ${fmt(pr.p)}${av!=null?` · القطعة ${fmt(Math.round(av))}`:''}${pr.miss?' · ناقص تكلفة':''}</span>`})():''}${can('stock')?`<button class="btn sm" data-x="ffTog" data-id="${i.id}" data-v="${i.fulfilled?0:1}">${i.fulfilled?'↩ رجّعها للتجهيز':'📦 اتجهزت'}</button>`:''}<button class="btn sm" data-x="invWA" data-id="${i.id}">📲 واتساب</button><button class="btn sm ghost" data-x="invSortTog" data-id="${i.id}" title="ترتيب الأصناف في العرض والطباعة">${invSortOn()?'🗂 مجمّعة':'📝 زي ما اتكتبت'}</button>${canG()?`<button class="btn sm" data-x="stkCopy" data-id="${i.id}">🏭 نسخة المخزن</button>`:''}${can('invoice')?`<button class="btn sm" data-editinv="${i.id}">تعديل</button>`:''}${['owner','billing'].includes(role)?`<button class="btn sm danger" data-x="cnOpen">إلغاء الفاتورة</button>`:''}<button class="btn sm pri" data-print="${i.id}">اطبع / PDF</button><button class="btn sm" data-close="1">إغلاق</button></div></div>
    <div class="custcard"><div class="row" style="gap:14px"><span>الإجمالي <b class="num">${fmt(invNet(i))}</b>${invRet(i)?` <span class="sub">(بعد مرتجع ${fmt(invRet(i))})</span>`:''}</span>${+i.prev>0?`<span>رصيد سابق <b class="num">${fmt(i.prev)}</b></span>`:''}<span>المدفوع <b class="num">${fmt(invPaid(i))}</b></span>${payChip(i)}</div>
     <div class="row" style="gap:6px">${invDue(i)>0?`<button class="btn sm pri" data-x="invPay">سجّل دفعة</button>`:''}${can('invoice')?`<button class="btn sm" data-x="invRet">مرتجع</button>`:''}${i.custId&&cust(i.custId)?`<button class="btn sm" data-x="stmt" data-id="${i.custId}">كشف حساب العميل</button>`:''}</div></div>
    ${role==='owner'&&sharePage(i.page)?(()=>{const pcs=invPcs(i)-invRetPcs(i);const earn=i.pp!=null?Math.round(i.pp*pcs):null;return `<div class="panel" style="border-inline-start:4px solid var(--ok)"><div class="row" style="justify-content:space-between;flex-wrap:wrap;gap:8px"><div><h3 style="margin:0">💰 ربح الصفحة من الفاتورة دي</h3><p class="hint" style="margin:4px 0 0">اكتب ربح القطعة لصفحة ${esc(PG[i.page]?.short||'')} · ${fmt(pcs)} قطعة${earn!=null?` · ربحها <b style="color:var(--ok)">${fmt(earn)} ج</b>`:' · لسه متحطّش'}</p></div><div class="row" style="gap:6px"><input type="number" min="0" step="0.5" id="pp_${i.id}" value="${i.pp??''}" placeholder="ربح القطعة" style="width:110px"><button class="btn pri" data-x="ppSave" data-id="${i.id}">حفظ</button></div></div></div>`})():''}
@@ -2349,7 +2354,7 @@ function showInvoice(id){
    ${retsOf(i).length?`<div class="hint">مرتجعات: ${retsOf(i).map(r=>`${dshow(r.date)}: ${r.lines.map(l=>l.name+' × '+l.qty).join('، ')}${r.note?' ('+esc(r.note)+')':''}`).join(' · ')}</div>`:''}
    ${(()=>{const P=invPct(i);const canC=['owner','billing'].includes(role)||!!myPage();const cmps=S.complaints||[];
      const canRm=['owner','billing'].includes(role)&&!i.fulfilled;const ST=invST[i.id]||null;
-     const pend=i.lines.filter(l=>!l.ckAt),done=i.lines.filter(l=>l.ckAt);
+     const pend=sortL(i.lines.filter(l=>!l.ckAt)),done=sortL(i.lines.filter(l=>l.ckAt));
      const why=l=>{if(!ST)return '<span class="sub">…</span>';const z=ST.lines[l.lid];if(!z)return '';
        if(z.claim)return `<span class="chip warn">🔒 ${esc(z.claim)} شغال عليه</span>`;
        const sh=z.short;if(!sh)return '<span class="chip ok">خاماته متوفرة</span>';
@@ -3045,6 +3050,7 @@ document.addEventListener('change',e=>{if(!OP)return;const t=e.target;if(t.datas
 document.addEventListener('click',async e=>{
   if(OP)return;const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x,id=b.dataset.id;
   if(x==='invWA')return sendInvoiceWA(id);
+  if(x==='invSortTog'){try{localStorage.setItem('af_invsort',invSortOn()?'orig':'fam')}catch(e){}toast(invSortOn()?'الأصناف مجمّعة حسب النوع':'الأصناف بترتيب الكتابة');return showInvoice(id)}
   if(x==='stkCopy'){const i=S.invoices.find(v=>v.id===id);if(i)printHTML(stkCopyHTML(i),'نسخة المخزن - '+i.no);return}
   if(x==='invPay'){const box=$('#invPayBox');box.hidden=!box.hidden;return}
   if(x==='invRet'){const box=$('#invRetBox');box.hidden=!box.hidden;return}
@@ -3962,7 +3968,7 @@ document.addEventListener('click',async e=>{
   if(x==='tmIss'){tmIss=id;soft();setTimeout(()=>$('#tmR')?.focus(),50);return}
   if(x==='tmIssX'){tmIss=null;soft();return}
   if(x==='tmSend'){const t=($('#tmR')?.value||'').trim();if(!t){toast('اكتب المشكلة');return}const r=await act(()=>q(sb.rpc('read_team_msg',{p_id:id,p_reply:t})));if(r===false)return;S.msgs=(S.msgs||[]).filter(m=>m.id!==id);tmIss=null;toast('💬 اتبعت لفارس');render();return}
-  if(x==='wkAsk'){const ids=(b.dataset.lids||'').split(',').filter(Boolean);if(!ids.length)return;const r=await act(()=>q(sb.rpc('request_override',{p_lines:ids})));if(!r)return;toast(r.n?'🔓 اتبعت لفارس، أول ما يوافق تقدر تعمله وتدوس ✓':r.ok?'✅ فارس سامح الصنف ده قبل كده، اعمله ودوس ✓':r.wait?'⏳ فيه طلب سماح على الصنف ده مستني فارس':'الخامة بقت موجودة، اعمله عادي');await loadAll();render();return}
+  if(x==='wkAsk'){const ids=(b.dataset.lids||'').split(',').filter(Boolean);if(!ids.length)return;const r=await act(()=>q(sb.rpc('request_override',{p_lines:ids})));if(!r)return;toast(r.n?'🔓 اتبعت لفارس، أول ما يوافق تقدر تعمله وتدوس ✓':'الخامة بقت موجودة، اعمله عادي');await loadAll();render();return}
   if(x==='ovOk'||x==='ovNo'){const ids=id==='all'?(S.ovr||[]).map(o=>o.id):[id];const r=await act(()=>q(sb.rpc('decide_override',{p_ids:ids,p_ok:x==='ovOk'})));if(!r)return;toast(x==='ovOk'?`✓ اتسمح (${r.n}) · العامل يقدر يعمله ويعلّمه`:'✕ اترفض');await loadAll();render();return}
   if(x==='wkClaim')return claimLines([b.dataset.lid],true);
   if(x==='wkFree')return claimLines([b.dataset.lid],false);
@@ -4433,7 +4439,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.add
 startApp();
 </script>
 
-<!-- v89: AI assistant (💬 اسأل) + drafts + morning brief + learning -->
+<!-- v90: invoice lines grouped by family (display only) | v89: AI assistant -->
 <style>
 #agFab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;height:50px;padding:0 18px 0 14px;border-radius:25px;border:0;background:var(--accent,#C9A45C);color:#1b1204;font:600 15px var(--ui,inherit);display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
 #agFab[hidden]{display:none}
