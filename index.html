@@ -4433,10 +4433,12 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.add
 startApp();
 </script>
 
-<!-- v88: AI assistant (💬 اسأل) + invoice drafts saved by button -->
+<!-- v89: AI assistant (💬 اسأل) + drafts + morning brief + learning -->
 <style>
 #agFab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;height:50px;padding:0 18px 0 14px;border-radius:25px;border:0;background:var(--accent,#C9A45C);color:#1b1204;font:600 15px var(--ui,inherit);display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
 #agFab[hidden]{display:none}
+#agFab.dot::after{content:"";position:absolute;top:2px;right:4px;width:11px;height:11px;border-radius:50%;background:#e5484d;border:2px solid var(--bg,#131210)}
+#agLog .m.brief{border-color:var(--accent,#C9A45C)}
 body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
 #agBox{position:fixed;left:16px;bottom:16px;width:400px;height:min(80vh,640px);z-index:70;background:var(--surface,#1B1A17);color:var(--ink,#F1ECE2);border:1px solid var(--line,#2D2A25);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;direction:rtl;overflow:hidden;font-family:var(--ui,inherit)}
 #agBox[hidden]{display:none}
@@ -4451,6 +4453,8 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
 #agLog .a{align-self:flex-end;background:var(--bg,#131210);border:1px solid var(--line,#2D2A25);border-bottom-left-radius:4px}
 #agLog .a b{color:var(--accent,#C9A45C)}
 #agLog .a.wait{opacity:.6}
+#agLog .rt{display:flex;gap:6px;margin-top:6px;justify-content:flex-start}#agLog .rt button{border:1px solid var(--line,#2D2A25);background:transparent;border-radius:8px;padding:1px 7px;font-size:12px;cursor:pointer;opacity:.6}#agLog .rt button.on{opacity:1;border-color:var(--accent,#C9A45C)}
+#agLog a.wa{display:inline-block;margin:4px 0;padding:4px 10px;border-radius:8px;background:#1f8f4e;color:#fff;text-decoration:none;font-weight:600}
 #agChips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
 #agChips button{border:1px solid var(--line,#2D2A25);background:var(--bg,#131210);color:var(--muted,#A49C8D);border-radius:14px;padding:5px 11px;font-size:12px;cursor:pointer}
 #agChips button:hover{color:var(--accent,#C9A45C);border-color:var(--accent,#C9A45C)}
@@ -4486,9 +4490,9 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
     stock:['خطة شغلي النهارده، أبدأ بإيه؟','إنتاجي الأسبوع ده','الأوردرات المفتوحة','سوفاج فاضل منه كام؟'],
     page:['أوردراتي المفتوحة','سعر سوفاج لعميل…','العميل … بياخد إيه عادة؟','الفاتورة … وصلت لفين؟'],
     billing:['الأوردرات المفتوحة','سعر صنف لعميل…','الفاتورة … وصلت لفين؟'],
-    owner:['إنتاج الفريق الأسبوع ده','خطة الشغل النهارده','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
+    owner:['قايمة الشراء','إنتاج الفريق الأسبوع ده','خطة الشغل النهارده','افتكر إن …','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
   };
-  const fmtA=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  const fmtA=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(https:\/\/wa\.me\/[^\s<]+)/g,u=>`<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener" class="wa">📲 ابعت على واتساب</a>`);
   function add(cls,html){const d=document.createElement('div');d.className='m '+cls;d.innerHTML=html;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
   function cnt(r){if(!r)return;el('agCnt').textContent=r.owner?'':(r.limit!=null?`${r.used_today}/${r.limit} النهارده`:'')}
   function chips(){const c=el('agChips');const L=CHIPS[ME&&ME.role]||CHIPS.stock;c.innerHTML=L.map(x=>`<button type="button">${esc(x)}</button>`).join('');
@@ -4503,11 +4507,14 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
       const r=await fetch(SB_URL+'/functions/v1/agent',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+session.access_token},body:JSON.stringify({q,history:AG.hist.slice(-6)})});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.answer)throw new Error(j.error==='auth'?'سجّل دخول تاني':'المساعد مش متاح دلوقتي');
-      w.classList.remove('wait');w.innerHTML=fmtA(j.answer);cnt(j);(j.drafts||[]).forEach(drawDraft);
+      w.classList.remove('wait');w.innerHTML=fmtA(j.answer);cnt(j);if(j.id)rateRow(w,j.id);(j.drafts||[]).forEach(drawDraft);
       AG.hist.push({role:'user',content:q},{role:'assistant',content:j.answer});AG.hist=AG.hist.slice(-8);
     }catch(e){w.classList.remove('wait');w.textContent='⚠️ '+(e.message||'حصلت مشكلة')}
     AG.busy=false;log.scrollTop=log.scrollHeight;
   }
+  function rateRow(w,id){const r=document.createElement('div');r.className='rt';r.innerHTML='<button type="button" data-v="1" title="رد كويس">👍</button><button type="button" data-v="-1" title="رد مش مظبوط">👎</button>';
+    w.appendChild(r);r.querySelectorAll('button').forEach(b=>b.onclick=async()=>{const v=+b.dataset.v;r.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+      try{await sb.rpc('ag_rate',{p_id:id,p_val:v});if(v<0)toast('شكرًا، فارس هيراجع الرد ده')}catch(e){}})}
   const nf=n=>(+n||0).toLocaleString('en-US');
   function drawDraft(d){
     const el=document.createElement('div');el.className='dr';
@@ -4534,11 +4541,18 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
     w.innerHTML=`<div id="agUse"><b>📊 استهلاك الشهر</b><br>${fmt(u.month_cost)}$ من ${fmt(u.cap)}$ — ${u.month_msgs} رسالة<br>
      <table><tr><th>المستخدم</th><th>النهارده</th><th>الشهر</th><th>$</th></tr>${(u.users||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${x.today}</td><td>${x.month}</td><td>${fmt(x.cost)}</td></tr>`).join('')||'<tr><td colspan=4>لسه مفيش</td></tr>'}</table>
      <div style="margin-top:8px">حد يومي لكل موظف <input id="agD" type="number" min="1" max="500" value="${u.daily_limit}"> سقف شهري $ <input id="agC" type="number" min="0" max="200" step="0.5" value="${u.cap}"> <button type="button" id="agSave" class="btn sm">حفظ</button></div>
+     <details style="margin-top:6px" ${(u.bad||[]).length?'open':''}><summary>👎 ردود محتاجة مراجعة (${(u.bad||[]).length})</summary>${(u.bad||[]).map(x=>`<div style="margin:4px 0">${esc(x.at)} — <b>${esc(x.name)}</b>: ${esc(x.q)}<br><small>${esc(x.a||'')}</small></div>`).join('')||'<div>مفيش 👌</div>'}</details>
+     <details style="margin-top:6px"><summary>📌 قواعدك للمساعد (${(u.rules||[]).length}) · أسماء اتعلمها: ${u.learned||0}</summary>${(u.rules||[]).map(x=>`<div style="margin:4px 0">• ${esc(x.body)} <button type="button" class="btn sm" data-rdel="${x.id}">مسح</button></div>`).join('')||'<div>مفيش قواعد. اكتب للمساعد: «افتكر إن …»</div>'}</details>
      <details style="margin-top:6px"><summary>آخر الأسئلة</summary>${(u.recent||[]).map(x=>`<div>${esc(x.at)} — <b>${esc(x.name)}</b>: ${esc(x.q)}${x.ok?'':' ⚠️'}</div>`).join('')}</details></div>`;
+    w.querySelectorAll('[data-rdel]').forEach(b=>b.onclick=async()=>{const {error}=await sb.rpc('ag_del_rule',{p_id:+b.dataset.rdel});if(!error)b.parentElement.remove();toast(error?error.message:'اتمسحت')});
     el('agSave').onclick=async()=>{const {error}=await sb.rpc('ag_set_config',{p_daily:+el('agD').value,p_cap:+el('agC').value});toast(error?error.message:'اتحفظ')};
     log.scrollTop=log.scrollHeight;
   }
-  fab.onclick=()=>{box.hidden=false;if(!log.children.length)reset();setTimeout(()=>inp.focus(),50)};
+  async function checkBrief(){try{const {data}=await sb.rpc('ag_my_brief',{p_seen:false});if(!data)return;AG.brief=data;if(!data.seen)fab.classList.add('dot');if(location.hash==='#brief'){openBox();history.replaceState(null,'',location.pathname)}}catch(e){}}
+  function showBrief(){if(!AG.brief||AG.briefShown)return;AG.briefShown=true;const d=add('a brief',fmtA(AG.brief.body));fab.classList.remove('dot');sb.rpc('ag_my_brief',{p_seen:true}).then(()=>{},()=>{});AG.hist.push({role:'user',content:'رسالة الصبح'},{role:'assistant',content:AG.brief.body});return d}
+  function openBox(){box.hidden=false;if(!log.children.length)reset();showBrief();setTimeout(()=>inp.focus(),50)}
+  fab.onclick=openBox;
+  try{navigator.serviceWorker&&navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='push-open'&&String(e.data.url||'').includes('#brief')){if(!AG.brief)checkBrief().then(openBox);else openBox()}})}catch(e){}
   el('agX').onclick=()=>{box.hidden=true};
   el('agNew').onclick=reset;
   el('agUseBtn').onclick=usage;
@@ -4546,8 +4560,8 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask(inp.value)}});
   const t=setInterval(()=>{
     const app=document.getElementById('app');
-    if(typeof ME!=='undefined'&&ME&&app&&!app.hidden){fab.hidden=false;el('agUseBtn').hidden=ME.role!=='owner'}
-    else{fab.hidden=true;box.hidden=true;if(typeof ME==='undefined'||!ME){AG.hist=[];log.innerHTML=''}}
+    if(typeof ME!=='undefined'&&ME&&app&&!app.hidden){if(fab.hidden&&!AG.briefChecked){AG.briefChecked=true;checkBrief()}fab.hidden=false;el('agUseBtn').hidden=ME.role!=='owner'}
+    else{fab.hidden=true;box.hidden=true;if(typeof ME==='undefined'||!ME){AG.hist=[];log.innerHTML='';AG.brief=null;AG.briefShown=false;AG.briefChecked=false;fab.classList.remove('dot')}}
   },1000);
 })();
 </script>
