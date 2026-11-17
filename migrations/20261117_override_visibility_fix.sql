@@ -1,0 +1,5 @@
+-- 2026-11-17: workers could not see an approval/pending request made by a coworker on the same line,
+-- so the screen kept showing "اطلب سماح" and request_override silently skipped it ("الخامة بقت موجودة").
+-- list_overrides: stock/maker now see every pending/approved override on open lines (own rejected for 6h).
+-- request_override: returns why nothing was sent: ok (already approved), wait (pending), free (no shortage).
+-- Full SQL applied via Supabase migration override_visibility_fix_20261117.

@@ -3962,7 +3962,7 @@ document.addEventListener('click',async e=>{
   if(x==='tmIss'){tmIss=id;soft();setTimeout(()=>$('#tmR')?.focus(),50);return}
   if(x==='tmIssX'){tmIss=null;soft();return}
   if(x==='tmSend'){const t=($('#tmR')?.value||'').trim();if(!t){toast('اكتب المشكلة');return}const r=await act(()=>q(sb.rpc('read_team_msg',{p_id:id,p_reply:t})));if(r===false)return;S.msgs=(S.msgs||[]).filter(m=>m.id!==id);tmIss=null;toast('💬 اتبعت لفارس');render();return}
-  if(x==='wkAsk'){const ids=(b.dataset.lids||'').split(',').filter(Boolean);if(!ids.length)return;const r=await act(()=>q(sb.rpc('request_override',{p_lines:ids})));if(!r)return;toast(r.n?'🔓 اتبعت لفارس، أول ما يوافق تقدر تعمله وتدوس ✓':'الخامة بقت موجودة، اعمله عادي');await loadAll();render();return}
+  if(x==='wkAsk'){const ids=(b.dataset.lids||'').split(',').filter(Boolean);if(!ids.length)return;const r=await act(()=>q(sb.rpc('request_override',{p_lines:ids})));if(!r)return;toast(r.n?'🔓 اتبعت لفارس، أول ما يوافق تقدر تعمله وتدوس ✓':r.ok?'✅ فارس سامح الصنف ده قبل كده، اعمله ودوس ✓':r.wait?'⏳ فيه طلب سماح على الصنف ده مستني فارس':'الخامة بقت موجودة، اعمله عادي');await loadAll();render();return}
   if(x==='ovOk'||x==='ovNo'){const ids=id==='all'?(S.ovr||[]).map(o=>o.id):[id];const r=await act(()=>q(sb.rpc('decide_override',{p_ids:ids,p_ok:x==='ovOk'})));if(!r)return;toast(x==='ovOk'?`✓ اتسمح (${r.n}) · العامل يقدر يعمله ويعلّمه`:'✕ اترفض');await loadAll();render();return}
   if(x==='wkClaim')return claimLines([b.dataset.lid],true);
   if(x==='wkFree')return claimLines([b.dataset.lid],false);
