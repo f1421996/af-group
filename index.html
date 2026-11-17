@@ -4433,30 +4433,43 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.add
 startApp();
 </script>
 
-<!-- v86: AI assistant (💬 اسأل) -->
+<!-- v87: AI assistant (💬 اسأل) + invoice drafts saved by button -->
 <style>
-#agFab{position:fixed;left:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;width:52px;height:52px;border-radius:50%;border:0;background:var(--ink,#111);color:var(--bg,#fff);font-size:24px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+#agFab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;height:50px;padding:0 18px 0 14px;border-radius:25px;border:0;background:var(--accent,#C9A45C);color:#1b1204;font:600 15px var(--ui,inherit);display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
+#agFab[hidden]{display:none}
 body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
-#agBox{position:fixed;inset:auto 0 0 auto;left:0;right:0;margin:auto;max-width:520px;height:min(82vh,680px);z-index:70;background:var(--bg,#fff);color:var(--ink,#111);border-radius:16px 16px 0 0;box-shadow:0 -6px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;direction:rtl}
+#agBox{position:fixed;left:16px;bottom:16px;width:400px;height:min(80vh,640px);z-index:70;background:var(--surface,#1B1A17);color:var(--ink,#F1ECE2);border:1px solid var(--line,#2D2A25);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,.6);display:flex;flex-direction:column;direction:rtl;overflow:hidden;font-family:var(--ui,inherit)}
 #agBox[hidden]{display:none}
-#agBox .agh{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--surface2,#eee)}
-#agBox .agh b{flex:1;font-size:15px}
-#agBox .agh small{color:var(--muted,#888)}
-#agBox .agh button{border:0;background:var(--surface2,#eee);color:inherit;border-radius:8px;padding:6px 10px;cursor:pointer}
-#agLog{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-#agLog .m{max-width:88%;padding:8px 11px;border-radius:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;font-size:14px}
-#agLog .u{align-self:flex-start;background:var(--ink,#111);color:var(--bg,#fff)}
-#agLog .a{align-self:flex-end;background:var(--surface2,#f1f1f1)}
+@media(max-width:600px){#agBox{left:0;right:0;bottom:0;width:auto;height:88vh;border-radius:18px 18px 0 0}}
+#agBox .agh{display:flex;align-items:center;gap:8px;padding:12px 14px;background:var(--bg,#131210);border-bottom:1px solid var(--line,#2D2A25)}
+#agBox .agh b{flex:1;font-size:15px;color:var(--accent,#C9A45C)}
+#agBox .agh small{color:var(--muted,#A49C8D);font-size:12px}
+#agBox .agh button{border:1px solid var(--line,#2D2A25);background:transparent;color:var(--ink,#F1ECE2);border-radius:8px;padding:5px 9px;cursor:pointer}
+#agLog{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+#agLog .m{max-width:90%;padding:9px 12px;border-radius:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;font-size:14px}
+#agLog .u{align-self:flex-start;background:var(--accent,#C9A45C);color:#1b1204;border-bottom-right-radius:4px}
+#agLog .a{align-self:flex-end;background:var(--bg,#131210);border:1px solid var(--line,#2D2A25);border-bottom-left-radius:4px}
+#agLog .a b{color:var(--accent,#C9A45C)}
 #agLog .a.wait{opacity:.6}
-#agChips{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 8px}
-#agChips button{border:1px solid var(--surface2,#ddd);background:transparent;color:inherit;border-radius:14px;padding:5px 10px;font-size:12px;cursor:pointer}
-#agForm{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--surface2,#eee)}
-#agForm textarea{flex:1;resize:none;height:44px;border-radius:10px;border:1px solid var(--surface2,#ccc);padding:10px;font:inherit;background:transparent;color:inherit}
-#agForm button{border:0;border-radius:10px;padding:0 16px;background:var(--ink,#111);color:var(--bg,#fff);font-size:15px;cursor:pointer}
-#agUse table{width:100%;border-collapse:collapse;font-size:13px}#agUse td,#agUse th{padding:4px 6px;border-bottom:1px solid var(--surface2,#eee);text-align:right}
-#agUse input{width:80px;padding:6px;border-radius:8px;border:1px solid var(--surface2,#ccc);background:transparent;color:inherit}
+#agChips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
+#agChips button{border:1px solid var(--line,#2D2A25);background:var(--bg,#131210);color:var(--muted,#A49C8D);border-radius:14px;padding:5px 11px;font-size:12px;cursor:pointer}
+#agChips button:hover{color:var(--accent,#C9A45C);border-color:var(--accent,#C9A45C)}
+#agForm{display:flex;gap:8px;padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--line,#2D2A25);background:var(--bg,#131210)}
+#agForm textarea{flex:1;resize:none;height:44px;border-radius:10px;border:1px solid var(--line,#2D2A25);padding:10px;font:inherit;background:var(--surface,#1B1A17);color:var(--ink,#F1ECE2)}
+#agForm textarea:focus{outline:none;border-color:var(--accent,#C9A45C)}
+#agForm button{border:0;border-radius:10px;padding:0 16px;background:var(--accent,#C9A45C);color:#1b1204;font-weight:600;font-size:15px;cursor:pointer}
+#agLog .dr{align-self:stretch;background:var(--bg,#131210);border:1px solid var(--accent,#C9A45C);border-radius:12px;padding:10px 12px;font-size:13px}
+#agLog .dr h4{margin:0 0 6px;font-size:14px;color:var(--accent,#C9A45C)}
+#agLog .dr table{width:100%;border-collapse:collapse}#agLog .dr td,#agLog .dr th{padding:4px 3px;border-bottom:1px solid var(--line,#2D2A25);text-align:right;vertical-align:top}
+#agLog .dr th{color:var(--muted,#A49C8D);font-weight:500;font-size:12px}#agLog .dr small{color:var(--muted,#A49C8D);display:block;font-size:11px}
+#agLog .dr .tot{display:flex;justify-content:space-between;margin:8px 0;font-weight:600}
+#agLog .dr .act{display:flex;gap:8px}#agLog .dr .act button{flex:1;border:0;border-radius:9px;padding:9px;font-weight:600;cursor:pointer;font-family:inherit}
+#agLog .dr .ok{background:var(--accent,#C9A45C);color:#1b1204}#agLog .dr .no{background:transparent;color:var(--muted,#A49C8D);border:1px solid var(--line,#2D2A25)!important}
+#agLog .dr .st{margin-top:6px;font-weight:600}
+#agUse table{width:100%;border-collapse:collapse;font-size:13px}#agUse td,#agUse th{padding:4px 6px;border-bottom:1px solid var(--line,#2D2A25);text-align:right}
+#agUse input{width:80px;padding:6px;border-radius:8px;border:1px solid var(--line,#2D2A25);background:var(--surface,#1B1A17);color:inherit}
 </style>
-<button id="agFab" type="button" aria-label="اسأل المساعد" hidden>💬</button>
+<button id="agFab" type="button" aria-label="اسأل المساعد" hidden>💬 <span>اسأل</span></button>
 <div id="agBox" hidden role="dialog" aria-label="المساعد">
   <div class="agh"><b>🤖 مساعد الفارس</b><small id="agCnt"></small><button type="button" id="agUseBtn" hidden>📊</button><button type="button" id="agNew" title="محادثة جديدة">↺</button><button type="button" id="agX" aria-label="قفل">✕</button></div>
   <div id="agLog"></div>
@@ -4490,10 +4503,28 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
       const r=await fetch(SB_URL+'/functions/v1/agent',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+session.access_token},body:JSON.stringify({q,history:AG.hist.slice(-6)})});
       const j=await r.json().catch(()=>({}));
       if(!r.ok||!j.answer)throw new Error(j.error==='auth'?'سجّل دخول تاني':'المساعد مش متاح دلوقتي');
-      w.classList.remove('wait');w.innerHTML=fmtA(j.answer);cnt(j);
+      w.classList.remove('wait');w.innerHTML=fmtA(j.answer);cnt(j);(j.drafts||[]).forEach(drawDraft);
       AG.hist.push({role:'user',content:q},{role:'assistant',content:j.answer});AG.hist=AG.hist.slice(-8);
     }catch(e){w.classList.remove('wait');w.textContent='⚠️ '+(e.message||'حصلت مشكلة')}
     AG.busy=false;log.scrollTop=log.scrollHeight;
+  }
+  const nf=n=>(+n||0).toLocaleString('en-US');
+  function drawDraft(d){
+    const el=document.createElement('div');el.className='dr';
+    el.innerHTML=`<h4>🧾 مسودة فاتورة — ${esc(d.customer)}${d.page?' · '+esc(d.page):''}</h4>
+      <table><tr><th>الصنف</th><th>كمية</th><th>سعر</th><th>إجمالي</th></tr>${(d.lines||[]).map(l=>`<tr><td>${esc(l.name)}${l.F?` <small>F${esc(l.F)}${l.g?` · ${esc(l.g)} جم`:''}</small>`:''}</td><td>${nf(l.qty)}</td><td>${nf(l.price)}<small>${esc(l.src||'')}</small></td><td>${nf(l.qty*l.price)}</td></tr>`).join('')}</table>
+      <div class="tot"><span>الإجمالي</span><span>${nf(d.total)}</span></div>
+      <div class="act"><button type="button" class="ok">✅ سجّل الفاتورة</button><button type="button" class="no">إلغاء</button></div><div class="st"></div>`;
+    log.appendChild(el);log.scrollTop=log.scrollHeight;
+    const ok=el.querySelector('.ok'),no=el.querySelector('.no'),st=el.querySelector('.st'),act=el.querySelector('.act');
+    no.onclick=()=>{act.remove();st.textContent='اتلغت. محدش سجّل حاجة.'};
+    ok.onclick=async()=>{ok.disabled=no.disabled=true;ok.textContent='بسجّل…';
+      const {data,error}=await sb.rpc('ag_commit_draft',{p_id:d.id});
+      if(error){ok.disabled=no.disabled=false;ok.textContent='✅ سجّل الفاتورة';st.textContent='⚠️ '+(error.message==='draft_expired'?'المسودة قديمة، اطلبها تاني':error.message);return}
+      act.remove();st.innerHTML=`✅ اتسجلت الفاتورة <b>${esc(data.no||'')}</b>${data.already?' (كانت متسجلة قبل كده)':''}. الدفع سجّله من الفاتورة لو اتدفع حاجة.`;
+      AG.hist.push({role:'assistant',content:`تم: اتسجلت الفاتورة ${data.no} لـ ${d.customer}.`});
+      try{if(typeof loadAll==='function'){await loadAll();if(typeof render==='function')render()}}catch(e){}
+    };
   }
   async function usage(){
     const w=add('a wait','بجيب الاستهلاك…');
