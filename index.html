@@ -2367,7 +2367,7 @@ function showInvoice(id){
      ${pend.length?`<div class="ffh" style="margin-top:10px">⬜ لسه (${pend.length})${pend.length?` <span class="sub">· ${fmt(pend.reduce((a,l)=>a+l.qty,0))} قطعة</span>`:''}</div>
      ${canRm?`<div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">${stuck?`<button class="btn sm" data-x="lnSelStuck" data-id="${i.id}">⛔ حدد الواقفة على خامات (${stuck})</button>`:''}${selN?`<button class="btn sm danger" data-x="lnRmSel" data-id="${i.id}">🗑 شيل المحدد (${selN})</button><button class="btn sm ghost" data-x="lnSelClr" data-id="${i.id}">إلغاء التحديد</button>`:''}</div>`:''}
      <div class="tbl" style="margin-top:8px"><table><tbody>${pend.map(l=>rowH(l,true)).join('')}</tbody></table></div>`:`<div class="ffh ok" style="margin-top:10px">✅ كل الأصناف اتعملت</div>`}
-     ${done.length?`${(()=>{const dn=done.filter(l=>l.dlv),nd=done.filter(l=>!l.dlv&&l.lid);const qs=a=>fmt(a.reduce((t,l)=>t+l.qty,0));return `<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><span class="chip ${nd.length?'warn':'ok'}">📦 اتسلّم ${qs(dn)} قطعة · جاهز ومستنّي التسليم ${qs(nd)}</span>${canDlv&&nd.length?`<button class="btn sm pri" data-x="dlvAll" data-id="${i.id}">📦 سلّم كل الجاهز (${nd.length})</button>`:''}<button class="btn sm" data-x="dlvSlip" data-id="${i.id}">🧾 كشف استلام</button>${i.cust&&i.cust.phone?`<button class="btn sm" data-x="dlvWA" data-id="${i.id}">📲 ابعته واتساب</button>`:''}</div>`})()}<details style="margin-top:10px" ${pend.length?'':'open'}><summary><b>✅ اتعملت (${done.length})</b></summary><div class="tbl" style="margin-top:8px"><table><tbody>${done.map(l=>rowH(l,false)).join('')}</tbody></table></div></details>`:''}
+     ${done.length?`${(()=>{const dn=done.filter(l=>l.dlv),nd=done.filter(l=>!l.dlv&&l.lid);const qs=a=>fmt(a.reduce((t,l)=>t+l.qty,0));return `<div class="row" style="gap:6px;margin-top:8px;flex-wrap:wrap"><span class="chip ${nd.length?'warn':'ok'}">📦 اتسلّم ${qs(dn)} قطعة · جاهز ومستنّي التسليم ${qs(nd)}</span>${canDlv&&nd.length?`<button class="btn sm pri" data-x="dlvAll" data-id="${i.id}">📦 سلّم كل الجاهز (${nd.length})</button>`:''}<button class="btn sm" data-x="dlvSlip" data-id="${i.id}">🧾 كشف استلام</button>${dlvEvents(i).map(e=>`<button class="btn sm" data-x="dlvNote" data-id="${i.id}" data-n="${e.n}">🧾 إذن تسليم ${e.n} (${fmt(e.q)} قطعة)</button>`).join('')}${i.cust&&i.cust.phone?`<button class="btn sm" data-x="dlvWA" data-id="${i.id}">📲 ابعته واتساب</button>`:''}</div>`})()}<details style="margin-top:10px" ${pend.length?'':'open'}><summary><b>✅ اتعملت (${done.length})</b></summary><div class="tbl" style="margin-top:8px"><table><tbody>${done.map(l=>rowH(l,false)).join('')}</tbody></table></div></details>`:''}
      ${ST&&ST.removed&&ST.removed.length&&['owner','billing'].includes(role)?`<details style="margin-top:10px"><summary><b>🗑 اتشالت (${ST.removed.length})</b></summary><div class="tbl" style="margin-top:8px"><table><tbody>${ST.removed.map(l=>`<tr><td><b>${esc(l.name)}</b> × ${l.qty} <span class="sub">· ${fmt(l.qty*l.price)} ج</span></td><td><span class="sub">${tAgo(l.at)}</span></td><td><button class="btn sm" data-x="lnRestore" data-id="${i.id}" data-lid="${l.id}">↩ رجّع</button></td></tr>`).join('')}</tbody></table></div></details>`:''}
      </details>`})()}
    <div class="custcard"><span class="sub">اسم الملف عند الحفظ:</span><b><bdi>${esc(i.cust.name)}</bdi> - <bdi dir="ltr">${i.date}.pdf</bdi></b></div>
@@ -3213,6 +3213,21 @@ function dlvSlip(i){const G=dlvGroups(i);const sum=a=>a.reduce((t,l)=>t+l.qty,0)
   ${tb('📦 اتسلّم',G.dn,'#e3f4e6')}${tb('✅ جاهز ومستنّي التسليم',G.rd,'#e6eefc')}${tb('⏳ لسه بيتجهز',G.pn,'#fdeacc')}</section>`}
 function dlvText(i){const G=dlvGroups(i);const ls=a=>a.map(l=>`• ${l.name} × ${l.qty}`).join('\n');const sum=a=>a.reduce((t,l)=>t+l.qty,0);
   return `أهلاً ${i.cust.name} 🌸\nمتابعة أوردرك رقم ${i.no} من ${PG[i.page]?.name||''}:`+(G.dn.length?`\n\n📦 اتسلّم (${fmt(sum(G.dn))} قطعة):\n${ls(G.dn)}`:'')+(G.rd.length?`\n\n✅ جاهز للتسليم (${fmt(sum(G.rd))} قطعة):\n${ls(G.rd)}`:'')+(G.pn.length?`\n\n⏳ لسه بيتجهز (${fmt(sum(G.pn))} قطعة):\n${ls(G.pn)}`:'')+`\n\nشكراً لتعاملك معانا 🙏`}
+/* v85: per-delivery note (إذن تسليم) — one note per handover; a handover = lines marked delivered together */
+function dlvEvents(i){const ks=[...new Set(i.lines.filter(l=>l.ckAt&&l.dlv).map(l=>l.dlv))].sort();return ks.map((k,n)=>{const a=i.lines.filter(l=>l.ckAt&&l.dlv===k);return {k,n:n+1,q:a.reduce((t,l)=>t+l.qty,0),v:a.reduce((t,l)=>t+l.qty*l.price,0)}})}
+function dlvNote(i,n){const E=dlvEvents(i),e=E[n-1];if(!e)return '';
+  const rows=mergeL(i.lines.filter(l=>l.ckAt&&l.dlv===e.k));
+  const before=E.slice(0,n-1).reduce((t,x)=>t+x.v,0),upTo=before+e.v;
+  const sub=i.lines.reduce((t,l)=>t+l.qty*(l.price||0),0),ship=+i.ship||0,ret=+i.ret||0,paid=+i.paid||0;
+  const tot=r2(sub+ship-ret),due=Math.max(0,r2(tot-paid)),left=Math.max(0,r2(sub-upTo));
+  const dt=new Date(e.k).toLocaleDateString('en-CA',{timeZone:'Africa/Cairo'});
+  const td='style="border:1px solid #ccc;padding:5px 8px;text-align:center"';
+  const sr=(a,b,bold)=>`<tr><td style="padding:3px 8px;text-align:right${bold?';font-weight:bold':''}">${a}</td><td style="padding:3px 8px;text-align:left${bold?';font-weight:bold':''}">${b}</td></tr>`;
+  return `<section class="a4 stm"><header><div><h1>${esc(PG[i.page]?.name||'')}</h1><p>إذن تسليم رقم <bdi dir="ltr">${esc(i.no)}-${n}</bdi> · <bdi dir="ltr">${dshow(dt)}</bdi></p><p style="font-size:12px">من أوردر رقم <bdi dir="ltr">${esc(i.no)}</bdi> · تسليم ${n} من ${E.length} لحد دلوقتي</p></div>
+  <div class="sb"><b>${esc(i.cust.name||'')}</b>${i.cust.phone?`<span dir="ltr">${esc(i.cust.phone)}</span>`:''}${i.cust.addr?`<span>${esc(i.cust.addr)}</span>`:''}</div></header>
+  <table style="width:100%;border-collapse:collapse"><thead><tr><th style="width:36px">#</th><th class="it">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${rows.map((l,k)=>`<tr><td ${td}>${k+1}</td><td ${td.replace('center','right')}>${esc(l.name)}</td><td ${td}>${l.qty}</td><td ${td}>${fmt(l.price)}</td><td ${td}>${fmt(l.qty*l.price)}</td></tr>`).join('')}<tr style="background:#f0f0f0;font-weight:bold"><td ${td} colspan="2">إجمالي هذا التسليم</td><td ${td}>${fmt(e.q)}</td><td ${td}></td><td ${td}>${fmt(e.v)} ج</td></tr></tbody></table>
+  <table style="width:55%;margin:18px 0 0 auto;font-size:13px;border-collapse:collapse">${before?sr('المسلّم في التسليمات السابقة',fmt(before)+' ج'):''}${sr('إجمالي المسلّم لحد دلوقتي',fmt(upTo)+' ج')}${sr('باقي الأوردر (لسه ما اتسلّمش)',fmt(left)+' ج')}${paid?sr('المدفوع على الأوردر',fmt(paid)+' ج'):''}${sr('المتبقي على العميل (الأوردر كله)',fmt(due)+' ج',true)}</table>
+  <div style="display:flex;justify-content:space-between;margin-top:60px;font-size:13px"><span>توقيع المستلم: ____________</span><span>توقيع المسؤول: ____________</span></div></section>`}
 function ffSlip(i){const t=ffTot(i);return `<section class="a4 stm"><header><div><h1>${esc(PG[i.page]?.name||'')}</h1><p>فاتورة رقم <bdi dir="ltr">${esc(i.no)}</bdi> · <bdi dir="ltr">${dshow(i.date)}</bdi></p></div>
  <div class="sb"><b>${esc(i.cust||'')}</b>${i.phone?`<span dir="ltr">${esc(i.phone)}</span>`:''}${i.phone2?`<span dir="ltr">${esc(i.phone2)}</span>`:''}${i.addr?`<span>${esc(i.addr)}</span>`:''}</div></header>
  <table><thead><tr><th class="it">الصنف</th><th>الكمية</th><th>السعر</th><th>الإجمالي</th></tr></thead><tbody>${mergeL(i.lines).map(l=>`<tr><td class="it">${esc(l.name)}</td><td>${l.qty}</td><td>${fmt(l.price)}</td><td>${fmt(l.qty*l.price)}</td></tr>`).join('')}</tbody></table>
@@ -4023,6 +4038,7 @@ document.addEventListener('click',async e=>{
     const rm=r.removed||[],sk=r.skipped||[];toast(`اتشال ${rm.length} صنف · ${fmt(r.total||0)} ج${sk.length?` · اتخطّى ${sk.length} (${sk.map(z=>z.name+': '+z.reason).join('، ')})`:''}`);
     invSel.clear();delete invST[id];await loadAll();showInvoice(id);render();return}
   if(x==='dlvOn'||x==='dlvOff'||x==='dlvAll'){const inv=S.invoices.find(z=>z.id===id);if(!inv)return;const ids=x==='dlvAll'?inv.lines.filter(l=>l.lid&&l.ckAt&&!l.dlv).map(l=>l.lid):[b.dataset.lid];if(!ids.length)return;const r=await act(()=>q(sb.rpc('set_delivered',{p_lines:ids,p_on:x!=='dlvOff'})),x==='dlvOff'?'اتلغى التسليم':'اتسجل التسليم 📦');if(r===false)return;await loadAll();showInvoice(id);render();return}
+  if(x==='dlvNote'){const inv=S.invoices.find(z=>z.id===id);if(inv)printHTML(dlvNote(inv,+b.dataset.n),'إذن تسليم - '+(inv.cust.name||'')+' - '+inv.no+'-'+b.dataset.n);return}
   if(x==='dlvSlip'){const inv=S.invoices.find(z=>z.id===id);if(inv)printHTML(dlvSlip(inv),'كشف استلام - '+(inv.cust.name||'')+' - '+inv.no);return}
   if(x==='dlvWA'){const inv=S.invoices.find(z=>z.id===id);if(inv)waOpen(inv.cust.phone,dlvText(inv));return}
   if(x==='lnOpen'){const note=prompt('هيتضاف الناقص (فوارغ/زيت) للمخزن ويتسجل "فتح يدوي" لحد ما تسوّيه.\nاكتب السبب (اختياري):','الخامات وصلت والفاتورة لسه متسجلتش');if(note===null)return;
@@ -4415,5 +4431,93 @@ document.addEventListener('visibilitychange',()=>{if(document.visibilityState===
 if('serviceWorker' in navigator){let _upd=0;navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='sw-updated'&&!_upd){_upd=1;const b=document.createElement('div');b.style.cssText='position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#C9A45C;color:#000;padding:10px 16px;border-radius:12px;font-weight:700;z-index:99999;box-shadow:0 4px 18px rgba(0,0,0,.4);cursor:pointer;font-family:inherit';b.textContent='🔄 فيه تحديث جديد — اضغط هنا';b.onclick=()=>location.reload();document.body.appendChild(b)}})}
 if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}
 startApp();
+</script>
+
+<!-- v86: AI assistant (💬 اسأل) -->
+<style>
+#agFab{position:fixed;left:14px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;width:52px;height:52px;border-radius:50%;border:0;background:var(--ink,#111);color:var(--bg,#fff);font-size:24px;box-shadow:0 4px 14px rgba(0,0,0,.25);cursor:pointer}
+body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
+#agBox{position:fixed;inset:auto 0 0 auto;left:0;right:0;margin:auto;max-width:520px;height:min(82vh,680px);z-index:70;background:var(--bg,#fff);color:var(--ink,#111);border-radius:16px 16px 0 0;box-shadow:0 -6px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;direction:rtl}
+#agBox[hidden]{display:none}
+#agBox .agh{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--surface2,#eee)}
+#agBox .agh b{flex:1;font-size:15px}
+#agBox .agh small{color:var(--muted,#888)}
+#agBox .agh button{border:0;background:var(--surface2,#eee);color:inherit;border-radius:8px;padding:6px 10px;cursor:pointer}
+#agLog{flex:1;overflow:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+#agLog .m{max-width:88%;padding:8px 11px;border-radius:12px;line-height:1.6;white-space:pre-wrap;word-break:break-word;font-size:14px}
+#agLog .u{align-self:flex-start;background:var(--ink,#111);color:var(--bg,#fff)}
+#agLog .a{align-self:flex-end;background:var(--surface2,#f1f1f1)}
+#agLog .a.wait{opacity:.6}
+#agChips{display:flex;gap:6px;flex-wrap:wrap;padding:0 12px 8px}
+#agChips button{border:1px solid var(--surface2,#ddd);background:transparent;color:inherit;border-radius:14px;padding:5px 10px;font-size:12px;cursor:pointer}
+#agForm{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--surface2,#eee)}
+#agForm textarea{flex:1;resize:none;height:44px;border-radius:10px;border:1px solid var(--surface2,#ccc);padding:10px;font:inherit;background:transparent;color:inherit}
+#agForm button{border:0;border-radius:10px;padding:0 16px;background:var(--ink,#111);color:var(--bg,#fff);font-size:15px;cursor:pointer}
+#agUse table{width:100%;border-collapse:collapse;font-size:13px}#agUse td,#agUse th{padding:4px 6px;border-bottom:1px solid var(--surface2,#eee);text-align:right}
+#agUse input{width:80px;padding:6px;border-radius:8px;border:1px solid var(--surface2,#ccc);background:transparent;color:inherit}
+</style>
+<button id="agFab" type="button" aria-label="اسأل المساعد" hidden>💬</button>
+<div id="agBox" hidden role="dialog" aria-label="المساعد">
+  <div class="agh"><b>🤖 مساعد الفارس</b><small id="agCnt"></small><button type="button" id="agUseBtn" hidden>📊</button><button type="button" id="agNew" title="محادثة جديدة">↺</button><button type="button" id="agX" aria-label="قفل">✕</button></div>
+  <div id="agLog"></div>
+  <div id="agChips"></div>
+  <form id="agForm"><textarea id="agIn" placeholder="اسأل… مثلاً: سوفاج فاضل منه كام؟" maxlength="1000"></textarea><button type="submit">إرسال</button></form>
+</div>
+<script>
+(function(){
+  const AG={hist:[],busy:false};
+  const el=id=>document.getElementById(id);
+  const fab=el('agFab'),box=el('agBox'),log=el('agLog'),inp=el('agIn');
+  const CHIPS={
+    maker:['إنتاجي النهارده','إنتاجي الأسبوع ده','آخر أصناف عملتها','الأوردرات المفتوحة'],
+    stock:['إنتاجي الأسبوع ده','الأوردرات المفتوحة','سوفاج فاضل منه كام؟','زيت Z155 فاضل كام؟'],
+    page:['أوردراتي المفتوحة','سعر سوفاج لعميل…','العميل … بياخد إيه عادة؟','الفاتورة … وصلت لفين؟'],
+    billing:['الأوردرات المفتوحة','سعر صنف لعميل…','الفاتورة … وصلت لفين؟'],
+    owner:['إنتاج الفريق الأسبوع ده','الأوردرات المفتوحة','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
+  };
+  const fmtA=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+  function add(cls,html){const d=document.createElement('div');d.className='m '+cls;d.innerHTML=html;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
+  function cnt(r){if(!r)return;el('agCnt').textContent=r.owner?'':(r.limit!=null?`${r.used_today}/${r.limit} النهارده`:'')}
+  function chips(){const c=el('agChips');const L=CHIPS[ME&&ME.role]||CHIPS.stock;c.innerHTML=L.map(x=>`<button type="button">${esc(x)}</button>`).join('');
+    c.querySelectorAll('button').forEach(b=>b.onclick=()=>{const t=b.textContent;if(t.includes('…')){inp.value=t.replace('…','').trim()+' ';inp.focus()}else ask(t)})}
+  function reset(){AG.hist=[];log.innerHTML='';add('a',`أهلاً ${esc(ME&&ME.name||'')} 👋\nاسألني عن المخزون، الزيوت، الفواتير، تركيز وسعر صنف لعميل، أو إنتاجك.`);chips()}
+  async function ask(q){
+    q=(q||'').trim();if(!q||AG.busy)return;AG.busy=true;inp.value='';
+    add('u',esc(q));const w=add('a wait','بفكّر…');
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+      if(!session)throw new Error('سجّل دخول تاني');
+      const r=await fetch(SB_URL+'/functions/v1/agent',{method:'POST',headers:{'Content-Type':'application/json',apikey:SB_KEY,Authorization:'Bearer '+session.access_token},body:JSON.stringify({q,history:AG.hist.slice(-6)})});
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok||!j.answer)throw new Error(j.error==='auth'?'سجّل دخول تاني':'المساعد مش متاح دلوقتي');
+      w.classList.remove('wait');w.innerHTML=fmtA(j.answer);cnt(j);
+      AG.hist.push({role:'user',content:q},{role:'assistant',content:j.answer});AG.hist=AG.hist.slice(-8);
+    }catch(e){w.classList.remove('wait');w.textContent='⚠️ '+(e.message||'حصلت مشكلة')}
+    AG.busy=false;log.scrollTop=log.scrollHeight;
+  }
+  async function usage(){
+    const w=add('a wait','بجيب الاستهلاك…');
+    const {data:u,error}=await sb.rpc('ag_usage_summary');
+    if(error){w.textContent='⚠️ '+error.message;return}
+    w.classList.remove('wait');w.id='';
+    w.innerHTML=`<div id="agUse"><b>📊 استهلاك الشهر</b><br>${fmt(u.month_cost)}$ من ${fmt(u.cap)}$ — ${u.month_msgs} رسالة<br>
+     <table><tr><th>المستخدم</th><th>النهارده</th><th>الشهر</th><th>$</th></tr>${(u.users||[]).map(x=>`<tr><td>${esc(x.name)}</td><td>${x.today}</td><td>${x.month}</td><td>${fmt(x.cost)}</td></tr>`).join('')||'<tr><td colspan=4>لسه مفيش</td></tr>'}</table>
+     <div style="margin-top:8px">حد يومي لكل موظف <input id="agD" type="number" min="1" max="500" value="${u.daily_limit}"> سقف شهري $ <input id="agC" type="number" min="0" max="200" step="0.5" value="${u.cap}"> <button type="button" id="agSave" class="btn sm">حفظ</button></div>
+     <details style="margin-top:6px"><summary>آخر الأسئلة</summary>${(u.recent||[]).map(x=>`<div>${esc(x.at)} — <b>${esc(x.name)}</b>: ${esc(x.q)}${x.ok?'':' ⚠️'}</div>`).join('')}</details></div>`;
+    el('agSave').onclick=async()=>{const {error}=await sb.rpc('ag_set_config',{p_daily:+el('agD').value,p_cap:+el('agC').value});toast(error?error.message:'اتحفظ')};
+    log.scrollTop=log.scrollHeight;
+  }
+  fab.onclick=()=>{box.hidden=false;if(!log.children.length)reset();setTimeout(()=>inp.focus(),50)};
+  el('agX').onclick=()=>{box.hidden=true};
+  el('agNew').onclick=reset;
+  el('agUseBtn').onclick=usage;
+  el('agForm').onsubmit=e=>{e.preventDefault();ask(inp.value)};
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask(inp.value)}});
+  const t=setInterval(()=>{
+    const app=document.getElementById('app');
+    if(typeof ME!=='undefined'&&ME&&app&&!app.hidden){fab.hidden=false;el('agUseBtn').hidden=ME.role!=='owner'}
+    else{fab.hidden=true;box.hidden=true;if(typeof ME==='undefined'||!ME){AG.hist=[];log.innerHTML=''}}
+  },1000);
+})();
 </script>
 </body></html>
