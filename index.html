@@ -4433,7 +4433,7 @@ if('serviceWorker' in navigator&&/^https?:$/.test(location.protocol)){window.add
 startApp();
 </script>
 
-<!-- v87: AI assistant (💬 اسأل) + invoice drafts saved by button -->
+<!-- v88: AI assistant (💬 اسأل) + invoice drafts saved by button -->
 <style>
 #agFab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;height:50px;padding:0 18px 0 14px;border-radius:25px;border:0;background:var(--accent,#C9A45C);color:#1b1204;font:600 15px var(--ui,inherit);display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
 #agFab[hidden]{display:none}
@@ -4482,11 +4482,11 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
   const el=id=>document.getElementById(id);
   const fab=el('agFab'),box=el('agBox'),log=el('agLog'),inp=el('agIn');
   const CHIPS={
-    maker:['إنتاجي النهارده','إنتاجي الأسبوع ده','آخر أصناف عملتها','الأوردرات المفتوحة'],
-    stock:['إنتاجي الأسبوع ده','الأوردرات المفتوحة','سوفاج فاضل منه كام؟','زيت Z155 فاضل كام؟'],
+    maker:['خطة شغلي النهارده، أبدأ بإيه؟','إنتاجي النهارده','إنتاجي الأسبوع ده','آخر أصناف عملتها'],
+    stock:['خطة شغلي النهارده، أبدأ بإيه؟','إنتاجي الأسبوع ده','الأوردرات المفتوحة','سوفاج فاضل منه كام؟'],
     page:['أوردراتي المفتوحة','سعر سوفاج لعميل…','العميل … بياخد إيه عادة؟','الفاتورة … وصلت لفين؟'],
     billing:['الأوردرات المفتوحة','سعر صنف لعميل…','الفاتورة … وصلت لفين؟'],
-    owner:['إنتاج الفريق الأسبوع ده','الأوردرات المفتوحة','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
+    owner:['إنتاج الفريق الأسبوع ده','خطة الشغل النهارده','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
   };
   const fmtA=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
   function add(cls,html){const d=document.createElement('div');d.className='m '+cls;d.innerHTML=html;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
