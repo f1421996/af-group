@@ -1,0 +1,243 @@
+// Mathematical tests for the AF Group decision engine.
+// Run: cd decision && npm test
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const GLPK = require('glpk.js');
+const HIGHS = require('highs');
+const A = require('../engine.js');
+
+// HiGHS is the production solver; GLPK is kept as an independent second solver for cross-checking.
+let glpk, G, H;
+test.before(async () => { G = await GLPK(); glpk = A.glpkAdapter(G); H = A.highsAdapter(await HIGHS()); });
+
+// ---- tiny hand-checkable world ----
+// oil o1: 60 g on hand, 2 EGP/g from supplier s1. empty e1: 100 on shelf, 5 EGP each.
+// line a (invoice i1, rank 1): 10 pcs x 5 g = 50 g, price 100
+// line b (invoice i2, rank 2): 10 pcs x 5 g = 50 g, price 100
+function world(over) {
+  return Object.assign({
+    at: '2026-11-19T10:00:00Z',
+    lines: [
+      { id: 'a', inv_id: 'i1', no: 'T-1', date: '2026-11-18', rank: 1, cust: 'x', name: 'p', qty: 10, price: 100, page_pc: 0, grams: 5, oil_id: 'o1', empty_id: 'e1', track: true },
+      { id: 'b', inv_id: 'i2', no: 'T-2', date: '2026-11-18', rank: 2, cust: 'y', name: 'q', qty: 10, price: 100, page_pc: 0, grams: 5, oil_id: 'o1', empty_id: 'e1', track: true },
+    ],
+    oils: [{ id: 'o1', name: 'oil1', cnt_no: 1, stock: 60, cost: 2 }],
+    prices: [{ oil_id: 'o1', sup_id: 's1', ppg: 2, date: '2026-11-01', inv_no: '1' }],
+    empties: [{ id: 'e1', name: 'emp1', cnt_no: 1, shelf: 100, cost: 5 }],
+    suppliers: [{ id: 's1', name: 'S1' }], usage: [], workers: [],
+  }, over || {});
+}
+const ids = r => r.decision.filledIds.slice().sort();
+
+test('no budget: only the higher-ranked line is filled, nothing bought', async () => {
+  const r = await A.solvePlan(H, world(), { budget: 0 });
+  assert.equal(r.status, 'OPTIMAL');
+  assert.deepEqual(ids(r), ['a']);
+  assert.equal(r.decision.buys.length, 0);
+  assert.equal(r.ver.ok, true);
+});
+
+test('enough budget: both filled, buys exactly one 125 g lot, cost and value match hand calc', async () => {
+  const r = await A.solvePlan(H, world(), { budget: 1000 });
+  assert.equal(r.status, 'OPTIMAL');
+  assert.deepEqual(ids(r), ['a', 'b']);
+  // need 100 g, have 60 -> short 40 -> 1 lot of 125 g at 2 EGP/g = 250
+  assert.equal(r.decision.buys.length, 1);
+  assert.equal(r.decision.buys[0].qty, 125);
+  assert.equal(r.p.buyCost, 250);
+  // value = 10*(100+1000*2) + 10*(100+1000*1) + 0.2*(1000+1000) - 250
+  assert.equal(Math.round(r.decision.z), 21000 + 11000 + 400 - 250);
+  assert.equal(r.ver.ok, true);
+});
+
+test('budget one pound short of the lot: second line is not filled', async () => {
+  const r = await A.solvePlan(H, world(), { budget: 249 });
+  assert.deepEqual(ids(r), ['a']);
+  assert.equal(r.p.buyCost, 0);
+});
+
+test('cash mode picks the more valuable line regardless of rank', async () => {
+  const w = world(); w.lines[1].price = 300;
+  const r = await A.solvePlan(H, w, { budget: 0, mode: 'cash' });
+  assert.deepEqual(ids(r), ['b']);
+});
+
+test('negative stock is treated as zero and reported', async () => {
+  const w = world({ oils: [{ id: 'o1', name: 'oil1', cnt_no: 1, stock: -30, cost: 2 }] });
+  const r = await A.solvePlan(H, w, { budget: 0 });
+  assert.deepEqual(ids(r), []);
+  assert.ok(r.m.warn.some(x => x.includes('سالب')));
+});
+
+test('oil with no recorded price is never bought and no price is invented', async () => {
+  const w = world({ prices: [], oils: [{ id: 'o1', name: 'oil1', cnt_no: 1, stock: 60, cost: null }] });
+  const r = await A.solvePlan(H, w, { budget: 1e6 });
+  assert.deepEqual(ids(r), ['a']);
+  assert.equal(r.decision.buys.length, 0);
+  assert.deepEqual(r.m.noPrice, ['o1']);
+  // owner-approved price for this analysis unlocks the purchase
+  const r2 = await A.solvePlan(H, w, { budget: 1e6, priceOverride: { o1: 3 } });
+  assert.deepEqual(ids(r2), ['a', 'b']);
+  assert.equal(r2.p.buyCost, 375);
+});
+
+test('empty with no cost is never bought', async () => {
+  const w = world({ empties: [{ id: 'e1', name: 'emp1', cnt_no: 1, shelf: 10, cost: null }] });
+  const r = await A.solvePlan(H, w, { budget: 1e6 });
+  assert.deepEqual(ids(r), ['a']);
+  assert.deepEqual(r.m.noCost, ['e1']);
+});
+
+test('disabled supplier is not used', async () => {
+  const w = world({ oils: [{ id: 'o1', name: 'oil1', cnt_no: 1, stock: 60, cost: null }] });
+  const r = await A.solvePlan(H, w, { budget: 1e6, supOn: { s1: false } });
+  assert.deepEqual(ids(r), ['a']);
+});
+
+test('supplier spend cap is respected', async () => {
+  const r = await A.solvePlan(H, world(), { budget: 1e6, supCap: { s1: 100 } });
+  assert.deepEqual(ids(r), ['a']);
+});
+
+test('line without grams is modelled without oil and flagged', async () => {
+  const w = world(); w.lines[1].grams = null;
+  const r = await A.solvePlan(H, w, { budget: 0 });
+  assert.deepEqual(ids(r), ['a', 'b']);
+  assert.ok(r.m.warn.some(x => x.includes('من غير جرامات')));
+});
+
+test('verifier rejects a tampered decision', async () => {
+  const w = world();
+  const r = await A.solvePlan(H, w, { budget: 0 });
+  const forged = { filledIds: ['a', 'b'], buys: [], z: r.decision.z };
+  const v = A.verify(w, { budget: 0 }, forged);
+  assert.equal(v.ok, false);
+  assert.ok(v.checks.some(c => !c.ok && c.name.startsWith('الزيت')));
+});
+
+test('verifier rejects overspending the budget and a wrong price', async () => {
+  const w = world();
+  const over = A.verify(w, { budget: 100 }, { filledIds: ['a', 'b'], buys: [{ kind: 'oil', id: 'o1', sup: 's1', qty: 125, lot: 125, ppg: 2 }], z: 0 });
+  assert.ok(over.checks.some(c => !c.ok && c.name.includes('الميزانية')));
+  const cheap = A.verify(w, { budget: 1000 }, { filledIds: ['a', 'b'], buys: [{ kind: 'oil', id: 'o1', sup: 's1', qty: 125, lot: 125, ppg: 1 }], z: 0 });
+  assert.ok(cheap.checks.some(c => !c.ok && c.name.includes('أسعار')));
+});
+
+test('model validation catches a non-finite coefficient', async () => {
+  const w = world(); w.lines[0].price = 'abc';
+  const m = A.buildPlan(w, {});
+  // pos() coerces bad input to 0, so the model stays finite; a NaN injected directly must be caught
+  m.lp.objective.vars[0].coef = NaN;
+  assert.ok(A.validateModel(m.lp).length > 0);
+});
+
+test('no open lines -> INVALID_MODEL, not a crash', async () => {
+  const r = await A.solvePlan(H, world({ lines: [] }), {});
+  assert.equal(r.status, 'INVALID_MODEL');
+});
+
+test('solver states: infeasible and unbounded are detected by both solvers (LP and MILP)', async () => {
+  const mk = (name, ubs, extra) => Object.assign({ name, objective: { direction: 2, name: 'o', vars: [{ name: 'x', coef: 1 }, { name: 'w', coef: 0 }] },
+    subjectTo: ubs.map((c, k) => ({ name: 'c' + k, vars: c.vars, bnds: { type: 3, ub: c.ub, lb: 0 } })), bounds: [], binaries: [], generals: [] }, extra || {});
+  // x <= 1 and -x <= -2  -> infeasible.   -x + w <= 0 with max x -> unbounded.
+  const inf = [{ vars: [{ name: 'x', coef: 1 }], ub: 1 }, { vars: [{ name: 'x', coef: -1 }], ub: -2 }];
+  const unb = [{ vars: [{ name: 'x', coef: -1 }, { name: 'w', coef: 1 }], ub: 0 }];
+  for (const [lp, want] of [[mk('inf', inf), 'INFEASIBLE'], [mk('infI', inf, { generals: ['x'] }), 'INFEASIBLE'], [mk('unb', unb), 'UNBOUNDED'], [mk('unbI', unb, { generals: ['x'] }), 'UNBOUNDED']])
+    for (const S of [H, glpk]) assert.equal((await S.solve(lp, 10)).status, want, lp.name + ' / ' + S.name);
+});
+
+// ---- independent brute force: enumerate every subset of lines ----
+function brute(snap, P) {
+  P = A.defaults(P);
+  const L = snap.lines, n = L.length;
+  const invIds = [...new Set(L.map(l => l.inv_id))];
+  const first = new Map(); for (const l of L) if (!first.has(l.inv_id)) first.set(l.inv_id, l);
+  const order = [...first.values()].sort((a, b) => (a.rank ?? 1e6) - (b.rank ?? 1e6) || String(a.date).localeCompare(String(b.date)) || String(a.no).localeCompare(String(b.no)));
+  const rk = new Map(order.map((l, i) => [l.inv_id, i + 1])); const R = invIds.length;
+  const cheapest = new Map();
+  for (const p of snap.prices) if (!cheapest.has(p.oil_id) || p.ppg < cheapest.get(p.oil_id)) cheapest.set(p.oil_id, +p.ppg);
+  for (const o of snap.oils) if (!cheapest.has(o.id) && o.cost != null && +o.cost > 0) cheapest.set(o.id, +o.cost);
+  let best = -Infinity, bestSet = null;
+  for (let mask = 0; mask < (1 << n); mask++) {
+    const on = L.filter((_, i) => mask >> i & 1);
+    const needO = new Map(), needE = new Map();
+    for (const l of on) {
+      if (l.oil_id && +l.grams) needO.set(l.oil_id, (needO.get(l.oil_id) || 0) + l.qty * l.grams);
+      if (l.track && l.empty_id) needE.set(l.empty_id, (needE.get(l.empty_id) || 0) + l.qty);
+    }
+    let cost = 0, ok = true;
+    for (const [oid, need] of needO) {
+      const o = snap.oils.find(x => x.id === oid) || { stock: 0 };
+      const short = need - Math.max(0, +o.stock || 0);
+      if (short > 1e-9) { if (!cheapest.has(oid)) { ok = false; break; } cost += Math.ceil(short / P.lotOil - 1e-9) * P.lotOil * cheapest.get(oid); }
+    }
+    if (ok) for (const [eid, need] of needE) {
+      const e = snap.empties.find(x => x.id === eid) || { shelf: 0 };
+      const short = need - Math.max(0, +e.shelf || 0);
+      if (short > 1e-9) { if (!P.buyEmpties || e.cost == null) { ok = false; break; } cost += short * +e.cost; }
+    }
+    if (!ok || cost > P.budget + 1e-9) continue;
+    let v = -cost;
+    for (const l of on) v += l.qty * ((+l.price - (+l.page_pc || 0)) + (P.mode === 'rank' ? A.PRIO * (R + 1 - rk.get(l.inv_id)) : 0));
+    if (P.wholeInv) for (const iid of invIds) {
+      const all = L.filter(l => l.inv_id === iid);
+      if (all.every(l => on.includes(l))) v += A.WHOLE * all.reduce((s, l) => s + l.qty * (+l.price - (+l.page_pc || 0)), 0);
+    }
+    if (v > best + 1e-9) { best = v; bestSet = mask; }
+  }
+  return { best, bestSet };
+}
+
+function rng(seed) { let s = seed; return () => (s = (s * 1103515245 + 12345) % 2147483648) / 2147483648; }
+function randomWorld(seed) {
+  const r = rng(seed), ri = (a, b) => a + Math.floor(r() * (b - a + 1));
+  const nO = ri(1, 3), nE = ri(1, 3), nI = ri(1, 4), nL = ri(3, 9);
+  const oils = [], prices = [], empties = [], lines = [];
+  for (let i = 0; i < nO; i++) {
+    oils.push({ id: 'o' + i, name: 'oil' + i, cnt_no: i, stock: ri(-50, 400), cost: r() < 0.15 ? null : ri(1, 6) });
+    if (r() < 0.8) prices.push({ oil_id: 'o' + i, sup_id: 's1', ppg: ri(1, 6) });
+    if (r() < 0.4) prices.push({ oil_id: 'o' + i, sup_id: 's2', ppg: ri(1, 6) });
+  }
+  for (let i = 0; i < nE; i++) empties.push({ id: 'e' + i, name: 'emp' + i, cnt_no: i, shelf: ri(-5, 40), cost: r() < 0.15 ? null : ri(5, 60) });
+  for (let i = 0; i < nL; i++) {
+    const inv = ri(0, nI - 1);
+    lines.push({ id: 'l' + i, inv_id: 'i' + inv, no: 'N' + inv, date: '2026-11-1' + inv, rank: inv + 1, cust: 'c', name: 'p' + i,
+      qty: ri(1, 30), price: ri(40, 400), page_pc: ri(0, 10), grams: r() < 0.1 ? null : ri(3, 15), oil_id: 'o' + ri(0, nO - 1), empty_id: 'e' + ri(0, nE - 1), track: r() < 0.9 });
+  }
+  return { at: '2026-11-19T10:00:00Z', lines, oils, prices, empties, suppliers: [{ id: 's1', name: 'S1' }, { id: 's2', name: 'S2' }], usage: [], workers: [] };
+}
+
+test('HiGHS = GLPK = exhaustive enumeration on 120 random instances (both modes, with and without budget)', async () => {
+  let n = 0;
+  for (let seed = 1; seed <= 60; seed++) {
+    const w = randomWorld(seed * 7919);
+    for (const P of [{ budget: [0, 300, 1500, 1e12][seed % 4], mode: 'rank', wholeInv: seed % 3 !== 0 }, { budget: [1e12, 800, 0, 2500][seed % 4], mode: 'cash', buyEmpties: seed % 5 !== 0 }]) {
+      const ref = brute(w, P);
+      const r = await A.solvePlan(H, w, P, 20);
+      assert.equal(r.status, 'OPTIMAL', `seed ${seed}`);
+      const g = await A.solvePlan(glpk, w, P, 20);
+      assert.equal(g.status, 'OPTIMAL', `glpk seed ${seed}`);
+      assert.ok(Math.abs(g.decision.z - r.decision.z) <= 1e-6 * Math.max(1, Math.abs(r.decision.z)), `seed ${seed}: GLPK ${g.decision.z} vs HiGHS ${r.decision.z}`);
+      assert.ok(Math.abs(r.decision.z - ref.best) <= 1e-6 * Math.max(1, Math.abs(ref.best)), `seed ${seed} ${JSON.stringify(P)}: solver ${r.decision.z} vs brute ${ref.best}`);
+      assert.equal(r.ver.ok, true, `seed ${seed}: verifier ` + JSON.stringify(r.ver.checks.filter(c => !c.ok)));
+      n++;
+    }
+  }
+  assert.equal(n, 120);
+});
+
+// ---- Monte Carlo ----
+test('simulation is reproducible and behaves at the extremes', () => {
+  const w = world({ usage: [{ oil_id: 'o1', d: '2026-11-10', g: 100 }, { oil_id: 'o1', d: '2026-11-12', g: 50 }], lines: [] });
+  const a = A.simulate(w, { horizon: 7, runs: 2000 }), b = A.simulate(w, { horizon: 7, runs: 2000 });
+  assert.deepEqual(a.rows, b.rows);
+  const row = a.rows.find(x => x.id === 'o1');
+  assert.ok(row.pOut >= 0 && row.pOut <= 1);
+  // mean daily use = 150 g over 9 full days
+  assert.ok(Math.abs(row.avgDay - 150 / a.nDays) < 1e-9);
+  // huge stock -> zero risk; zero stock with usage -> risk close to 1 over a long horizon
+  const safe = A.simulate(world({ lines: [], usage: w.usage, oils: [{ id: 'o1', name: 'o', cnt_no: 1, stock: 1e9, cost: 2 }] }), {}).rows[0];
+  assert.equal(safe.pOut, 0);
+  const risky = A.simulate(world({ lines: [], usage: w.usage, oils: [{ id: 'o1', name: 'o', cnt_no: 1, stock: 0, cost: 2 }] }), { horizon: 60 }).rows[0];
+  assert.ok(risky.pOut > 0.99);
+});

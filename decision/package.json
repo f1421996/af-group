@@ -1,0 +1,20 @@
+{
+  "name": "af-decision-engine",
+  "version": "1.0.0",
+  "description": "",
+  "main": "engine.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "glpk.js": "^4.0.2",
+    "highs": "^1.15.4"
+  },
+  "private": true
+}
