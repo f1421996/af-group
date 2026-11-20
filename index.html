@@ -938,6 +938,18 @@ td .pvl,.dk-s .pvl,summary .pvl{display:none}
  body.bnav-all #refresh,body.bnav-all #logout,body.bnav-all #pushBtn:not([hidden]){display:inline-flex!important}
 }
 @media (pointer:coarse){.btn.sm,.chip[data-x],.chip[data-f],button.chip{min-height:40px}}
+
+/* decision center entry (owner) */
+.dcard{display:flex;align-items:center;gap:14px;padding:14px 16px;border-radius:var(--r,16px);text-decoration:none;color:var(--ink);
+ background:linear-gradient(135deg,rgba(201,164,92,.20),rgba(201,164,92,.05));border:1px solid rgba(201,164,92,.55);transition:border-color .15s,transform .15s}
+.dcard:hover{border-color:var(--gold,#E3C383);transform:translateY(-1px)}
+.dcard .dc-ic{font-size:26px;line-height:1;flex:none}
+.dcard .dc-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.dcard .dc-t b{font-size:17px;color:var(--gold,#E3C383)}
+.dcard .dc-t small{font-size:13px;color:var(--muted)}
+.dcard .dc-go{font-size:26px;color:var(--gold,#E3C383);flex:none}
+.tabs a.dclink{color:var(--gold,#E3C383);font-weight:600;border:1px solid rgba(201,164,92,.45);border-radius:12px;margin:10px 10px 4px;justify-content:center}
+@media (max-width:1099px){.tabs a.dclink{display:none}}
 </style>
 
 </head><body>
@@ -1183,6 +1195,7 @@ function navExtra(){try{
   if(as.length>6){const used=new Set(),frag=document.createDocumentFragment();
     NAVG.forEach(([name,keys])=>{const L=as.filter(a=>!used.has(a)&&(keys?keys.includes(a.dataset.tab):true));if(!L.length)return;const h=document.createElement('span');h.className='tgrp';h.textContent=name;frag.appendChild(h);L.forEach(a=>{used.add(a);frag.appendChild(a)})});
     tb.innerHTML='';tb.appendChild(frag)}
+  if(role==='owner'){const dl=document.createElement('a');dl.href='/decision';dl.className='dclink';dl.textContent='🧮 مركز القرار';$('#tabs').appendChild(dl)}
   const simple=!!(ME&&['maker','stock'].includes(ME.role));const all=!ME?[]:simple?as.map(a=>a.dataset.tab).filter(Boolean):TABS.filter(x=>x[2]()).map(x=>x[0]);
   const bn=$('#bnav'),show=simple?(all.length>1&&all.length<=5):all.length>4;document.body.classList.toggle('hasbnav',show);document.body.classList.toggle('bnav-all',show&&simple);if(!bn)return;if(!show){bn.innerHTML='';bn.style.removeProperty('grid-template-columns');return}
   if(simple){const an0=k=>as.find(a=>a.dataset.tab===k),bd=k=>{const b=an0(k)&&an0(k).querySelector('.badge');return b?`<span class="badge">${esc(b.textContent)}</span>`:''};bn.style.gridTemplateColumns=`repeat(${all.length},minmax(0,1fr))`;const sl={work:'شغلي',deliver:'التسليم',stock:'المخزن',short:'النواقص'},al=k=>{if(sl[k])return sl[k];const a=an0(k);if(!a)return tabLabel(k);const c=a.cloneNode(true);c.querySelectorAll('.badge').forEach(x=>x.remove());return c.textContent.replace(/^[^\p{L}]+/u,'').replace(/\s*\(.*\)\s*$/,'').trim()||k};bn.innerHTML=all.map(k=>`<button type="button" data-tab="${k}" class="${k===tab?'on':''}"${k===tab?' aria-current="page"':''}>${esc(al(k))}${bd(k)}</button>`).join('');return}
@@ -1199,7 +1212,7 @@ function moreOpen(){const T=TABS.filter(x=>x[2]()).map(x=>x[0]);const used=new S
   const secs=NAVG.map(([name,keys])=>{const L=T.filter(k=>!used.has(k)&&(keys?keys.includes(k):true));L.forEach(k=>used.add(k));return L.length?`<h3 style="margin:14px 0 6px">${name}</h3><div class="moregrid">${L.map(k=>`<button type="button" class="btn${k===tab?' pri':''}" data-tab="${k}">${esc(tabLabel(k))}</button>`).join('')}</div>`:''}).join('');
   const pb=document.getElementById('pushBtn');
   $('#modal').innerHTML=`<div class="mbox" id="moreSheet" style="max-width:520px"><div class="row" style="justify-content:space-between"><h2>القائمة</h2><button class="btn sm" data-close="1">✕</button></div>${secs}
-   <h3 style="margin:14px 0 6px">الحساب${ME&&ME.name?' · '+esc(ME.name):''}</h3><div class="moregrid"><button type="button" class="btn" data-x="pxy" data-id="refresh">تحديث البيانات</button>${pb&&!pb.hidden?`<button type="button" class="btn" data-x="pxy" data-id="pushBtn">الإشعارات</button>`:''}<button type="button" class="btn danger" data-x="pxy" data-id="logout">خروج</button></div></div>`;$('#modal').hidden=false}
+   <h3 style="margin:14px 0 6px">الحساب${ME&&ME.name?' · '+esc(ME.name):''}</h3><div class="moregrid"><button type="button" class="btn" data-x="pxy" data-id="refresh">تحديث البيانات</button>${pb&&!pb.hidden?`<button type="button" class="btn" data-x="pxy" data-id="pushBtn">الإشعارات</button>`:''}<button type="button" class="btn danger" data-x="pxy" data-id="logout">خروج</button></div>${role==='owner'?`<a class="dcard" href="/decision" style="margin-top:14px"><span class="dc-ic" aria-hidden="true">🧮</span><span class="dc-t"><b>مركز القرار</b><small>خطة الشراء والتعبئة</small></span><span class="dc-go" aria-hidden="true">‹</span></a>`:''}</div>`;$('#modal').hidden=false}
 document.addEventListener('click',e=>{const b=e.target.closest('[data-x]');if(b){const x=b.dataset.x;
     if(x==='moreOpen'){moreOpen();return}
     if(x==='pxy'){$('#modal').hidden=true;const t=document.getElementById(b.dataset.id);if(t)t.click();return}
@@ -1455,6 +1468,7 @@ function vHome(){
   <div class="row" style="justify-content:space-between"><h2>الرئيسية</h2>${role==='owner'?'<button class="btn sm" id="backup">⬇ نسخة احتياطية Excel</button>':''}
    ${role!=='stock'?`<select id="period" aria-label="الفترة">${periodOptions(period)}</select>`:''}</div>
   ${(()=>{const n=(S.orders||[]).filter(o=>o.status==='new'&&(!MP||o.page===MP)).length;return n&&can('invoice')?`<button class="panel newords" data-tab="orders"><b>📥 ${n} طلب جديد مستني</b><span>اضغط عشان تحوّلهم فواتير</span></button>`:''})()}
+  ${role==='owner'?`<a class="dcard" href="/decision"><span class="dc-ic" aria-hidden="true">🧮</span><span class="dc-t"><b>مركز القرار</b><small>أشتري إيه وأعبّي إيه بالميزانية · ماذا لو · الزيوت اللي هتخلص</small></span><span class="dc-go" aria-hidden="true">‹</span></a>`:''}
   ${role==='owner'?ownerNeeds():''}
   <div class="dk-row">${hero}</div>${mini?`<div class="ms-row">${mini}</div>`:''}
   ${role==='owner'?ownerToday():''}
