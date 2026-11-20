@@ -49,6 +49,11 @@ details[open]>summary{margin-bottom:6px}
 .verdict{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;border:1px solid var(--line)}
 .verdict .ic{font-size:22px;line-height:1}
 .pill{font-size:12px;padding:1px 7px;border-radius:9px;border:1px solid var(--line)}
+.sendbox{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;background:var(--code)}
+.sendbox h4{margin:0 0 4px;font-size:15px}.sendbox p{margin:0 0 10px;font-size:13.5px;color:var(--mut);line-height:1.7}
+.prow{padding:9px 0;border-top:1px solid var(--line)}.prow .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}.prow .top span{font-size:13px;color:var(--mut)}
+.pbar{height:8px;border-radius:99px;background:var(--chip);overflow:hidden;margin:6px 0 4px;display:flex}.pbar i{display:block;height:100%;background:var(--ok)}.pbar i.st{background:var(--acc);opacity:.55}
+.prow small{font-size:12.5px;color:var(--mut);line-height:1.6;display:block}
 @media print{header,.tabs,.noprint{display:none!important}.card{border:0;padding:0}body{background:#fff;color:#000}details{display:block}details>*{display:block!important}}
 
 .step{display:flex;align-items:center;gap:10px;margin:0 0 10px}
@@ -462,6 +467,52 @@ const RLM = '‏';
 const hm = mins => { const m = Math.round(mins); return m < 60 ? `${m} دقيقة` : `${Math.floor(m / 60)} ساعة${m % 60 ? ' و' + (m % 60) + ' دقيقة' : ''}`; };
 const gq = g => g >= 1000 ? `${f2(g / 1000)} كجم` : `${f0(g)} جم`;
 const copyBtn = (btn, txt) => navigator.clipboard.writeText(txt).then(() => { const o = btn.textContent; btn.textContent = 'اتنسخ ✓'; setTimeout(() => btn.textContent = o, 1500); });
+// ---------- send the distribution to the workers' screens + follow-up ----------
+// Sending never claims a line: the worker presses "ابدأ" himself, so measured start times stay real.
+function sendItems(A) {
+  const items = [];
+  for (const w of A.workers) w.batches.forEach((b, k) => b.lines.forEach(l =>
+    items.push({ line: l.id, worker: w.id, pos: k + 1, mins: b.mins != null && b.qty > 0 ? Math.round(b.mins * l.qty / b.qty * 10) / 10 : null })));
+  return items;
+}
+const WHY_SKIP = { started: 'حد تاني بدأ فيه', done: 'اتعمل خلاص', gone: 'اتشال من الأوردر أو الأوردر اتقفل' };
+async function sendWork(A) {
+  const btn = $('wSend'), msg = $('wSendMsg'), items = sendItems(A);
+  if (!items.length) return;
+  const ws = A.workers.filter(w => w.batches.length);
+  if (!confirm(`هتبعت ${items.length} سطر على ${ws.length} عامل:\n${ws.map(w => `• ${w.name}: ${w.batches.length} صنف · ${f0(w.pcs)} قطعة`).join('\n')}\n\nأي توزيع قديم محدش بدأ فيه هيتبدّل بالجديد. تبعت؟`)) return;
+  btn.disabled = true; const o = btn.textContent; btn.textContent = 'بيبعت…'; msg.innerHTML = '';
+  try {
+    const { data, error } = await sb.rpc('assign_work', { p_items: items, p_replace: true });
+    if (error) throw error;
+    const sk = data.skipped || [], by = {};
+    sk.forEach(x => (by[x.why] = by[x.why] || []).push(x));
+    msg.innerHTML = `<div class="why" style="margin-top:10px"><b class="ok">✅ اتبعت ${f0(data.assigned)} سطر.</b> ${(data.workers || []).map(w => `${esc(w.name)}: ${f0(w.lines)} سطر · ${f0(w.pcs)} قطعة`).join(' · ')}
+      ${sk.length ? `<br><span class="warn">اتساب ${sk.length} سطر من غير تغيير:</span> ${Object.keys(by).map(k => `${by[k].length} ${WHY_SKIP[k] || k}${k === 'started' ? ` (${[...new Set(by[k].map(x => x.by).filter(Boolean))].map(esc).join('، ')})` : ''}`).join(' · ')}` : ''}
+      ${data.released ? `<br><span class="mut">${f0(data.released)} تكليف قديم اتلغى واتبدّل بالجديد.</span>` : ''}</div>`;
+    await loadProgress();
+  } catch (e) {
+    const m = String(e.message || e);
+    msg.innerHTML = `<div class="why bad" style="margin-top:10px">ماتبعتش: ${esc(m.includes('not_allowed') ? 'الإرسال للمالك بس.' : m.includes('bad_worker') ? 'فيه عامل في التوزيع حسابه مش متفعّل. حدّث الداتا وجرّب تاني.' : m.includes('assign_work') || m.includes('schema cache') ? 'خاصية الإرسال لسه ماتفعّلتش في قاعدة البيانات.' : m)}</div>`;
+  } finally { btn.disabled = false; btn.textContent = o; }
+}
+async function loadProgress() {
+  const box = $('wProg'); if (!box) return;
+  const { data, error } = await sb.rpc('work_progress');
+  if (error || !data) { box.innerHTML = ''; return; }
+  const W = data.workers || [], D = data.declined || [];
+  if (!W.length && !D.length) { box.innerHTML = ''; return; }
+  const pc = (a, b) => b ? Math.round(a * 100 / b) : 0;
+  box.innerHTML = `<div class="sendbox" style="background:none"><div class="row" style="justify-content:space-between"><h4>📊 متابعة الشغل المتوزّع</h4>
+      <span class="row"><button class="btn sec" id="wProgR">↻ تحديث</button><button class="btn sec" id="wRedo">حدّث الداتا ووزّع الباقي تاني</button></span></div>
+    ${W.map(w => `<div class="prow"><div class="top"><b>${esc(w.name)}</b><span>خلّص <b class="ok">${f0(w.done)}</b> من ${f0(w.lines)} سطر · ${f0(w.done_pcs)} من ${f0(w.pcs)} قطعة</span></div>
+      <div class="pbar"><i style="width:${pc(w.done, w.lines)}%"></i><i class="st" style="width:${pc(w.started, w.lines)}%"></i></div>
+      <small>${w.started ? `شغّال دلوقتي في ${f0(w.started)} · ` : ''}لسه مابدأش ${f0(Math.max(0, w.lines - w.done - w.started - w.taken_by_other))}${+w.mins_left ? ` · الباقي ≈ ${hm(+w.mins_left)}` : ''}${w.taken_by_other ? ` · <span class="warn">${f0(w.taken_by_other)} أخدهم عامل تاني</span>` : ''}${w.done_by_other ? ` · <span class="warn">${f0(w.done_by_other)} خلّصهم عامل تاني</span>` : ''}</small></div>`).join('')}
+    ${D.length ? `<div class="prow"><b class="warn">↩️ رجعوا من العمال ومحتاجين يتوزّعوا تاني (${D.length})</b><small>${D.map(d => `${esc(d.name)} × ${f0(d.qty)} <bdi dir="ltr">${esc(d.no || '')}</bdi> — ${esc(d.worker)}`).join(' · ')}</small></div>` : ''}
+    <small class="mut" style="display:block;margin-top:6px;font-size:12.5px">الأخضر = خلص · الدهبي = شغّال فيه. "وزّع الباقي تاني" بيحدّث الداتا ويحسب توزيع جديد للي محدش بدأ فيه، وبعدها انت اللي بتدوس "ابعت".</small></div>`;
+  $('wProgR').onclick = loadProgress;
+  $('wRedo').onclick = () => { load(); window.scrollTo(0, 0); };
+}
 function whyBatch(b, w, A) {
   const mg = b.lines.length > 1 ? `نفس الصنف في ${b.lines.length} أوردر اتجمّع في صنف واحد (${f0(b.qty)} قطعة)، فالتجهيز بيتعمل مرة. ` : '';
   if (!b.why) return mg;
@@ -472,7 +523,7 @@ function whyBatch(b, w, A) {
 }
 function workerText(w, timed) {
   return `${RLM}*شغل ${w.name}* — ${f0(w.pcs)} قطعة${timed ? ' · حوالي ' + hm(w.mins) : ''}\n` +
-    w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
+    w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${b.grams != null ? ` · تركيز ${f1(b.grams)} جم` : ''}${b.otherConc ? ' ⚠️' : ''}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
 }
 async function runToday() {
   if (!SNAP || !SOLVER) return;
@@ -500,7 +551,7 @@ async function runToday() {
         <button class="btn sec noprint" data-wcopy="${w.id}">نسخ للواتساب</button></summary>
       <div class="in">
         ${A.timed ? `<div class="why" style="font-size:13px;margin:0 0 8px"><b>الوقت ≈ ${hm(w.mins)}</b> = ${f0(w.nBatches)} صنف × ${f1(T.setup)} دقيقة تجهيز (${hm(w.setupMins)}) + ${f0(w.pcs)} قطعة × ${f2(T.perPc)} دقيقة (${hm(w.pieceMins)})</div>` : ''}
-        ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}
+        ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.grams != null ? ` · <b>تركيز ${f1(b.grams)} جم</b>` : ' · <b class="bad">مستني تركيز</b>'}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}${b.otherConc ? '<br><span class="pill warn">⚠️ نفس الصنف موجود بتركيز تاني — متخلطهمش</span>' : ''}
         <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small>
         <small style="color:var(--ink);opacity:.8">ليه هنا؟ ${whyBatch(b, w, A)}</small>
         ${A.timed ? `<small>وقته ≈ ${f1(b.mins)} دقيقة = ${f1(T.setup)} تجهيز + ${f0(b.qty)} × ${f2(T.perPc)}</small>` : ''}</span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
@@ -510,7 +561,11 @@ async function runToday() {
       <div class="chips noprint">${EXTRA.makers.map(m => `<label><input type="checkbox" data-w="${m.id}" ${W_SEL.has(m.id) ? 'checked' : ''}>${esc(m.name)}</label>`).join('') || '<span class="mut">مفيش مصنّعين مسجلين.</span>'}</div>
       ${workers.length ? wk : '<p class="warn">اختار المصنّعين اللي شغالين النهارده عشان أوزّع عليهم.</p>'}
       ${idle.length ? `<p class="mut" style="font-size:13px">من غير شغل دلوقتي: ${idle.join('، ')}.</p>` : ''}
-      ${workers.length ? `<div class="row noprint"><button class="btn" id="wAll">نسخ توزيع الكل</button></div>` : ''}
+      ${workers.length ? `<div class="sendbox noprint"><h4>📤 ابعت التوزيع لشاشات العمال</h4>
+        <p>كل عامل هيلاقي أصنافه في قسم <b>"شغلك النهارده"</b> فوق في شاشته، مترتبة، وهيجيله إشعار. العامل هو اللي بيدوس "ابدأ" بنفسه عشان وقت الشغل يتسجل صح. اللي حد بدأ فيه فعلاً بيفضل معاه.</p>
+        <div class="row"><button class="btn" id="wSend">📤 ابعت للعمال (${A.workers.filter(w => w.batches.length).length} عامل · ${B.length} صنف)</button><button class="btn sec" id="wAll">نسخ توزيع الكل للواتساب</button></div>
+        <div id="wSendMsg"></div></div>
+        <div id="wProg" class="noprint"></div>` : '<div id="wProg" class="noprint"></div>'}
       <details class="noprint" style="margin-top:10px"><summary>إزاي اتوزّع الشغل وإزاي اتحسب الوقت؟</summary><div class="why" style="line-height:1.9">
         <b>1) إيه اللي دخل التوزيع؟</b> الأصناف اللي <b>الزيت والفارغ بتوعها كاملين دلوقتي</b> (${f0(nowPcs)} قطعة). اللي ناقصها خامات مش بتتوزع قبل الشراء.<br>
         <b>2) التجميع:</b> نفس الصنف (نفس الزيت ونفس الفارغ) من كل الأوردرات اتجمع في صنف واحد، عشان يتجهز مرة واحدة عند عامل واحد.<br>
@@ -561,6 +616,8 @@ async function runToday() {
     out.querySelectorAll('[data-w]').forEach(c => c.onchange = () => { c.checked ? W_SEL.add(c.dataset.w) : W_SEL.delete(c.dataset.w); runToday(); });
     out.querySelectorAll('[data-wcopy]').forEach(b => b.onclick = e => { e.preventDefault(); copyBtn(b, workerText(A.workers.find(w => w.id === b.dataset.wcopy), A.timed)); });
     if ($('wAll')) $('wAll').onclick = () => copyBtn($('wAll'), `${RLM}*توزيع الشغل — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}*\n\n` + A.workers.filter(w => w.batches.length).map(w => workerText(w, A.timed)).join('\n\n'));
+    if ($('wSend')) $('wSend').onclick = () => sendWork(A);
+    loadProgress();
     out.querySelectorAll('[data-scopy]').forEach(b => b.onclick = e => { e.preventDefault(); const k = b.dataset.scopy, bs = groups.get(k);
       copyBtn(b, `${RLM}*طلبية ${supName(k === 'none' ? null : k)} · AF Group*\n${RLM}${new Date().toLocaleDateString('ar-EG-u-nu-latn')} · ${bs.length} صنف\n\n` + bs.map((x, i) => `${RLM}${i + 1}. ${nm(x)}${RLM} ← *${x.kind === 'oil' ? gq(x.qty) : f0(x.qty) + ' قطعة'}*`).join('\n')); });
     $('tGo').onclick = runToday; $('tBudget').onkeydown = e => { if (e.key === 'Enter') runToday(); };

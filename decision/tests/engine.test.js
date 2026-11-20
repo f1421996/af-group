@@ -269,7 +269,7 @@ test('batches merge the same product across orders; distribution is complete, ba
   for (let i = 2; i <= 13; i++) add(i, i, 3 + (i * 7) % 20, 1 + i % 3, 'A');
   const B = A.makeBatches(L);
   assert.equal(B.length, 13);
-  const big = B.find(b => b.key === 'o1|e1');
+  const big = B.find(b => b.key === 'o1|e1|?');
   assert.equal(big.qty, 40); assert.equal(big.lines.length, 3); assert.equal(big.rank, 1);
   const workers = [{ id: 'w1', name: 'a' }, { id: 'w2', name: 'b' }, { id: 'w3', name: 'c' }];
   const timing = { n: 148, setup: 18.57, per_pc: 1.088 };
@@ -299,4 +299,20 @@ test('batches merge the same product across orders; distribution is complete, ba
   assert.equal(R2.timed, false); assert.ok(R2.workers.every(w => w.mins === 0 && w.batches.every(b => b.mins === null)));
   // no workers selected -> nothing is silently dropped
   assert.equal(A.assignWork(B, [], [], timing).unassigned.length, 13);
+});
+
+test('same item at two concentrations is never merged into one batch', () => {
+  const L = [
+    { id: 'a', no: 'EB-249', qty: 12, grams: 7.5, oil_id: 'o1', empty_id: 'e1', name: 'جان بول لابيلا' },
+    { id: 'b', no: 'EB-249', qty: 12, grams: 15, oil_id: 'o1', empty_id: 'e1', name: 'جان بول لابيلا' },
+    { id: 'c', no: 'EB-250', qty: 6, grams: 15, oil_id: 'o1', empty_id: 'e1', name: 'جان بول لابيلا' },
+    { id: 'd', no: 'EB-249', qty: 12, grams: 10, oil_id: 'o2', empty_id: 'e2', name: 'ماي سليف' },
+  ];
+  const B = A.makeBatches(L);
+  assert.equal(B.length, 3);
+  const g15 = B.find(b => b.grams === 15), g75 = B.find(b => b.grams === 7.5), solo = B.find(b => b.name === 'ماي سليف');
+  assert.equal(g15.qty, 18); assert.equal(g15.lines.length, 2); // same concentration across orders still merges
+  assert.equal(g75.qty, 12);
+  assert.ok(g15.otherConc && g75.otherConc); assert.ok(!solo.otherConc);
+  assert.equal(B.reduce((s, b) => s + b.qty, 0), 42); // nothing lost
 });
