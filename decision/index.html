@@ -472,7 +472,7 @@ function whyBatch(b, w, A) {
 }
 function workerText(w, timed) {
   return `${RLM}*شغل ${w.name}* — ${f0(w.pcs)} قطعة${timed ? ' · حوالي ' + hm(w.mins) : ''}\n` +
-    w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
+    w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${b.grams != null ? ` · تركيز ${f1(b.grams)} جم` : ''}${b.otherConc ? ' ⚠️' : ''}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
 }
 async function runToday() {
   if (!SNAP || !SOLVER) return;
@@ -500,7 +500,7 @@ async function runToday() {
         <button class="btn sec noprint" data-wcopy="${w.id}">نسخ للواتساب</button></summary>
       <div class="in">
         ${A.timed ? `<div class="why" style="font-size:13px;margin:0 0 8px"><b>الوقت ≈ ${hm(w.mins)}</b> = ${f0(w.nBatches)} صنف × ${f1(T.setup)} دقيقة تجهيز (${hm(w.setupMins)}) + ${f0(w.pcs)} قطعة × ${f2(T.perPc)} دقيقة (${hm(w.pieceMins)})</div>` : ''}
-        ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}
+        ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.grams != null ? ` · <b>تركيز ${f1(b.grams)} جم</b>` : ' · <b class="bad">مستني تركيز</b>'}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}${b.otherConc ? '<br><span class="pill warn">⚠️ نفس الصنف موجود بتركيز تاني — متخلطهمش</span>' : ''}
         <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small>
         <small style="color:var(--ink);opacity:.8">ليه هنا؟ ${whyBatch(b, w, A)}</small>
         ${A.timed ? `<small>وقته ≈ ${f1(b.mins)} دقيقة = ${f1(T.setup)} تجهيز + ${f0(b.qty)} × ${f2(T.perPc)}</small>` : ''}</span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');

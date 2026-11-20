@@ -453,15 +453,21 @@
   // ---------- today: what to make now, and who makes what ----------
   // A batch = every open line of the same product (same oil + same empty) across all orders: one setup, one go.
   function makeBatches(lines) {
+    // grams are part of the key: the same item at 7.5 g and at 15 g is two different fills, never one batch
     const m = new Map();
     for (const l of lines) {
-      const key = (l.oil_id || '-') + '|' + (l.empty_id || l.name);
-      if (!m.has(key)) m.set(key, { key, name: l.name, qty: 0, rank: Infinity, lines: [] });
+      const g = l.grams != null && l.grams !== '' ? +l.grams : null;
+      const key = (l.oil_id || '-') + '|' + (l.empty_id || l.name) + '|' + (g == null ? '?' : g);
+      if (!m.has(key)) m.set(key, { key, name: l.name, grams: g, prod: (l.oil_id || '-') + '|' + (l.empty_id || l.name), qty: 0, rank: Infinity, lines: [] });
       const b = m.get(key);
       b.qty += +l.qty; b.rank = Math.min(b.rank, l.rk ?? 1e6);
       b.lines.push({ id: l.id, no: l.no, cust: l.cust, qty: +l.qty, rk: l.rk });
     }
-    return [...m.values()];
+    const out = [...m.values()];
+    const nByProd = new Map();
+    for (const x of out) nByProd.set(x.prod, (nByProd.get(x.prod) || 0) + 1);
+    for (const x of out) x.otherConc = nByProd.get(x.prod) > 1; // same item exists at another concentration
+    return out;
   }
   // Measured time model: minutes = setup + perPc * pieces. Used only when there is enough measured data.
   function timeModel(timing) {
