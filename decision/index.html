@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>مركز القرار — AF Group</title>
+<style>
+:root{--bg:#f6f6f4;--card:#fff;--ink:#1c1c1a;--mut:#6b6b66;--line:#e4e3de;--acc:#b8860b;--ok:#2e7d4f;--bad:#c0392b;--warn:#b26b00;--chip:#f1efe8;--code:#f3f2ee}
+@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1e1e1c;--ink:#f0efe9;--mut:#a3a29b;--line:#33322e;--chip:#2a2926;--code:#262522}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,"Segoe UI",Tahoma,sans-serif}
+header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px}
+header b{font-size:17px}header .sp{flex:1}header small{color:var(--mut)}
+main{max-width:1100px;margin:0 auto;padding:12px}
+.tabs{display:flex;gap:6px;overflow:auto;margin-bottom:12px}
+.tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:20px;font:inherit;white-space:nowrap;cursor:pointer}
+.tabs button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+.card h3{margin:0 0 10px;font-size:16px}.card h3 .q{color:var(--acc);margin-left:6px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
+label{display:block;font-size:13px;color:var(--mut)}
+input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;margin-top:3px}
+input[type=checkbox]{width:auto;margin:0 0 0 6px}
+.chk{display:flex;align-items:center;color:var(--ink);font-size:14px;margin-top:22px}
+.btn{border:0;background:var(--acc);color:#fff;padding:11px 18px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
+.btn.sec{background:var(--chip);color:var(--ink);border:1px solid var(--line);font-weight:500;padding:7px 12px}
+.btn:disabled{opacity:.55}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
+.kpi small{color:var(--mut);display:block}.kpi b{font-size:21px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th{color:var(--mut);font-weight:500;font-size:12.5px}
+td.n,th.n{text-align:left;direction:ltr;white-space:nowrap}
+.scroll{overflow:auto}
+.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;background:var(--chip)}
+.ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut)}
+.bar{height:8px;background:var(--chip);border-radius:4px;overflow:hidden;min-width:70px}.bar i{display:block;height:100%;background:var(--ok)}
+.sup{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
+.sup .hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}.sup .hd b{flex:1}
+.suprow{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:8px;align-items:end;padding:6px 0;border-bottom:1px dashed var(--line)}
+.hide{display:none}
+#login{max-width:360px;margin:60px auto}
+.msg{padding:10px;border-radius:8px;background:var(--chip);margin-bottom:10px;font-size:14px}
+details{margin:4px 0}details summary{cursor:pointer;color:var(--mut)}
+details[open]>summary{margin-bottom:6px}
+.why{background:var(--code);border-radius:8px;padding:8px 10px;font-size:13.5px;margin:4px 0}
+.math{background:var(--code);border-radius:8px;padding:10px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;direction:rtl;white-space:pre-wrap;line-height:1.9}
+.verdict{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;border:1px solid var(--line)}
+.verdict .ic{font-size:22px;line-height:1}
+.pill{font-size:12px;padding:1px 7px;border-radius:9px;border:1px solid var(--line)}
+@media print{header,.tabs,.noprint{display:none!important}.card{border:0;padding:0}body{background:#fff;color:#000}details{display:block}details>*{display:block!important}}
+</style>
+</head>
+<body>
+<header><b>مركز القرار</b><small id="who"></small><span class="sp"></span><button class="btn sec noprint" id="reload">تحديث الداتا</button></header>
+
+<div id="login" class="card hide">
+  <h3>دخول المالك</h3>
+  <label>رقم الموبايل<input id="lphone" inputmode="tel" placeholder="01xxxxxxxxx"></label>
+  <label style="margin-top:8px">كلمة السر<input id="lpass" type="password"></label>
+  <div style="margin-top:12px"><button class="btn" id="lbtn">دخول</button></div>
+  <p id="lerr" class="bad"></p>
+</div>
+
+<main id="app" class="hide">
+  <div id="status" class="msg">جاري تحميل الداتا…</div>
+  <div class="tabs noprint">
+    <button data-t="plan" class="on">الشراء والتعبئة</button>
+    <button data-t="what">ماذا لو؟</button>
+    <button data-t="sim">النواقص الجاية</button>
+    <button data-t="runs">سجل القرارات</button>
+  </div>
+
+  <!-- PLAN -->
+  <section id="t-plan">
+    <div class="card noprint">
+      <h3>المدخلات</h3>
+      <div class="grid">
+        <label>الميزانية المتاحة للشراء (ج) — فاضي = من غير حد<input id="budget" inputmode="decimal" placeholder="مثال 50000"></label>
+        <label>الأولوية
+          <select id="mode"><option value="rank">بترتيب الشغل (الفاتورة رقم 1 الأول)</option><option value="cash">أعلى إيراد صافي مقابل الفلوس</option></select></label>
+        <label>وحدة الشراء للزيت اللي مالوش مشتريات مسجلة (جم)<input id="lot" inputmode="decimal" value="125"></label>
+        <label class="chk"><input type="checkbox" id="whole" checked>فضّل إكمال فواتير كاملة</label>
+        <label class="chk"><input type="checkbox" id="buyE" checked>اسمح بشراء الفوارغ الناقصة</label>
+      </div>
+      <details><summary>الموردين: تشغيل/إيقاف، حد صرف، تغيير سعر</summary><div id="sups"></div></details>
+      <details><summary id="lotsSum">وحدة الشراء لكل زيت (جرام / 125 جم / كيلو)</summary><div id="lots"></div></details>
+      <div class="row" style="margin-top:12px">
+        <button class="btn" id="run">احسب القرار</button>
+        <button class="btn sec" id="run0">بالمخزون الحالي بس</button>
+      </div>
+    </div>
+    <div id="planOut"></div>
+  </section>
+
+  <!-- WHAT-IF -->
+  <section id="t-what" class="hide">
+    <div class="card">
+      <h3>ماذا لو؟</h3>
+      <p class="mut" style="margin-top:0">كل سيناريو هنا بيتحسب من الأول بنفس النموذج ونفس الداتا، والمتغير الوحيد هو الشرط اللي غيرته. كده تقدر تشوف أثر كل تغيير لوحده.</p>
+      <div class="row">
+        <button class="btn sec" id="pin">ثبّت آخر خطة كأساس للمقارنة</button>
+        <span id="pinInfo" class="mut" style="font-size:13px"></span>
+      </div>
+      <p class="mut" style="font-size:13px">غيّر أي إعداد في تبويب "الشراء والتعبئة" (ميزانية، مورد واقف، زيادة سعر…) واضغط "احسب القرار"، وارجع هنا تلاقي المقارنة.</p>
+      <div id="cmpOut"></div>
+    </div>
+    <div class="card">
+      <h3>منحنى الميزانية: كل جنيه زيادة بيجيب إيه؟</h3>
+      <p class="mut" style="margin-top:0">بيحل النموذج 6 مرات بميزانيات مختلفة، من صفر لحد تكلفة تغطية كل الطلبات.</p>
+      <button class="btn sec" id="curve">احسب المنحنى (حوالي 30 ثانية)</button>
+      <div id="curveOut"></div>
+    </div>
+  </section>
+
+  <!-- SIM -->
+  <section id="t-sim" class="hide">
+    <div class="card noprint">
+      <h3>محاكاة الأيام الجاية (Monte Carlo)</h3>
+      <div class="grid">
+        <label>عدد الأيام لحد ما البضاعة توصل<input id="hz" inputmode="numeric" value="7"></label>
+        <label>تغيير الطلب % (رمضان +30، ركود -20)<input id="mult" inputmode="decimal" value="0"></label>
+        <label>مستوى الأمان<select id="svc"><option value="0.8">80%</option><option value="0.9" selected>90%</option><option value="0.95">95%</option></select></label>
+        <label>اعرض الخطر من<select id="minRisk"><option value="0.2">20% وأكتر</option><option value="0.5">50% وأكتر</option><option value="0">الكل</option></select></label>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn" id="runSim">شغّل المحاكاة</button></div>
+    </div>
+    <div id="simOut"></div>
+  </section>
+
+  <section id="t-work" class="hide"><div id="workOut"></div></section>
+
+  <section id="t-runs" class="hide">
+    <div class="card"><h3>سجل القرارات المحفوظة</h3>
+      <p class="mut" style="margin-top:0">كل قرار محفوظ معاه الداتا اللي اتبنى عليها بالظبط ومدخلاته. "إعادة الحساب" بتشغّل النموذج تاني على نفس الداتا، وتتأكد إن النتيجة مطابقة، وتعدّي القرار على الفحص المستقل.</p>
+      <div id="runsOut" class="mut">…</div></div>
+  </section>
+</main>
+
+<script src="/supabase-2.45.4.js"></script>
+<script src="engine.js"></script>
+<script src="vendor/highs.js"></script>
+<script type="module">
+const SB_URL = 'https://vgpqaubvshnwpryhkoil.supabase.co';
+const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncHFhdWJ2c2hud3ByeWhrb2lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODgwMTUsImV4cCI6MjEwNzE2NDAxNX0.46_UkIQNHxioW62YoIst8qdoZVbDlg2QW5nCBSn7G8Y';
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const $ = id => document.getElementById(id);
+const f0 = n => (n == null || !isFinite(n)) ? '—' : Math.round(n).toLocaleString('en-US');
+const f1 = n => (n == null || !isFinite(n)) ? '—' : (+n).toLocaleString('en-US', { maximumFractionDigits: 1 });
+const f2 = n => (n == null || !isFinite(n)) ? '—' : (+n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const dt = d => d ? new Date(d).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+let SNAP = null, HASH = '', SOLVER = null, LAST = null, BASE = null;
+const LOT_OV = {}, PRICE_OV = {};
+
+// canonical JSON so the hash is identical after the DB re-orders keys
+const canon = v => Array.isArray(v) ? '[' + v.map(canon).join(',') + ']'
+  : v && typeof v === 'object' ? '{' + Object.keys(v).sort().map(k => JSON.stringify(k) + ':' + canon(v[k])).join(',') + '}'
+  : JSON.stringify(v);
+async function sha(obj) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canon(obj)));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function download(name, text, type = 'text/plain') {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
+}
+
+// ---------- auth ----------
+async function boot() {
+  const { data } = await sb.auth.getSession();
+  if (!data.session) { $('login').classList.remove('hide'); return; }
+  $('app').classList.remove('hide'); $('login').classList.add('hide');
+  await load();
+}
+$('lbtn').onclick = async () => {
+  $('lerr').textContent = '';
+  const ph = $('lphone').value.trim().replace(/\s/g, '');
+  const email = ph.includes('@') ? ph : ph + '@pages.local';
+  const { error } = await sb.auth.signInWithPassword({ email, password: $('lpass').value });
+  if (error) { $('lerr').textContent = 'بيانات غلط'; return; }
+  boot();
+};
+async function load() {
+  $('status').className = 'msg'; $('status').textContent = 'جاري تحميل الداتا…';
+  const [{ data, error }] = await Promise.all([sb.rpc('opt_snapshot', { p_days: 45 }), SOLVER ? Promise.resolve() : Module({ locateFile: f => 'vendor/' + f }).then(h => { SOLVER = AFOpt.highsAdapter(h); })]);
+  if (error) {
+    $('status').className = 'msg bad';
+    $('status').textContent = error.message.includes('not_allowed') ? 'الصفحة دي للمالك بس.' : 'حصل خطأ: ' + error.message;
+    return;
+  }
+  SNAP = data; HASH = await sha(SNAP);
+  const pcs = SNAP.lines.reduce((s, l) => s + +l.qty, 0);
+  const invN = new Set(SNAP.lines.map(l => l.inv_id)).size;
+  $('status').innerHTML = `الداتا من السيستم لحظة ${esc(dt(SNAP.at))}: ${invN} فاتورة مفتوحة، ${SNAP.lines.length} سطر، ${f0(pcs)} قطعة. <span class="mut">بصمة الداتا ${HASH.slice(0, 10)}</span>`;
+  renderSups(); renderLots(); runPlan(false); runSim(); renderWork(); loadRuns();
+}
+$('reload').onclick = load;
+$('lot').onchange = () => { if (SNAP) renderLots(); };
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  ['plan', 'what', 'sim', 'work', 'runs'].forEach(t => $('t-' + t).classList.toggle('hide', t !== b.dataset.t));
+  if (b.dataset.t === 'what') renderCompare();
+});
+
+// ---------- settings ----------
+function renderSups() {
+  const used = new Set(SNAP.prices.map(p => p.sup_id));
+  const list = SNAP.suppliers.filter(s => used.has(s.id));
+  $('sups').innerHTML = list.map(s => `<div class="suprow">
+      <label class="chk" style="margin:0"><input type="checkbox" data-on="${s.id}" checked>${esc(s.name)}</label>
+      <label>حد صرف (ج)<input data-cap="${s.id}" inputmode="decimal" placeholder="من غير حد"></label>
+      <label>تغيير السعر %<input data-up="${s.id}" inputmode="decimal" placeholder="0"></label></div>`).join('') || '<p class="mut">مفيش أسعار موردين مسجلة.</p>';
+}
+const LOT_AR = { history: 'من مشترياتك', manual: 'يدوي', default: 'افتراضي' };
+const lotLabel = g => g >= 1000 ? (g / 1000) + ' كجم' : g + ' جم';
+function renderLots() {
+  const need = new Map();
+  for (const l of SNAP.lines) if (l.oil_id && +l.grams) need.set(l.oil_id, (need.get(l.oil_id) || 0) + l.qty * l.grams);
+  const priced = new Set(SNAP.prices.map(p => p.oil_id));
+  const def = Math.max(1, +$('lot').value || 125);
+  const rows = [...need.keys()].map(id => { const o = SNAP.oils.find(x => x.id === id) || { name: id };
+    return { id, o, lt: AFOpt.lotOf(SNAP, { lotOil: def, lotByOil: LOT_OV }, id), noPrice: !priced.has(id) && !(o.cost > 0) }; })
+    .sort((a, b) => (b.noPrice - a.noPrice) || String(a.o.name).localeCompare(String(b.o.name), 'ar'));
+  const np = rows.filter(r => r.noPrice).length;
+  $('lotsSum').textContent = `وحدة الشراء لكل زيت (${rows.length} زيت)` + (np ? ` · ${np} من غير سعر` : '');
+  $('lots').innerHTML = rows.length ? `<div class="scroll" style="max-height:340px"><table><tr><th>الزيت</th><th>وحدة الشراء</th><th>المصدر</th><th>سعر الجرام (لو مش مسجل)</th></tr>
+    ${rows.map(r => `<tr><td>${esc(r.o.name)}</td><td><select data-lot="${r.id}" style="min-width:90px">${[1, 5, 10, 25, 50, 100, 125, 250, 500, 1000].map(g => `<option value="${g}" ${g === r.lt.lot ? 'selected' : ''}>${lotLabel(g)}</option>`).join('')}</select></td>
+      <td class="mut" style="font-size:12.5px">${LOT_AR[r.lt.src]}</td>
+      <td>${r.noPrice ? `<input data-price="${r.id}" inputmode="decimal" placeholder="مش هيتشرى من غير سعر" value="${PRICE_OV[r.id] ?? ''}" style="max-width:150px">` : '<span class="mut">مسجل</span>'}</td></tr>`).join('')}</table></div>` : '<p class="mut">مفيش زيوت مطلوبة.</p>';
+  $('lots').querySelectorAll('[data-lot]').forEach(el => el.onchange = () => { LOT_OV[el.dataset.lot] = +el.value; renderLots(); });
+  $('lots').querySelectorAll('[data-price]').forEach(el => el.onchange = () => { const v = +el.value; if (v > 0) PRICE_OV[el.dataset.price] = v; else delete PRICE_OV[el.dataset.price]; });
+}
+function params(zero) {
+  const P = { supOn: {}, supCap: {}, supUp: {} };
+  document.querySelectorAll('[data-on]').forEach(i => { if (!i.checked) P.supOn[i.dataset.on] = false; });
+  document.querySelectorAll('[data-cap]').forEach(i => { if (i.value.trim() !== '') P.supCap[i.dataset.cap] = +i.value; });
+  document.querySelectorAll('[data-up]').forEach(i => { if (i.value.trim() !== '' && +i.value) P.supUp[i.dataset.up] = +i.value; });
+  const b = $('budget').value.trim();
+  P.budget = zero ? 0 : (b === '' ? 1e12 : +b);
+  P.mode = $('mode').value; P.wholeInv = $('whole').checked; P.buyEmpties = $('buyE').checked;
+  P.lotOil = Math.max(1, +$('lot').value || 125);
+  P.lotByOil = Object.assign({}, LOT_OV); P.priceOverride = Object.assign({}, PRICE_OV);
+  return P;
+}
+const supName = sid => sid === 'empties' ? 'الفوارغ' : sid ? ((SNAP.suppliers.find(s => s.id === sid) || {}).name || 'مورد') : 'مورد غير محدد';
+function describeParams(P) {
+  const a = [];
+  a.push(P.budget >= 1e11 ? 'ميزانية: من غير حد' : `ميزانية: ${f0(P.budget)} ج`);
+  a.push(P.mode === 'rank' ? 'الأولوية: ترتيب الشغل' : 'الأولوية: أعلى إيراد صافي');
+  const nl = Object.keys(P.lotByOil || {}).length, np = Object.keys(P.priceOverride || {}).length;
+  a.push('وحدة الشراء حسب كل زيت' + (nl ? ` (${nl} معدّلة يدوي)` : ''));
+  if (np) a.push(`${np} سعر مدخل يدوي`);
+  if (P.wholeInv) a.push('تفضيل الفواتير الكاملة');
+  if (!P.buyEmpties) a.push('من غير شراء فوارغ');
+  for (const [k, v] of Object.entries(P.supOn || {})) if (v === false) a.push(`${supName(k)} واقف`);
+  for (const [k, v] of Object.entries(P.supCap || {})) a.push(`حد ${supName(k)} ${f0(v)} ج`);
+  for (const [k, v] of Object.entries(P.supUp || {})) a.push(`سعر ${supName(k)} ${v > 0 ? '+' : ''}${v}%`);
+  return a.join(' · ');
+}
+
+// ---------- solve ----------
+const STATE_AR = { INFEASIBLE: 'القيود متعارضة ومفيش خطة ممكنة', UNBOUNDED: 'النموذج غير محدود (خطأ في البيانات)', TIME_LIMIT: 'الوقت خلص قبل ما يتلاقى أي حل',
+  NUMERICAL_ERROR: 'خطأ عددي في الحل', INVALID_MODEL: 'البيانات مش صالحة لبناء النموذج', UNKNOWN: 'الـ Solver ماقدرش يحدد النتيجة' };
+async function solve(snap, P, tmlim = 20) {
+  const r = await AFOpt.solvePlan(SOLVER, snap, P, tmlim);
+  if (r.status !== 'OPTIMAL' && r.status !== 'FEASIBLE')
+    throw new Error((STATE_AR[r.status] || r.status) + (r.errors && r.errors.length ? ' — ' + r.errors.slice(0, 3).join('، ') : ''));
+  r.solver.state = r.status; r.solver.status = r.status === 'OPTIMAL' ? 'optimal' : 'feasible';
+  return r;
+}
+async function runPlan(zero, tmlim = 20) {
+  if (!SNAP || !SOLVER) return;
+  $('planOut').innerHTML = `<div class="card mut">بيحسب… (لحد ${tmlim} ثانية)</div>`;
+  $('run').disabled = $('run0').disabled = true;
+  await new Promise(r => setTimeout(r, 30));
+  try {
+    LAST = await solve(SNAP, params(zero), tmlim);
+    LAST.hash = HASH; LAST.snap = SNAP; LAST.at = new Date().toISOString();
+    if (!BASE) BASE = LAST;
+    renderPlan(LAST);
+  } catch (e) { $('planOut').innerHTML = `<div class="card bad">${esc(e.message || e)}</div>`; }
+  finally { $('run').disabled = $('run0').disabled = false; }
+}
+$('run').onclick = () => runPlan(false);
+$('run0').onclick = () => runPlan(true);
+
+// ---------- render: plan with full explanation ----------
+function optimalityHTML(S) {
+  if (S.status === 'optimal') return `<div class="verdict"><span class="ic ok">✓</span><div><b class="ok">ده الحل الأمثل، ومثبت رياضياً.</b><br>
+    <span class="mut" style="font-size:13.5px">الـ Solver (${esc(S.name || '')}، Branch & Bound) خلّص البحث في ${f0(S.ms)} ملّي ثانية، ومفيش أي خطة تانية تحترم نفس القيود وتطلّع قيمة أعلى.</span></div></div>`;
+  return `<div class="verdict"><span class="ic warn">≈</span><div><b class="warn">خطة ممكنة ومتحقق منها، بس مش مثبت إنها الأحسن.</b><br>
+    <span class="mut" style="font-size:13.5px">الـ Solver وقف بعد ${f0(S.tmlim)} ثانية قبل ما يخلّص البحث، فممكن يكون فيه خطة أحسن.</span>
+    <div class="noprint" style="margin-top:6px"><button class="btn sec" id="longer">كمّل البحث لحد دقيقتين</button></div></div></div>`;
+}
+function modelHTML(R) {
+  const { m, solver: S, P } = R;
+  const nOil = m.needOil.size, nEmp = m.needEmp.size, nL = m.lines.length, nI = m.invs.size;
+  return `<div class="math">المتغيرات (القرارات اللي النموذج بيختارها):
+  yₗ ∈ {0,1}  : هل السطر ℓ هيتعبّى كله؟  (${nL} سطر)
+  ${P.wholeInv ? `zᵢ ∈ {0,1}  : هل الفاتورة i هتكمل كلها؟  (${nI} فاتورة)\n  ` : ''}xₒₛ ∈ ℤ≥0 : كام وحدة (وحدة الزيت Λₒ: جرام أو 125 جم أو كيلو) هنشتري من الزيت o من المورد s
+  ${P.buyEmpties ? 'eₚ ∈ ℤ≥0  : كام فارغة p هنشتري\n' : ''}
+الهدف — تعظيم:
+  Σ yₗ · كميةₗ · (سعر البيعₗ − ربح الصفحةₗ${P.mode === 'rank' ? ` + ${AFOpt.PRIO}×(${m.R}+1−ترتيب الفاتورة)` : ''})
+  ${P.wholeInv ? `+ Σ zᵢ · ${AFOpt.WHOLE} × قيمة الفاتورةᵢ\n  ` : ''}− Σ xₒₛ · Λₒ · سعر الجرامₒₛ ${P.buyEmpties ? '− Σ eₚ · تكلفة الفارغةₚ' : ''}
+
+القيود:
+  (1) لكل زيت o (${nOil}):   Σ yₗ·كميةₗ·جراماتₗ  ≤  max(0, رصيدₒ) + Λₒ·Σₛ xₒₛ
+  (2) لكل فارغة p (${nEmp}):  Σ yₗ·كميةₗ  ≤  max(0, رصيدₚ)${P.buyEmpties ? ' + eₚ' : ''}
+  ${P.budget < 1e11 ? `(3) الميزانية:  إجمالي الشراء ≤ ${f0(P.budget)} ج\n  ` : ''}${Object.keys(P.supCap || {}).length ? '(4) حد صرف كل مورد محدد\n  ' : ''}${P.wholeInv ? '(5) zᵢ ≤ yₗ  لكل سطر في الفاتورة (الفاتورة "كاملة" بس لو كل سطورها اتعبت)\n' : ''}</div>
+  <p class="mut" style="font-size:13px">${P.mode === 'rank' ? `معنى وزن الأولوية: كل قطعة في فاتورة ترتيبها أعلى بخطوة واحدة واخدة ${AFOpt.PRIO} نقطة زيادة. الرقم ده أكبر بكتير من أي فرق في السعر أو التكلفة، فالنموذج يخلّص الفواتير بالترتيب، وجوه نفس الترتيب يختار الأرخص في الشراء.` : 'من غير أوزان أولوية: النموذج بيعظّم (الإيراد الصافي − تكلفة الشراء) بس.'}
+  الحجم: ${S.nVars} متغير (${S.nBin} نعم/لا + ${S.nInt} عدد صحيح)، ${S.nCons} قيد.</p>
+  <p class="mut" style="font-size:13px">تبسيط مضمون: لو مورد ملوش حد صرف، أي شراء من مورد أغلى منه ممكن يتبدّل بشراء منه بنفس الجرامات وفلوس أقل. عشان كده النموذج بيستبعد الموردين الأغلى للزيت ده، ومن غير ما يبوّظ الأمثلية.</p>`;
+}
+function dataHTML(R) {
+  const s = R.snap, m = R.m;
+  const withPrice = [...m.needOil.keys()].filter(o => s.prices.some(p => p.oil_id === o)).length;
+  return `<table>
+    <tr><td>لحظة سحب الداتا</td><td>${esc(dt(s.at))}</td></tr>
+    <tr><td>بصمة الداتا (SHA-256)</td><td class="n" style="font-size:12px">${R.hash.slice(0, 32)}…</td></tr>
+    <tr><td>سطور الطلبات المفتوحة</td><td>${s.lines.length} سطر من ${new Set(s.lines.map(l => l.inv_id)).size} فاتورة (مش متعبّية ومش ملغية)</td></tr>
+    <tr><td>الزيوت المطلوبة</td><td>${m.needOil.size} زيت — الرصيد من جدول الخامات، والجرامات من سطر الفاتورة (ولو فاضي فمن الوصفة)</td></tr>
+    <tr><td>أسعار الشراء</td><td>آخر سعر لكل زيت من كل مورد في فواتير الموردين، بعد الخصم. ${withPrice} من ${m.needOil.size} زيت ليهم سعر مسجل، والباقي اتحسب بآخر تكلفة.</td></tr>
+    <tr><td>الفوارغ</td><td>${m.needEmp.size} فارغة — اللي على الرف = الرصيد المتاح + المحجوز للطلبات المفتوحة</td></tr>
+    <tr><td>سعر البيع وربح الصفحة</td><td>من سطر الفاتورة ومن ربح الصفحة على الفاتورة</td></tr>
+    <tr><td>ترتيب الشغل</td><td>من ترتيب الفواتير في السيستم. الفواتير اللي مالهاش ترتيب بتيجي بعدهم بالتاريخ.</td></tr>
+  </table>
+  ${m.warn.length ? `<details><summary class="warn">${m.warn.length} ملاحظة على الداتا اتعاملنا معاها</summary><ul>${m.warn.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>` : '<p class="ok">مفيش ملاحظات على الداتا.</p>'}`;
+}
+function verifyHTML(V) {
+  return `<div class="verdict" style="margin-bottom:8px"><span class="ic ${V.ok ? 'ok' : 'bad'}">${V.ok ? '✓' : '✗'}</span><div><b class="${V.ok ? 'ok' : 'bad'}">${V.ok ? 'كل القيود متحققة' : 'فيه قيد مكسور!'}</b><br>
+    <span class="mut" style="font-size:13.5px">الفحص ده مش بيصدّق الـ Solver. بيرجع للداتا الخام، ويعيد حساب كل قيد وكل جنيه بنفسه من القرارات النهائية.</span></div></div>
+    <table>${V.checks.map(c => `<tr><td>${c.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td><td>${esc(c.name)}</td><td class="mut">${esc(c.detail)}</td></tr>`).join('')}</table>`;
+}
+function buyWhy(b, m) {
+  const w = b.why;
+  let h = `<div class="why"><b>ليه الكمية دي؟</b><br>`;
+  if (b.kind === 'oil') {
+    h += `السطور اللي هتتعبّى محتاجة ${f0(w.need)} جم − الموجود ${f0(w.avail)} جم = ناقص ${f0(w.short)} جم<br>
+      ⌈${f0(w.short)} ÷ ${w.lot}⌉ = ${w.lots} وحدة × ${w.lot} = <b>${f0(b.qty)} جم</b> (الزيادة ${f0(b.qty - w.short)} جم بسبب وحدة الشراء)`;
+    h += `<br><b>ليه المورد ده؟</b><table style="margin-top:4px"><tr><th>المورد</th><th class="n">ج/كجم</th><th>المصدر</th><th></th></tr>
+      ${w.alts.map(a => `<tr><td>${esc(supName(a.sup))}</td><td class="n">${f0(a.ppg * 1000)}${a.ppg !== a.base ? ` <span class="mut">(أصلاً ${f0(a.base * 1000)})</span>` : ''}</td>
+      <td class="mut">${a.inv_no || a.date ? `فاتورة ${esc(a.inv_no || '—')} بتاريخ ${esc(a.date || '')}` : esc(a.src || '')}</td>
+      <td>${a.chosen ? '<b class="ok">✓ اتختار</b>' : a.off ? '<span class="mut">واقف</span>' : a.dominated ? '<span class="mut">أغلى</span>' : '<span class="mut">ماتختارش (حد صرف)</span>'}</td></tr>`).join('')}</table>`;
+  } else {
+    h += `السطور اللي هتتعبّى محتاجة ${f0(w.need)} − اللي على الرف ${f0(w.avail)} = <b>${f0(b.qty)} فارغة</b><br>السعر ${f0(b.ppg)} ج = آخر تكلفة مسجلة للفارغة دي.`;
+  }
+  return h + `</div>`;
+}
+function renderPlan(R) {
+  const { m, p, solver: S, ver: V, P } = R;
+  const pcsAll = m.lines.reduce((s, l) => s + l.qty, 0), pcsF = p.filled.reduce((s, l) => s + l.qty, 0);
+  let save = 0;
+  for (const b of p.buys.filter(x => x.kind === 'oil')) {
+    const all = (b.why.alts || []).filter(a => !a.off).map(a => a.ppg);
+    if (all.length > 1) save += b.qty * (Math.max(...all) - b.ppg);
+  }
+  const groups = new Map();
+  for (const b of p.buys) { const k = b.sup ?? 'none'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
+  const name = b => b.kind === 'oil' ? (m.oilById.get(b.id)?.name || '?') : (m.empById.get(b.id)?.name || '?');
+  const code = b => b.kind === 'oil' ? 'Z' + (m.oilById.get(b.id)?.cnt_no ?? '-') : 'F' + (m.empById.get(b.id)?.cnt_no ?? '-');
+
+  let h = `<div class="card"><h3><span class="q">١</span>القرار المقترح</h3>
+    <p class="mut" style="margin-top:0;font-size:13px">${esc(describeParams(P))}</p>
+    <div class="kpis">
+      <div class="kpi"><small>قطع هتتعبّى</small><b>${f0(pcsF)}</b> <span class="mut">من ${f0(pcsAll)}</span></div>
+      <div class="kpi"><small>إيراد صافي هيتفتح</small><b>${f0(p.revenue)}</b> <span class="mut">من ${f0(p.allRev)} ج</span></div>
+      <div class="kpi"><small>تكلفة الشراء</small><b>${f0(p.buyCost)}</b> <span class="mut">ج</span></div>
+      <div class="kpi"><small>توفير مقابل أغلى مورد</small><b class="ok">${f0(save)}</b> <span class="mut">ج</span></div>
+    </div>
+    <div class="row noprint"><button class="btn" id="save">احفظ القرار في السجل</button><button class="btn sec" onclick="window.print()">طباعة / PDF</button><span id="saveMsg" class="mut"></span></div></div>`;
+
+  h += `<div class="card"><h3><span class="q">٢</span>هل الحل ده أمثل؟</h3>${optimalityHTML(S)}</div>`;
+  h += `<div class="card"><h3><span class="q">٣</span>القيود: اتحترمت ولا لأ؟</h3>${verifyHTML(V)}</div>`;
+
+  // buy list with why
+  h += `<div class="card"><h3><span class="q">٤</span>هنشتري إيه ومن مين، وليه</h3>`;
+  if (!p.buys.length) h += `<p class="mut">مش محتاج تشتري حاجة للخطة دي.</p>`;
+  for (const [k, bs] of groups) {
+    const tot = bs.reduce((s, b) => s + b.cost, 0);
+    bs.sort((a, b) => b.cost - a.cost);
+    h += `<div class="sup"><div class="hd"><b>${esc(supName(k === 'none' ? null : k))}</b><span class="tag">${bs.length} صنف · ${f0(tot)} ج</span>
+      <button class="btn sec noprint" data-copy="${esc(k)}">نسخ للواتساب</button></div>
+      ${bs.map(b => `<details><summary><span style="color:var(--ink)">${esc(name(b))}</span> <span class="mut">${code(b)}</span> — <b style="color:var(--ink)">${f0(b.qty)} ${b.kind === 'oil' ? 'جم' : 'قطعة'}</b> × ${b.kind === 'oil' ? f0(b.ppg * 1000) + '/كجم' : f0(b.ppg)} = ${f0(b.cost)} ج</summary>${buyWhy(b, m)}</details>`).join('')}
+    </div>`;
+  }
+  h += `</div>`;
+
+  // invoices
+  h += `<div class="card"><h3><span class="q">٥</span>الفواتير بعد القرار</h3><div class="scroll"><table>
+    <tr><th>#</th><th>الفاتورة</th><th>العميل</th><th>سطور</th><th class="n">قطع</th><th class="n">قيمة صافية</th><th></th></tr>
+    ${p.invDone.map(i => `<tr><td>${i.rank}</td><td>${esc(i.no)}</td><td>${esc(i.cust || '')}</td><td>${i.filled}/${i.lines}</td><td class="n">${f0(i.pcsFilled)}/${f0(i.pcs)}</td><td class="n">${f0(i.valueFilled)}</td>
+      <td><div class="bar"><i style="width:${Math.round(100 * i.pcsFilled / (i.pcs || 1))}%"></i></div></td></tr>`).join('')}</table></div></div>`;
+
+  // unfilled
+  if (p.unfilled.length) {
+    const byInv = new Map();
+    for (const l of p.unfilled) { if (!byInv.has(l.no)) byInv.set(l.no, []); byInv.get(l.no).push(l); }
+    h += `<div class="card"><h3><span class="q">٦</span>سطور اتأجلت، وليه</h3>`;
+    for (const [no, ls] of byInv) h += `<details><summary>${esc(no)}: ${ls.length} سطر، ${f0(ls.reduce((s, l) => s + l.qty, 0))} قطعة</summary>
+      ${ls.map(l => `<div class="why"><b>${esc(l.name)}</b> × ${f0(l.qty)} (${f1(l.g)} جم)<br>${esc(l.why)}</div>`).join('')}</details>`;
+    h += `</div>`;
+  }
+
+  h += `<div class="card"><h3><span class="q">٧</span>المعادلة اللي اتحلت</h3>${modelHTML(R)}
+    <div class="row noprint"><button class="btn sec" id="dlLP">نزّل النموذج (.lp)</button><button class="btn sec" id="dlJSON">نزّل التشغيلة كاملة (JSON)</button></div>
+    <p class="mut" style="font-size:12.5px">ملف .lp ده بصيغة CPLEX LP القياسية. تقدر تفتحه في أي Solver تاني (GLPK أو CBC أو Gurobi) وتتأكد إنه بيطلّع نفس النتيجة.</p></div>`;
+  h += `<div class="card"><h3><span class="q">٨</span>الداتا اللي اتبنى عليها القرار</h3>${dataHTML(R)}</div>`;
+  h += `<div class="card"><details><summary>كل الزيوت المطلوبة للطلبات المفتوحة (${p.oilRows.length})</summary><div class="scroll"><table>
+    <tr><th>الزيت</th><th>كود</th><th class="n">رصيد</th><th class="n">مطلوب</th><th class="n">ناقص</th><th class="n">هيتشري</th><th class="n">هيتستخدم</th><th class="n">يفضل</th></tr>
+    ${p.oilRows.slice().sort((a, b) => b.gap - a.gap).map(o => `<tr><td>${esc(o.name)}</td><td class="mut">Z${o.cnt ?? '-'}</td><td class="n ${o.stock < 0 ? 'bad' : ''}">${f0(o.stock)}</td><td class="n">${f0(o.need)}</td><td class="n ${o.gap ? 'bad' : ''}">${f0(o.gap)}</td><td class="n">${f0(o.bought)}</td><td class="n">${f0(o.used)}</td><td class="n">${f0(o.left)}</td></tr>`).join('')}
+    </table></div></details></div>`;
+
+  $('planOut').innerHTML = h;
+  $('planOut').querySelectorAll('[data-copy]').forEach(btn => btn.onclick = () => {
+    const k = btn.dataset.copy, bs = groups.get(k);
+    const txt = `طلبية ${supName(k === 'none' ? null : k)} — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}\n` + bs.map(b => `- ${name(b)}: ${f0(b.qty)} ${b.kind === 'oil' ? 'جرام' : 'قطعة'}`).join('\n');
+    navigator.clipboard.writeText(txt).then(() => { btn.textContent = 'اتنسخ ✓'; setTimeout(() => btn.textContent = 'نسخ للواتساب', 1500); });
+  });
+  if ($('longer')) $('longer').onclick = () => runPlan(R.P.budget === 0, 120);
+  $('dlLP').onclick = () => download(`af-model-${R.at.slice(0, 16)}.lp`, AFOpt.toLP(R.m.lp));
+  $('dlJSON').onclick = () => download(`af-decision-${R.at.slice(0, 16)}.json`, JSON.stringify({ params: R.P, snapshot: R.snap, hash: R.hash, decision: R.decision, solver: R.solver, verify: R.ver }, null, 1), 'application/json');
+  $('save').onclick = () => saveRun(R);
+}
+
+// ---------- save / history / re-run ----------
+async function saveRun(R) {
+  $('save').disabled = true; $('saveMsg').textContent = 'بيحفظ…';
+  const pcs = R.p.filled.reduce((s, l) => s + l.qty, 0);
+  const { error } = await sb.from('decision_runs').insert({
+    kind: 'plan', title: describeParams(R.P), params: R.P, snapshot: R.snap, snap_hash: R.hash,
+    result: { decision: R.decision, buyCost: R.p.buyCost, revenue: R.p.revenue, pcs, verified: R.ver.ok }, solver: R.solver
+  });
+  $('saveMsg').textContent = error ? 'ماتحفظش: ' + error.message : 'اتحفظ ✓';
+  $('save').disabled = false; if (!error) loadRuns();
+}
+const ST_AR = { draft: ['لسه متراجعش', 'mut'], verified: ['متحقق منه في القاعدة', 'ok'], failed: ['فشل التحقق', 'bad'], approved: ['معتمد', 'ok'], rejected: ['مرفوض', 'bad'] };
+let HAS_FLOW = true; // false until the verify/approve migration is applied
+async function loadRuns() {
+  let { data, error } = await sb.from('decision_runs').select('id,created_at,title,snap_hash,result,solver,status,db_check,decided_at').order('created_at', { ascending: false }).limit(30);
+  if (error) { HAS_FLOW = false; ({ data, error } = await sb.from('decision_runs').select('id,created_at,title,snap_hash,result,solver').order('created_at', { ascending: false }).limit(30)); }
+  else HAS_FLOW = true;
+  if (error) { $('runsOut').textContent = 'خطأ: ' + error.message; return; }
+  if (!data.length) { $('runsOut').innerHTML = 'لسه مفيش قرارات محفوظة.'; return; }
+  const flow = r => {
+    if (!HAS_FLOW) return '';
+    const st = r.status || 'draft';
+    const fails = (r.db_check?.checks || []).filter(c => !c.ok).map(c => esc(c.name) + ': ' + esc(c.detail || '')).join('<br>');
+    return `<div style="margin-top:4px"><span class="pill ${ST_AR[st][1]}">${ST_AR[st][0]}</span>${r.decided_at ? ` <span class="mut" style="font-size:12px">${esc(dt(r.decided_at))}</span>` : ''}</div>
+      ${st === 'failed' && fails ? `<div class="why bad" style="font-size:12.5px">${fails}</div>` : ''}
+      ${st === 'draft' || st === 'failed' ? `<button class="btn sec" data-vfy="${r.id}">تحقق في القاعدة</button>` : ''}
+      ${st === 'verified' ? `<button class="btn" data-dec="${r.id}" data-ok="1" style="padding:7px 12px">اعتمد</button>` : ''}
+      ${st === 'draft' || st === 'failed' || st === 'verified' ? `<button class="btn sec" data-dec="${r.id}" data-ok="0">ارفض</button>` : ''}`;
+  };
+  $('runsOut').innerHTML = (HAS_FLOW ? '' : '<p class="msg warn">التحقق داخل القاعدة والاعتماد لسه مش مفعّلين (محتاجين تعديل في القاعدة يتوافق عليه).</p>') +
+    `<div class="scroll"><table><tr><th>التاريخ</th><th>المدخلات</th><th class="n">قطع</th><th class="n">شراء</th><th>الحالة</th><th></th></tr>
+    ${data.map(r => `<tr><td>${esc(dt(r.created_at))}</td><td style="font-size:13px">${esc(r.title)}</td><td class="n">${f0(r.result.pcs)}</td><td class="n">${f0(r.result.buyCost)}</td>
+      <td>${r.solver?.status === 'optimal' ? '<span class="ok">أمثل</span>' : '<span class="warn">غير مثبت</span>'} ${r.result.verified ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}${flow(r)}</td>
+      <td><button class="btn sec" data-rerun="${r.id}">إعادة الحساب</button></td></tr><tr class="hide" id="rr-${r.id}"><td colspan="6"></td></tr>`).join('')}</table></div>
+    <p class="mut" style="font-size:12.5px">الاعتماد بيسجّل قرارك بس. مفيش شراء ولا تعديل مخزون بيتنفذ لوحده.</p>`;
+  $('runsOut').querySelectorAll('[data-rerun]').forEach(b => b.onclick = () => rerun(b.dataset.rerun, b));
+  const ERR_AR = { not_verified: 'لازم يتحقق منه الأول', already_decided: 'القرار ده اتاخد فيه قرار قبل كده', not_allowed: 'للمالك بس', run_incomplete: 'القرار المحفوظ ناقص' };
+  const call = async (b, fn, args) => { b.disabled = true; const { error } = await sb.rpc(fn, args);
+    if (error) { alert(Object.entries(ERR_AR).find(([k]) => error.message.includes(k))?.[1] || error.message); b.disabled = false; return; } loadRuns(); };
+  $('runsOut').querySelectorAll('[data-vfy]').forEach(b => b.onclick = () => call(b, 'decision_verify', { p_id: b.dataset.vfy }));
+  $('runsOut').querySelectorAll('[data-dec]').forEach(b => b.onclick = () => { const ok = b.dataset.ok === '1';
+    if (confirm(ok ? 'تعتمد القرار ده؟' : 'ترفض القرار ده؟')) call(b, 'decision_decide', { p_id: b.dataset.dec, p_ok: ok }); });
+}
+async function rerun(id, btn) {
+  const row = $('rr-' + id), cell = row.firstElementChild;
+  row.classList.remove('hide'); cell.innerHTML = '<span class="mut">بيجيب الداتا المحفوظة ويعيد الحساب…</span>'; btn.disabled = true;
+  try {
+    const { data: r, error } = await sb.from('decision_runs').select('*').eq('id', id).single();
+    if (error) throw error;
+    const h = await sha(r.snapshot);
+    const old = r.result.decision;
+    const oldVer = AFOpt.verify(r.snapshot, r.params, old);
+    const R = await solve(r.snapshot, r.params, Math.max(10, r.solver?.tmlim || 10));
+    const sameFill = R.decision.filledIds.length === old.filledIds.length && R.decision.filledIds.every(x => old.filledIds.includes(x));
+    const key = b => `${b.kind}|${b.id}|${b.sup}|${b.qty}`;
+    const sameBuy = R.decision.buys.length === old.buys.length && R.decision.buys.map(key).sort().join() === old.buys.map(key).sort().join();
+    const dz = Math.abs(R.decision.z - old.z);
+    cell.innerHTML = `<div class="why">
+      <div>${h === r.snap_hash ? '<span class="ok">✓</span> الداتا المحفوظة مطابقة لبصمتها، ماتغيرتش' : '<span class="bad">✗</span> بصمة الداتا مختلفة!'}</div>
+      <div>${oldVer.ok ? '<span class="ok">✓</span> القرار القديم عدّى الفحص المستقل' : '<span class="bad">✗</span> القرار القديم كسر قيد: ' + esc(oldVer.checks.filter(c => !c.ok).map(c => c.name).join('، '))}</div>
+      <div>${dz <= 1 ? '<span class="ok">✓</span> إعادة الحل طلّعت نفس القيمة' : (R.decision.z > old.z ? '<span class="warn">↑</span> إعادة الحل لقت قيمة أعلى بـ ' + f0(R.decision.z - old.z) : '<span class="warn">↓</span> القيمة أقل بـ ' + f0(old.z - R.decision.z))}</div>
+      <div>${sameFill && sameBuy ? '<span class="ok">✓</span> نفس السطور ونفس قايمة الشراء بالظبط' : '<span class="mut">• في حل تاني بنفس القيمة أو قريب منها (ممكن يبقى فيه أكتر من حل أمثل)</span>'}</div>
+      <div class="mut" style="font-size:12.5px">${esc(R.solver.name || 'GLPK')} · ${R.solver.status === 'optimal' ? 'أمثل' : 'غير مثبت'} · ${f0(R.solver.ms)} مللي ثانية</div></div>`;
+  } catch (e) { cell.innerHTML = `<span class="bad">${esc(e.message || e)}</span>`; }
+  btn.disabled = false;
+}
+
+// ---------- what-if ----------
+$('pin').onclick = () => { if (LAST) { BASE = LAST; renderCompare(); } };
+function renderCompare() {
+  if (!BASE) { $('pinInfo').textContent = ''; $('cmpOut').innerHTML = '<p class="mut">احسب خطة الأول.</p>'; return; }
+  $('pinInfo').textContent = 'الأساس: ' + describeParams(BASE.P);
+  if (!LAST || LAST === BASE) { $('cmpOut').innerHTML = '<p class="mut">لسه مفيش سيناريو جديد تقارنه بالأساس.</p>'; return; }
+  const a = BASE.p, b = LAST.p;
+  const pc = x => x.filled.reduce((s, l) => s + l.qty, 0);
+  const row = (n, x, y, unit = '', good = 1) => { const d = y - x; const cls = !d ? 'mut' : (d * good > 0 ? 'ok' : 'bad');
+    return `<tr><td>${n}</td><td class="n">${f0(x)}${unit}</td><td class="n">${f0(y)}${unit}</td><td class="n ${cls}">${d > 0 ? '+' : ''}${f0(d)}${unit}</td></tr>`; };
+  // buy diffs
+  const nm = (R, x) => x.kind === 'oil' ? R.m.oilById.get(x.id)?.name : R.m.empById.get(x.id)?.name;
+  const k = x => x.kind + '|' + x.id + '|' + x.sup;
+  const A = new Map(a.buys.map(x => [k(x), x])), B = new Map(b.buys.map(x => [k(x), x]));
+  const keys = [...new Set([...A.keys(), ...B.keys()])];
+  const diffs = keys.map(key => ({ x: A.get(key), y: B.get(key) })).filter(d => !d.x || !d.y || d.x.qty !== d.y.qty);
+  const invD = b.invDone.map(i => { const o = a.invDone.find(j => j.inv_id === i.inv_id) || { pcsFilled: 0 }; return { no: i.no, d: i.pcsFilled - o.pcsFilled }; }).filter(x => x.d);
+  $('cmpOut').innerHTML = `<p style="font-size:13.5px"><b>السيناريو:</b> ${esc(describeParams(LAST.P))}</p>
+    <div class="scroll"><table><tr><th></th><th class="n">الأساس</th><th class="n">السيناريو</th><th class="n">الفرق</th></tr>
+    ${row('قطع هتتعبّى', pc(a), pc(b))}${row('إيراد صافي', a.revenue, b.revenue)}${row('تكلفة الشراء', a.buyCost, b.buyCost, '', -1)}
+    ${row('سطور متعبّية', a.filled.length, b.filled.length)}</table></div>
+    ${invD.length ? `<p style="margin-bottom:4px"><b>الفواتير اللي اتأثرت:</b></p><p>${invD.map(i => `${esc(i.no)} <span class="${i.d > 0 ? 'ok' : 'bad'}">${i.d > 0 ? '+' : ''}${f0(i.d)} قطعة</span>`).join(' · ')}</p>` : ''}
+    ${diffs.length ? `<details><summary>${diffs.length} تغيير في قايمة الشراء</summary><table><tr><th>الصنف</th><th>المورد</th><th class="n">الأساس</th><th class="n">السيناريو</th></tr>
+      ${diffs.map(d => { const z = d.x || d.y; return `<tr><td>${esc(nm(d.x ? BASE : LAST, z))}</td><td>${esc(supName(z.sup))}</td><td class="n">${f0(d.x?.qty || 0)}</td><td class="n">${f0(d.y?.qty || 0)}</td></tr>`; }).join('')}</table></details>` : '<p class="mut">قايمة الشراء زي ما هي.</p>'}
+    <p class="mut" style="font-size:12.5px">الاتنين: ${BASE.solver.status === 'optimal' ? 'أمثل' : 'غير مثبت'} / ${LAST.solver.status === 'optimal' ? 'أمثل' : 'غير مثبت'}. الفحص المستقل: ${BASE.ver.ok ? '✓' : '✗'} / ${LAST.ver.ok ? '✓' : '✗'}.</p>`;
+}
+$('curve').onclick = async () => {
+  const btn = $('curve'); btn.disabled = true; $('curveOut').innerHTML = '<p class="mut">بيحسب التغطية الكاملة الأول…</p>';
+  try {
+    const P0 = params(false); P0.budget = 1e12;
+    const full = await solve(SNAP, P0, 10);
+    const C = full.p.buyCost;
+    const steps = [0, .2, .4, .6, .8, 1].map(f => Math.round(C * f));
+    const out = [];
+    for (const B of steps) {
+      $('curveOut').innerHTML = `<p class="mut">ميزانية ${f0(B)} ج…</p>`;
+      const P = Object.assign({}, P0, { budget: B || 0 });
+      const r = B === Math.round(C) ? full : await solve(SNAP, P, 4);
+      out.push({ B, pcs: r.p.filled.reduce((s, l) => s + l.qty, 0), rev: r.p.revenue, spend: r.p.buyCost, opt: r.solver.status === 'optimal', ok: r.ver.ok });
+    }
+    const maxP = Math.max(...out.map(o => o.pcs)) || 1;
+    $('curveOut').innerHTML = `<p>تغطية كل الطلبات محتاجة شراء بـ <b>${f0(C)} ج</b>.</p><div class="scroll"><table>
+      <tr><th class="n">الميزانية</th><th class="n">قطع</th><th></th><th class="n">إيراد صافي</th><th class="n">كل 1000 ج زيادة</th></tr>
+      ${out.map((o, i) => { const pr = out[i - 1]; const mg = pr && o.B > pr.B ? (o.rev - pr.rev) / (o.B - pr.B) * 1000 : null;
+        return `<tr><td class="n">${f0(o.B)}</td><td class="n">${f0(o.pcs)}</td><td><div class="bar"><i style="width:${Math.round(100 * o.pcs / maxP)}%"></i></div></td><td class="n">${f0(o.rev)}</td><td class="n">${mg == null ? '—' : '+' + f0(mg) + ' ج'}</td></tr>`; }).join('')}
+      </table></div><p class="mut" style="font-size:12.5px">"كل 1000 ج زيادة" = إيراد إضافي بيتفتح مقابل كل 1000 ج شراء زيادة في الشريحة دي. لما الرقم ده يقل كتير، يبقى صرف فلوس زيادة بعد كده مش مجزي. ${out.every(o => o.ok) ? 'كل النقط عدّت الفحص المستقل ✓' : ''}</p>`;
+  } catch (e) { $('curveOut').innerHTML = `<p class="bad">${esc(e.message || e)}</p>`; }
+  btn.disabled = false;
+};
+
+// ---------- simulation ----------
+function runSim() {
+  if (!SNAP) return;
+  const H = Math.max(1, +$('hz').value || 7), mult = 1 + (+$('mult').value || 0) / 100, svc = +$('svc').value;
+  const r = AFOpt.simulate(SNAP, { horizon: H, mult, service: svc });
+  const min = +$('minRisk').value;
+  const rows = r.rows.filter(x => min === 0 || x.pOut >= min);
+  const tot = rows.reduce((s, x) => s + x.cost, 0);
+  const rnd = x => Math.ceil(x / 25) * 25;
+  $('simOut').innerHTML = `<div class="card"><h3>${rows.length} زيت في خطر خلال ${H} أيام</h3>
+    <p class="mut" style="margin-top:0">تكلفة الطلب المقترح حوالي ${f0(tot)} ج. ${r.nDays < 30 ? `<span class="warn">التاريخ المتاح ${r.nDays} يوم بس، والدقة هتزيد مع الوقت.</span>` : ''}</p>
+    <details><summary>إزاي اتحسب؟ (المعادلة والداتا)</summary><div class="math">الداتا: استهلاك كل زيت يوم بيوم في آخر ${r.nDays} يوم، من السطور اللي اتعبّت فعلاً (الكمية × الجرامات الفعلية).
+الحر = الرصيد − احتياج الطلبات المفتوحة
+سيناريو واحد = مجموع ${H} يوم، كل يوم مسحوب عشوائياً من الأيام الحقيقية × ${f2(mult)}
+بنكرر ده 2000 مرة (بذرة عشوائية ثابتة، فالنتيجة بتتكرر بالظبط)
+احتمال إنه يخلص = عدد السيناريوهات اللي الاستهلاك فيها > الحر ÷ 2000
+الكمية المقترحة = الاستهلاك عند ${Math.round(svc * 100)}% من السيناريوهات − الحر (مقرّبة لأقرب 25 جم)</div></details>
+    <div class="noprint" style="margin:8px 0"><button class="btn sec" id="copySim">نسخ القايمة</button></div>
+    ${rows.map(x => `<details><summary><span style="color:var(--ink)">${esc(x.name)}</span> <span class="mut">Z${x.cnt ?? '-'}</span> — <b class="${x.pOut >= .5 ? 'bad' : x.pOut >= .2 ? 'warn' : 'ok'}">${Math.round(x.pOut * 100)}%</b> يخلص · اطلب <b style="color:var(--ink)">${f0(rnd(x.order))} جم</b></summary>
+      <div class="why">الرصيد ${f0(x.stock)} − الطلبات المفتوحة ${f0(x.need)} = حر <b class="${x.free < 0 ? 'bad' : ''}">${f0(x.free)} جم</b><br>
+      اتستخدم في ${x.activeDays} يوم من ${r.nDays}، بمتوسط ${f0(x.avgDay)} جم/يوم وأعلى يوم ${f0(x.maxDay)} جم<br>
+      استهلاك ${H} أيام: النص ${f0(x.p50)} جم، وفي ${Math.round(svc * 100)}% من الحالات ≤ ${f0(x.q)} جم<br>
+      يكفي ≈ ${x.cover === Infinity ? '∞' : f1(x.cover)} يوم · اطلب ${f0(x.q)} − ${f0(x.free)} = ${f0(x.order)} → <b>${f0(rnd(x.order))} جم</b> (≈ ${f0(x.cost)} ج بآخر تكلفة)</div></details>`).join('')}
+    </div>`;
+  $('copySim').onclick = () => navigator.clipboard.writeText(rows.filter(x => x.order > 0).map(x => `- ${x.name}: ${f0(rnd(x.order))} جرام`).join('\n'));
+}
+$('runSim').onclick = runSim;
+
+// ---------- workforce ----------
+function renderWork() {
+  const w = AFOpt.workforce(SNAP);
+  $('workOut').innerHTML = `<div class="kpis">
+      <div class="kpi"><small>قطع مفتوحة</small><b>${f0(w.openPcs)}</b></div>
+      <div class="kpi"><small>طاقة الفريق</small><b>${f0(w.teamDay)}</b> <span class="mut">قطعة/يوم</span></div>
+      <div class="kpi"><small>وقت الإنجاز المتوقع</small><b>${w.daysToFinish ? f1(w.daysToFinish) : '—'}</b> <span class="mut">يوم شغل</span></div></div>
+    <div class="card"><h3>أداء العمال (آخر 30 يوم)</h3><div class="scroll"><table>
+      <tr><th>العامل</th><th class="n">قطع</th><th class="n">أيام شغل</th><th class="n">قطعة/يوم</th><th class="n">قطعة/ساعة</th></tr>
+      ${w.w.map(x => `<tr><td>${esc(x.name)}</td><td class="n">${f0(x.pcs)}</td><td class="n">${x.days}</td><td class="n">${f0(x.perDay)}</td><td class="n">${f1(x.perHr)}</td></tr>`).join('')}</table></div>
+      <div class="math">قطعة/يوم للعامل = القطع اللي خلّصها ÷ عدد الأيام اللي اشتغل فيها
+طاقة الفريق = مجموع قطعة/يوم لكل العمال
+وقت الإنجاز = القطع المفتوحة ÷ طاقة الفريق</div>
+      <p class="mut" style="font-size:13px">الساعات محسوبة من لحظة ما العامل يمسك السطر لحد ما يخلّصه، فممكن يكون فيها وقت انتظار. عشان كده "قطعة/يوم" أدق من "قطعة/ساعة".</p></div>`;
+}
+boot();
+</script>
+</body>
+</html>

@@ -17,7 +17,8 @@ function realScale(seed) {
     qty: pick([1, 2, 3, 4, 4, 10, 12, 12, 12, 12, 15, 24, 70]), price: ri(140, 550), page_pc: 0, grams: pick([5, 7.5, 7.5, 10, 10, 10, 12.5, 15, 15, 17.5, 20, 25]), oil_id: 'o' + ri(0, nO - 1), empty_id: 'e' + ri(0, nE - 1), track: true }); });
   return { at: '2026-11-19T10:00:00Z', lines, oils, prices, empties, suppliers: [0, 1, 2, 3].map(i => ({ id: 's' + i, name: 'S' + i })), usage: [], workers: [] };
 }
-(async () => {
+module.exports = { realScale };
+if (require.main === module) (async () => {
   const G = A.glpkAdapter(await GLPK()), H = A.highsAdapter(await HIGHS());
   console.log('seed | budget | mode | vars | cons | HiGHS status ms verify | GLPK status ms | GLPK value vs HiGHS');
   let hMax = 0, gOpt = 0, n = 0;

@@ -8,10 +8,23 @@
   function defaults(prm) {
     return Object.assign({
       budget: 1e12, mode: 'rank', lotOil: 125, lotEmpty: 1, wholeInv: true, buyEmpties: true,
-      supOn: {}, supCap: {}, supUp: {}, priceOverride: {}
+      supOn: {}, supCap: {}, supUp: {}, priceOverride: {}, lotByOil: {}
     }, prm || {});
   }
   function netPrice(l) { return pos(l.price) - pos(l.page_pc); }
+
+  // Purchase unit per oil (grams). The owner buys some oils by the gram, some in 125 g packs, some by the kilo.
+  // Order: owner's value for this analysis -> inferred from the recorded supplier purchases of that oil -> default.
+  const LOTS = [1000, 500, 250, 125, 100, 50, 25, 10, 5, 1];
+  function lotOf(snap, prm, oid) {
+    const P = defaults(prm);
+    const ov = P.lotByOil[oid];
+    if (ov != null && ov !== '' && isFinite(+ov) && +ov >= 1) return { lot: Math.round(+ov), src: 'manual' };
+    const gs = (snap.prices || []).filter(p => p.oil_id === oid && +p.src_qty > 0 && (p.src_unit === 'kg' || p.src_unit === 'g'))
+      .map(p => Math.round(+p.src_qty * (p.src_unit === 'kg' ? 1000 : 1))).filter(g => g > 0);
+    if (gs.length) return { lot: LOTS.find(L => gs.every(g => g % L === 0)), src: 'history', from: gs };
+    return { lot: Math.max(1, Math.round(+P.lotOil || 125)), src: 'default' };
+  }
 
   // ---------- model ----------
   function buildPlan(snap, prm) {
@@ -40,7 +53,7 @@
     for (const [eid] of needEmp) { const e = empById.get(eid); if (e && +e.shelf < 0) warn.push(`فارغة "${e.name}" رصيدها سالب (${e.shelf}) — اتحسبت صفر، محتاجة جرد`); }
 
     // purchase options: last price per supplier; fallback = material cost (supplier unknown)
-    const opts = new Map(), allOpts = new Map(), noPrice = [], noCost = [];
+    const opts = new Map(), allOpts = new Map(), noPrice = [], noCost = [], lots = new Map();
     for (const p of snap.prices) {
       if (!needOil.has(p.oil_id)) continue;
       const up = 1 + (+P.supUp[p.sup_id] || 0) / 100;
@@ -95,11 +108,12 @@
     for (const [oid] of needOil) {
       const o = oilById.get(oid) || { stock: 0, name: '?' };
       const vars = lines.filter(l => l.oil_id === oid && l.g).map(l => ({ name: l.var, coef: l.qty * l.g }));
+      const LT = lotOf(snap, P, oid); lots.set(oid, LT);
       for (const op of opts.get(oid)) {
         const b = 'x' + (bi++);
-        buyVars.push({ name: b, kind: 'oil', id: oid, sup: op.sup_id, ppg: op.ppg, lot: P.lotOil, unitCost: op.ppg * P.lotOil, src: op });
-        vars.push({ name: b, coef: -P.lotOil });
-        objV.push({ name: b, coef: -op.ppg * P.lotOil });
+        buyVars.push({ name: b, kind: 'oil', id: oid, sup: op.sup_id, ppg: op.ppg, lot: LT.lot, lotSrc: LT.src, unitCost: op.ppg * LT.lot, src: op });
+        vars.push({ name: b, coef: -LT.lot });
+        objV.push({ name: b, coef: -op.ppg * LT.lot });
         generals.push(b); bounds.push({ name: b, type: 2, lb: 0, ub: 0 });
       }
       const cn = 'oil_' + (o.cnt_no ?? oid);
@@ -130,7 +144,7 @@
       if (bv.length) cons.push({ name: 'cap_' + sid.slice(0, 8), vars: bv.map(b => ({ name: b.name, coef: b.unitCost })), bnds: { type: 3, ub: +cap, lb: 0 } });
     }
     const lp = { name: 'af_plan', objective: { direction: 2, name: 'value', vars: objV }, subjectTo: cons, bounds, binaries, generals };
-    return { lp, lines, buyVars, needOil, needEmp, oilById, empById, supName, invs, zmap, invRank, R, opts, allOpts, warn: [...new Set(warn)], P, consMeta, noPrice, noCost };
+    return { lp, lines, buyVars, needOil, needEmp, oilById, empById, supName, invs, zmap, invRank, R, opts, allOpts, warn: [...new Set(warn)], P, consMeta, noPrice, noCost, lots };
   }
 
   function relaxed(lp) { return Object.assign({}, lp, { binaries: [], generals: [],
@@ -257,8 +271,11 @@
     }
     add('أسعار الشراء = آخر سعر مسجل في فواتير الموردين', !pbad, pbad ? `${pbad} سعر مختلف` : 'كل الأسعار مطابقة');
     // lots
-    const lotBad = decision.buys.filter(b => Math.abs(b.qty / b.lot - Math.round(b.qty / b.lot)) > 1e-9).length;
-    add(`الكميات مضاعفات وحدة الشراء (${P.lotOil} جم زيت)`, !lotBad, lotBad ? `${lotBad} كمية مش مظبوطة` : '');
+    const lotBad = decision.buys.filter(b => {
+      const L = b.kind === 'oil' ? lotOf(snap, P, b.id).lot : P.lotEmpty;
+      return b.lot !== L || Math.abs(b.qty / L - Math.round(b.qty / L)) > 1e-9 || b.qty <= 0;
+    }).length;
+    add('الكميات مضاعفات وحدة شراء كل صنف (جرام / 125 جم / كيلو)', !lotBad, lotBad ? `${lotBad} كمية مش مظبوطة` : '');
     // whole lines only
     add('كل سطر يا يتعبّى كله يا لأ (مفيش أنصاص)', true, `${lines.length} سطر متعبّي`);
     // value recompute
@@ -433,7 +450,7 @@
     return { status: s.status, m, p, P: m.P, decision, ver, solver: solver_ };
   }
 
-  const api = { buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  const api = { buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 

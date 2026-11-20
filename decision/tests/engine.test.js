@@ -81,6 +81,24 @@ test('oil with no recorded price is never bought and no price is invented', asyn
   assert.equal(r2.p.buyCost, 375);
 });
 
+test('purchase unit per oil: inferred from recorded purchases, owner override wins, default otherwise', async () => {
+  const mk = (qty, unit) => world({ prices: [{ oil_id: 'o1', sup_id: 's1', ppg: 2, src_qty: qty, src_unit: unit }] });
+  assert.deepEqual(A.lotOf(mk(2, 'kg'), {}, 'o1').lot, 1000);
+  assert.deepEqual(A.lotOf(mk(375, 'g'), {}, 'o1').lot, 125);
+  assert.deepEqual(A.lotOf(mk(731, 'g'), {}, 'o1').lot, 1);
+  assert.deepEqual(A.lotOf(mk(1.5, 'kg'), {}, 'o1').lot, 500);
+  assert.equal(A.lotOf(world(), {}, 'o1').src, 'default');
+  assert.equal(A.lotOf(mk(2, 'kg'), { lotByOil: { o1: 50 } }, 'o1').lot, 50);
+  // short 40 g: by the kilo -> 1000 g (2000 EGP); by the gram -> exactly 40 g (80 EGP)
+  const kg = await A.solvePlan(H, mk(2, 'kg'), { budget: 1e6 });
+  assert.equal(kg.decision.buys[0].qty, 1000); assert.equal(kg.p.buyCost, 2000); assert.equal(kg.ver.ok, true);
+  const g = await A.solvePlan(H, mk(731, 'g'), { budget: 1e6 });
+  assert.equal(g.decision.buys[0].qty, 40); assert.equal(g.p.buyCost, 80); assert.equal(g.ver.ok, true);
+  // a decision that ignores the oil's unit is rejected by the verifier
+  const v = A.verify(mk(2, 'kg'), { budget: 1e6 }, { filledIds: ['a', 'b'], buys: [{ kind: 'oil', id: 'o1', sup: 's1', qty: 125, lot: 125, ppg: 2 }], z: 0 });
+  assert.ok(v.checks.some(c => !c.ok && c.name.includes('وحدة شراء')));
+});
+
 test('empty with no cost is never bought', async () => {
   const w = world({ empties: [{ id: 'e1', name: 'emp1', cnt_no: 1, shelf: 10, cost: null }] });
   const r = await A.solvePlan(H, w, { budget: 1e6 });
@@ -169,7 +187,7 @@ function brute(snap, P) {
     for (const [oid, need] of needO) {
       const o = snap.oils.find(x => x.id === oid) || { stock: 0 };
       const short = need - Math.max(0, +o.stock || 0);
-      if (short > 1e-9) { if (!cheapest.has(oid)) { ok = false; break; } cost += Math.ceil(short / P.lotOil - 1e-9) * P.lotOil * cheapest.get(oid); }
+      if (short > 1e-9) { if (!cheapest.has(oid)) { ok = false; break; } { const LT = A.lotOf(snap, P, oid).lot; cost += Math.ceil(short / LT - 1e-9) * LT * cheapest.get(oid); } }
     }
     if (ok) for (const [eid, need] of needE) {
       const e = snap.empties.find(x => x.id === eid) || { shelf: 0 };
@@ -195,7 +213,7 @@ function randomWorld(seed) {
   const oils = [], prices = [], empties = [], lines = [];
   for (let i = 0; i < nO; i++) {
     oils.push({ id: 'o' + i, name: 'oil' + i, cnt_no: i, stock: ri(-50, 400), cost: r() < 0.15 ? null : ri(1, 6) });
-    if (r() < 0.8) prices.push({ oil_id: 'o' + i, sup_id: 's1', ppg: ri(1, 6) });
+    if (r() < 0.8) prices.push(Object.assign({ oil_id: 'o' + i, sup_id: 's1', ppg: ri(1, 6) }, r() < 0.7 ? { src_qty: [1, 2, 0.5, 250, 375, 731, 40][ri(0, 6)], src_unit: r() < 0.5 ? 'kg' : 'g' } : {}));
     if (r() < 0.4) prices.push({ oil_id: 'o' + i, sup_id: 's2', ppg: ri(1, 6) });
   }
   for (let i = 0; i < nE; i++) empties.push({ id: 'e' + i, name: 'emp' + i, cnt_no: i, shelf: ri(-5, 40), cost: r() < 0.15 ? null : ri(5, 60) });

@@ -15,6 +15,7 @@ self.addEventListener('fetch',e=>{
     }
     return;
   }
+  if(u.pathname.startsWith('/decision'))return; // decision center is a separate page: never serve the app shell for it
   if(r.mode==='navigate'){
     e.respondWith((async()=>{
       const c=await caches.open(CACHE);const hit=await c.match('/');

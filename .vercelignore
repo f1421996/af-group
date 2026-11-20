@@ -3,4 +3,8 @@ docs
 migrations
 README.md
 .gitignore
-decision
+decision/tests
+decision/node_modules
+decision/package.json
+decision/package-lock.json
+decision/README.md
