@@ -139,8 +139,8 @@ details[open]>summary{margin-bottom:6px}
 </main>
 
 <script src="/supabase-2.45.4.js"></script>
-<script src="engine.js"></script>
-<script src="vendor/highs.js"></script>
+<script src="/decision/engine.js"></script>
+<script src="/decision/vendor/highs.js"></script>
 <script type="module">
 const SB_URL = 'https://vgpqaubvshnwpryhkoil.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZncHFhdWJ2c2hud3ByeWhrb2lsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE1ODgwMTUsImV4cCI6MjEwNzE2NDAxNX0.46_UkIQNHxioW62YoIst8qdoZVbDlg2QW5nCBSn7G8Y';
@@ -183,7 +183,7 @@ $('lbtn').onclick = async () => {
 };
 async function load() {
   $('status').className = 'msg'; $('status').textContent = 'جاري تحميل الداتا…';
-  const [{ data, error }] = await Promise.all([sb.rpc('opt_snapshot', { p_days: 45 }), SOLVER ? Promise.resolve() : Module({ locateFile: f => 'vendor/' + f }).then(h => { SOLVER = AFOpt.highsAdapter(h); })]);
+  const [{ data, error }] = await Promise.all([sb.rpc('opt_snapshot', { p_days: 45 }), SOLVER ? Promise.resolve() : Module({ locateFile: f => '/decision/vendor/' + f }).then(h => { SOLVER = AFOpt.highsAdapter(h); })]);
   if (error) {
     $('status').className = 'msg bad';
     $('status').textContent = error.message.includes('not_allowed') ? 'الصفحة دي للمالك بس.' : 'حصل خطأ: ' + error.message;
