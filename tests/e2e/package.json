@@ -1,0 +1,7 @@
+{
+  "name": "af-group-e2e",
+  "private": true,
+  "description": "End-to-end browser tests for AF Group (fake Supabase, no production data)",
+  "scripts": { "test": "node --test --test-concurrency=1 app.test.js" },
+  "devDependencies": { "playwright": "1.63.0" }
+}

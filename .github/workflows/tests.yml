@@ -1,0 +1,51 @@
+name: Tests
+
+# Runs on every push and pull request. No secrets, no production access:
+# the browser tests use a fake Supabase inside the test.
+on:
+  push:
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Decision engine tests (math, solvers, verifier)
+        working-directory: decision
+        run: |
+          npm ci --no-audit --no-fund
+          npm test
+
+      - name: Install browser for end-to-end tests
+        working-directory: tests/e2e
+        run: |
+          npm install --no-audit --no-fund
+          npx playwright install --with-deps chromium
+
+      - name: End-to-end tests (every screen, every role, worker flow)
+        working-directory: tests/e2e
+        run: npm test
+
+      - name: Summary
+        if: always()
+        run: |
+          if [ "${{ job.status }}" = "success" ]; then
+            echo "## ✅ كل الاختبارات نجحت" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "## ❌ فيه اختبار فشل — افتح الخطوة الحمرا وشوف السبب قبل ما تعتمد على النسخة دي" >> "$GITHUB_STEP_SUMMARY"
+          fi
