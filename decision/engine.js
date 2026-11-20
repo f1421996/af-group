@@ -450,7 +450,48 @@
     return { status: s.status, m, p, P: m.P, decision, ver, solver: solver_ };
   }
 
-  const api = { buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  // ---------- today: what to make now, and who makes what ----------
+  // A batch = every open line of the same product (same oil + same empty) across all orders: one setup, one go.
+  function makeBatches(lines) {
+    const m = new Map();
+    for (const l of lines) {
+      const key = (l.oil_id || '-') + '|' + (l.empty_id || l.name);
+      if (!m.has(key)) m.set(key, { key, name: l.name, qty: 0, rank: Infinity, lines: [] });
+      const b = m.get(key);
+      b.qty += +l.qty; b.rank = Math.min(b.rank, l.rk ?? 1e6);
+      b.lines.push({ id: l.id, no: l.no, cust: l.cust, qty: +l.qty, rk: l.rk });
+    }
+    return [...m.values()];
+  }
+  // Measured time model: minutes = setup + perPc * pieces. Used only when there is enough measured data.
+  function timeModel(timing) {
+    const t = timing || {};
+    const ok = +t.n >= 30 && +t.setup > 0 && +t.per_pc > 0;
+    return { ok, setup: ok ? +t.setup : 0, perPc: ok ? +t.per_pc : 0, n: +t.n || 0 };
+  }
+  // Balanced distribution (longest-first to the least-loaded worker). Lines a worker already started stay with them.
+  function assignWork(batches, workers, claims, timing) {
+    const T = timeModel(timing);
+    const load = b => T.ok ? T.setup + T.perPc * b.qty : b.qty;
+    const W = workers.map(w => ({ id: w.id, name: w.name, batches: [], pcs: 0, mins: 0, load: 0 }));
+    const out = { workers: W, timed: T.ok, model: T, unassigned: [] };
+    if (!W.length) { out.unassigned = batches.slice(); return out; }
+    const byId = new Map(W.map(w => [w.id, w]));
+    const claimOf = new Map((claims || []).map(c => [c.line, c.by]));
+    const put = (w, b, held) => { w.batches.push(Object.assign({}, b, { mins: T.ok ? load(b) : null, held: !!held })); w.pcs += b.qty; w.load += load(b); if (T.ok) w.mins += load(b); };
+    const rest = [];
+    for (const b of batches) {
+      const holder = b.lines.map(l => claimOf.get(l.id)).find(id => id && byId.has(id));
+      if (holder) put(byId.get(holder), b, true); else rest.push(b);
+    }
+    rest.sort((a, b) => load(b) - load(a) || String(a.key).localeCompare(String(b.key)));
+    for (const b of rest) put(W.reduce((m, w) => (w.load < m.load ? w : m), W[0]), b, false);
+    for (const w of W) w.batches.sort((a, b) => (b.held - a.held) || a.rank - b.rank || String(a.name).localeCompare(String(b.name)));
+    out.makespan = Math.max(...W.map(w => w.load));
+    return out;
+  }
+
+  const api = { makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 

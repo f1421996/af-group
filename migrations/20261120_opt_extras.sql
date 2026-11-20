@@ -1,0 +1,4 @@
+-- Applied to production 2026-11-20 (migration opt_extras_today_plan_20261120).
+-- Read-only, owner-only helper for the decision center "today" screen: stock workers, lines already started,
+-- and the measured time model (setup minutes per line + minutes per piece) from line_timing.
+-- See the applied definition in the database: public.opt_extras().

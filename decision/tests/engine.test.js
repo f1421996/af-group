@@ -259,3 +259,39 @@ test('simulation is reproducible and behaves at the extremes', () => {
   const risky = A.simulate(world({ lines: [], usage: w.usage, oils: [{ id: 'o1', name: 'o', cnt_no: 1, stock: 0, cost: 2 }] }), { horizon: 60 }).rows[0];
   assert.ok(risky.pOut > 0.99);
 });
+
+// ---- today plan: batching + work distribution ----
+test('batches merge the same product across orders; distribution is complete, balanced and respects started work', () => {
+  const L = [];
+  let k = 0;
+  const add = (oil, emp, qty, rk, no) => L.push({ id: 'l' + (k++), name: 'p' + oil, oil_id: 'o' + oil, empty_id: 'e' + emp, qty, rk, no, cust: 'c' });
+  add(1, 1, 12, 1, 'A'); add(1, 1, 24, 2, 'B'); add(1, 1, 4, 3, 'C');   // same product in 3 orders -> one batch of 40
+  for (let i = 2; i <= 13; i++) add(i, i, 3 + (i * 7) % 20, 1 + i % 3, 'A');
+  const B = A.makeBatches(L);
+  assert.equal(B.length, 13);
+  const big = B.find(b => b.key === 'o1|e1');
+  assert.equal(big.qty, 40); assert.equal(big.lines.length, 3); assert.equal(big.rank, 1);
+  const workers = [{ id: 'w1', name: 'a' }, { id: 'w2', name: 'b' }, { id: 'w3', name: 'c' }];
+  const timing = { n: 148, setup: 18.57, per_pc: 1.088 };
+  const claims = [{ line: 'l5', by: 'w3' }, { line: 'l6', by: 'gone' }];
+  const R = A.assignWork(B, workers, claims, timing);
+  assert.equal(R.timed, true);
+  // every batch assigned exactly once
+  const all = R.workers.flatMap(w => w.batches.map(b => b.key)).sort();
+  assert.deepEqual(all, B.map(b => b.key).sort());
+  // started line stays with its worker; a claim by someone not on the list is ignored
+  assert.ok(R.workers.find(w => w.id === 'w3').batches.some(b => b.held && b.lines.some(l => l.id === 'l5')));
+  // minutes follow the measured model, and totals add up
+  const tot = B.reduce((s, b) => s + 18.57 + 1.088 * b.qty, 0);
+  assert.ok(Math.abs(R.workers.reduce((s, w) => s + w.mins, 0) - tot) < 1e-6);
+  // balance: the gap between the busiest and the least busy worker never exceeds the biggest single batch
+  const loads = R.workers.map(w => w.mins), maxB = Math.max(...B.map(b => 18.57 + 1.088 * b.qty));
+  assert.ok(Math.max(...loads) - Math.min(...loads) <= maxB + 1e-9);
+  // deterministic
+  assert.deepEqual(A.assignWork(B, workers, claims, timing), R);
+  // not enough measured data -> no minutes are shown, balance by pieces instead
+  const R2 = A.assignWork(B, workers, [], { n: 5, setup: 18, per_pc: 1 });
+  assert.equal(R2.timed, false); assert.ok(R2.workers.every(w => w.mins === 0 && w.batches.every(b => b.mins === null)));
+  // no workers selected -> nothing is silently dropped
+  assert.equal(A.assignWork(B, [], [], timing).unassigned.length, 13);
+});

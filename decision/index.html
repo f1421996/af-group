@@ -50,6 +50,26 @@ details[open]>summary{margin-bottom:6px}
 .verdict .ic{font-size:22px;line-height:1}
 .pill{font-size:12px;padding:1px 7px;border-radius:9px;border:1px solid var(--line)}
 @media print{header,.tabs,.noprint{display:none!important}.card{border:0;padding:0}body{background:#fff;color:#000}details{display:block}details>*{display:block!important}}
+
+.step{display:flex;align-items:center;gap:10px;margin:0 0 10px}
+.step .no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.step h3{margin:0;font-size:17px}
+.lead{font-size:16px;line-height:1.8;margin:0}
+.lead b{font-size:19px}
+.wk{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
+.wk>summary{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;color:var(--ink);list-style:none;flex-wrap:wrap}
+.wk>summary::-webkit-details-marker{display:none}
+.wk>summary b{font-size:16px;flex:1;min-width:110px}
+.wk .in{padding:0 12px 12px}
+.wk .it{display:flex;gap:8px;justify-content:space-between;padding:7px 0;border-top:1px dashed var(--line);font-size:14.5px}
+.wk .it small{display:block;color:var(--mut);font-size:12.5px}
+.wk .it .q{white-space:nowrap;font-weight:700}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.chips label{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:16px;padding:5px 10px;font-size:13.5px;color:var(--ink);cursor:pointer;background:var(--bg)}
+.chips input{width:auto;margin:0}
+.todo{display:flex;gap:10px;padding:9px 0;border-top:1px dashed var(--line)}
+.todo:first-of-type{border-top:0}
+.todo .ic{flex:none;font-size:18px}
 </style>
 </head>
 <body>
@@ -66,14 +86,20 @@ details[open]>summary{margin-bottom:6px}
 <main id="app" class="hide">
   <div id="status" class="msg">جاري تحميل الداتا…</div>
   <div class="tabs noprint">
-    <button data-t="plan" class="on">الشراء والتعبئة</button>
+    <button data-t="today" class="on">اعمل إيه النهارده</button>
+    <button data-t="plan">تفاصيل الخطة</button>
     <button data-t="what">ماذا لو؟</button>
     <button data-t="sim">النواقص الجاية</button>
     <button data-t="runs">سجل القرارات</button>
   </div>
 
+  <!-- TODAY -->
+  <section id="t-today">
+    <div id="todayOut"><div class="card mut">بيجهّز خطة النهارده…</div></div>
+  </section>
+
   <!-- PLAN -->
-  <section id="t-plan">
+  <section id="t-plan" class="hide">
     <div class="card noprint">
       <h3>المدخلات</h3>
       <div class="grid">
@@ -194,12 +220,13 @@ async function load() {
   const invN = new Set(SNAP.lines.map(l => l.inv_id)).size;
   $('status').innerHTML = `الداتا من السيستم لحظة ${esc(dt(SNAP.at))}: ${invN} فاتورة مفتوحة، ${SNAP.lines.length} سطر، ${f0(pcs)} قطعة. <span class="mut">بصمة الداتا ${HASH.slice(0, 10)}</span>`;
   renderSups(); renderLots(); runPlan(false); runSim(); renderWork(); loadRuns();
+  loadExtras().then(runToday);
 }
 $('reload').onclick = load;
 $('lot').onchange = () => { if (SNAP) renderLots(); };
 document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
   document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
-  ['plan', 'what', 'sim', 'work', 'runs'].forEach(t => $('t-' + t).classList.toggle('hide', t !== b.dataset.t));
+  ['today', 'plan', 'what', 'sim', 'work', 'runs'].forEach(t => $('t-' + t).classList.toggle('hide', t !== b.dataset.t));
   if (b.dataset.t === 'what') renderCompare();
 });
 
@@ -421,6 +448,104 @@ function renderPlan(R) {
   $('dlLP').onclick = () => download(`af-model-${R.at.slice(0, 16)}.lp`, AFOpt.toLP(R.m.lp));
   $('dlJSON').onclick = () => download(`af-decision-${R.at.slice(0, 16)}.json`, JSON.stringify({ params: R.P, snapshot: R.snap, hash: R.hash, decision: R.decision, solver: R.solver, verify: R.ver }, null, 1), 'application/json');
   $('save').onclick = () => saveRun(R);
+}
+
+
+// ---------- TODAY: what to do now, in plain words ----------
+let EXTRA = { makers: [], claims: [], timing: {} }, W_SEL = null, TODAY = null;
+async function loadExtras() {
+  const { data, error } = await sb.rpc('opt_extras');
+  if (!error && data) EXTRA = data;
+  if (!W_SEL) W_SEL = new Set(EXTRA.makers.filter(m => m.maker || m.worked).map(m => m.id));
+}
+const RLM = '‏';
+const hm = mins => { const m = Math.round(mins); return m < 60 ? `${m} دقيقة` : `${Math.floor(m / 60)} ساعة${m % 60 ? ' و' + (m % 60) + ' دقيقة' : ''}`; };
+const gq = g => g >= 1000 ? `${f2(g / 1000)} كجم` : `${f0(g)} جم`;
+const copyBtn = (btn, txt) => navigator.clipboard.writeText(txt).then(() => { const o = btn.textContent; btn.textContent = 'اتنسخ ✓'; setTimeout(() => btn.textContent = o, 1500); });
+function workerText(w, timed) {
+  return `${RLM}*شغل ${w.name}* — ${f0(w.pcs)} قطعة${timed ? ' · حوالي ' + hm(w.mins) : ''}\n` +
+    w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
+}
+async function runToday() {
+  if (!SNAP || !SOLVER) return;
+  const out = $('todayOut');
+  const keepBudget = $('tBudget') ? $('tBudget').value : '';
+  out.innerHTML = '<div class="card mut">بيحسب خطة النهارده…</div>';
+  await new Promise(r => setTimeout(r, 30));
+  try {
+    const base = params(false);
+    const bud = keepBudget.trim() === '' ? 1e12 : Math.max(0, +keepBudget || 0);
+    const R0 = await solve(SNAP, Object.assign({}, base, { budget: 0 }));
+    const RB = await solve(SNAP, Object.assign({}, base, { budget: bud }));
+    const workers = EXTRA.makers.filter(m => W_SEL.has(m.id));
+    const B = AFOpt.makeBatches(R0.p.filled);
+    const A = AFOpt.assignWork(B, workers, EXTRA.claims, EXTRA.timing);
+    TODAY = { R0, RB, A, B };
+    const allPcs = SNAP.lines.reduce((s, l) => s + +l.qty, 0), invN = new Set(SNAP.lines.map(l => l.inv_id)).size;
+    const nowPcs = R0.p.filled.reduce((s, l) => s + l.qty, 0), nowLines = R0.p.filled.length;
+    const buyPcs = RB.p.filled.reduce((s, l) => s + l.qty, 0) - nowPcs;
+    const saved = nowLines - B.length;
+    const T = A.model;
+    // --- 1) make now
+    const wk = A.workers.filter(w => w.batches.length).map((w, i) => `<details class="wk" ${i === 0 ? 'open' : ''}>
+      <summary><b>${esc(w.name)}</b><span class="tag">${w.batches.length} صنف</span><span class="tag">${f0(w.pcs)} قطعة</span>${A.timed ? `<span class="tag">≈ ${hm(w.mins)}</span>` : ''}
+        <button class="btn sec noprint" data-wcopy="${w.id}">نسخ للواتساب</button></summary>
+      <div class="in">${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}
+        <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small></span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
+    const idle = A.workers.filter(w => !w.batches.length).map(w => esc(w.name));
+    const s1 = nowPcs ? `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي — الخامات موجودة</h3></div>
+      <p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف ينفع يتعملوا النهارده من غير أي شراء.${saved > 0 ? ` جمّعت نفس الصنف من كل الأوردرات، فالتجهيز هيتعمل ${B.length} مرة بدل ${nowLines}${T.ok ? ` (توفير حوالي ${hm(saved * T.setup)})` : ''}.` : ''}</p>
+      <div class="chips noprint">${EXTRA.makers.map(m => `<label><input type="checkbox" data-w="${m.id}" ${W_SEL.has(m.id) ? 'checked' : ''}>${esc(m.name)}</label>`).join('') || '<span class="mut">مفيش مصنّعين مسجلين.</span>'}</div>
+      ${workers.length ? wk : '<p class="warn">اختار المصنّعين اللي شغالين النهارده عشان أوزّع عليهم.</p>'}
+      ${idle.length ? `<p class="mut" style="font-size:13px">من غير شغل دلوقتي: ${idle.join('، ')}.</p>` : ''}
+      ${workers.length ? `<div class="row noprint"><button class="btn" id="wAll">نسخ توزيع الكل</button></div>` : ''}
+      <p class="mut" style="font-size:12.5px;margin-bottom:0">${A.timed
+        ? `التوزيع متوازن بالوقت: كل صنف وقته = ${f1(T.setup)} دقيقة تجهيز + ${f2(T.perPc)} دقيقة للقطعة (مقاس من ${f0(T.n)} سطر اتعملوا فعلاً). ده تقدير مش ميعاد مضمون.`
+        : `لسه مفيش قياس وقت كفاية (${f0(T.n)} سطر)، فالتوزيع متوازن بعدد القطع.`}
+        الأصناف مترتبة بأولوية الأوردر، واللي حد بدأ فيه فضل معاه. التوزيع حسب شطارة كل واحد في نوع الصنف لسه ماتفعّلش (محتاج بيانات أكتر).</p></div>`
+      : `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي</h3></div><p class="lead">مفيش سطر كامل ينفع يتعمل بالمخزون الحالي. لازم شراء الأول.</p></div>`;
+    // --- 2) buy
+    const groups = new Map();
+    for (const b of RB.p.buys) { const k = b.sup || 'none'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
+    const nm = b => b.kind === 'oil' ? (RB.m.oilById.get(b.id) || {}).name : (RB.m.empById.get(b.id) || {}).name;
+    const supBlocks = [...groups.entries()].sort((a, b) => b[1].reduce((s, x) => s + x.cost, 0) - a[1].reduce((s, x) => s + x.cost, 0)).map(([k, bs]) => {
+      const tot = bs.reduce((s, x) => s + x.cost, 0);
+      return `<details class="wk"><summary><b>${esc(supName(k === 'none' ? null : k))}</b><span class="tag">${bs.length} صنف</span><span class="tag">${f0(tot)} ج</span>
+        <button class="btn sec noprint" data-scopy="${k}">نسخ للواتساب</button></summary>
+        <div class="in">${bs.sort((a, b) => b.cost - a.cost).map((b, i) => `<div class="it"><span>${i + 1}. ${esc(nm(b) || '')}<small>${b.kind === 'oil' ? f2(b.ppg * 1000) + ' ج/كجم' : f0(b.ppg) + ' ج للقطعة'}</small></span><span class="q">${b.kind === 'oil' ? gq(b.qty) : f0(b.qty) + ' قطعة'}</span></div>`).join('')}</div></details>`; }).join('');
+    const waiting = allPcs - nowPcs;
+    const s2 = `<div class="card"><div class="step"><span class="no">2</span><h3>اشتري</h3></div>
+      <p class="lead">${waiting > 0 ? `<b>${f0(waiting)}</b> قطعة مستنية خامات.` : 'كل الأوردرات خاماتها موجودة.'}</p>
+      <div class="row noprint" style="margin:8px 0"><label style="flex:1;min-width:170px">معاك كام للشراء؟ (فاضي = من غير حد)<input id="tBudget" inputmode="decimal" placeholder="مثال 50000" value="${esc(keepBudget)}"></label>
+        <button class="btn" id="tGo" style="margin-top:20px">احسب</button></div>
+      ${RB.p.buys.length ? `<p class="lead">اشتري بـ <b>${f0(RB.p.buyCost)} ج</b>، وده هيخلّي <b>${f0(buyPcs)}</b> قطعة كمان تتصنّع${bud < 1e11 && buyPcs < waiting ? `، وهيفضل ${f0(waiting - buyPcs)} قطعة مستنية` : ''}.</p>${supBlocks}`
+        : (waiting > 0 ? '<p class="warn">بالميزانية دي مفيش شراء يكمّل سطر كامل.</p>' : '')}
+      <p class="mut" style="font-size:12.5px;margin-bottom:0">الأسعار = آخر سعر مسجل في فواتير الموردين، والكميات بوحدة شراء كل زيت. الاختيار محسوب عشان يخلّص أكبر قيمة من الأوردرات بأولويتها.</p></div>`;
+    // --- 3) needs you
+    const todo = [];
+    const noP = RB.m.noPrice.map(id => (RB.m.oilById.get(id) || {}).name).filter(Boolean);
+    if (noP.length) todo.push(['💰', `<b>${noP.length} زيت من غير سعر</b>، فمش هيدخلوا في أي خطة شراء: ${noP.map(esc).join('، ')}. دخّل سعرهم من "تفاصيل الخطة ← وحدة الشراء لكل زيت".`]);
+    const noC = RB.m.noCost.map(id => (RB.m.empById.get(id) || {}).name).filter(Boolean);
+    if (noC.length) todo.push(['🍶', `<b>${noC.length} فارغ من غير تكلفة</b>، فمش هيتشروا: ${noC.slice(0, 8).map(esc).join('، ')}${noC.length > 8 ? '…' : ''}.`]);
+    const neg = RB.m.warn.filter(w => w.includes('سالب')).length;
+    if (neg) todo.push(['📋', `<b>${neg} صنف رصيده بالسالب</b> واتحسب صفر. اعمل جرد عشان الخطة ماتقترحش شراء حاجة موجودة.`]);
+    const noG = RB.m.warn.filter(w => w.includes('من غير جرامات'));
+    if (noG.length) todo.push(['⚗️', `<b>${noG.length} سطر من غير تركيز</b>، واتحسبوا من غير زيت: ${noG.slice(0, 3).map(w => esc(w.split(' — ')[0])).join('، ')}${noG.length > 3 ? '…' : ''}.`]);
+    const stuck = allPcs - RB.p.filled.reduce((s, l) => s + l.qty, 0);
+    if (bud >= 1e11 && stuck > 0) todo.push(['⛔', `<b>${f0(stuck)} قطعة مش هتتعمل حتى لو اشتريت كل حاجة</b>، بسبب الأسعار والتكاليف الناقصة اللي فوق.`]);
+    const s3 = `<div class="card"><div class="step"><span class="no">3</span><h3>محتاج منك</h3></div>
+      ${todo.length ? todo.map(t => `<div class="todo"><span class="ic">${t[0]}</span><span>${t[1]}</span></div>`).join('') : '<p class="ok" style="margin:0">مفيش حاجة ناقصة. البيانات كاملة ✓</p>'}</div>`;
+    out.innerHTML = `<div class="card"><p class="lead">عندك <b>${invN}</b> أوردر مفتوح فيهم <b>${f0(allPcs)}</b> قطعة: <b class="ok">${f0(nowPcs)}</b> ينفع يتعملوا دلوقتي، و<b class="warn">${f0(waiting)}</b> مستنيين خامات.</p></div>
+      ${s1}${s2}${s3}
+      <p class="mut noprint" style="font-size:13px;text-align:center">عايز تشوف المعادلات والتحقق وتحفظ القرار؟ افتح <a href="#" id="toPlan">تفاصيل الخطة</a>.</p>`;
+    out.querySelectorAll('[data-w]').forEach(c => c.onchange = () => { c.checked ? W_SEL.add(c.dataset.w) : W_SEL.delete(c.dataset.w); runToday(); });
+    out.querySelectorAll('[data-wcopy]').forEach(b => b.onclick = e => { e.preventDefault(); copyBtn(b, workerText(A.workers.find(w => w.id === b.dataset.wcopy), A.timed)); });
+    if ($('wAll')) $('wAll').onclick = () => copyBtn($('wAll'), `${RLM}*توزيع الشغل — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}*\n\n` + A.workers.filter(w => w.batches.length).map(w => workerText(w, A.timed)).join('\n\n'));
+    out.querySelectorAll('[data-scopy]').forEach(b => b.onclick = e => { e.preventDefault(); const k = b.dataset.scopy, bs = groups.get(k);
+      copyBtn(b, `${RLM}*طلبية ${supName(k === 'none' ? null : k)} · AF Group*\n${RLM}${new Date().toLocaleDateString('ar-EG-u-nu-latn')} · ${bs.length} صنف\n\n` + bs.map((x, i) => `${RLM}${i + 1}. ${nm(x)}${RLM} ← *${x.kind === 'oil' ? gq(x.qty) : f0(x.qty) + ' قطعة'}*`).join('\n')); });
+    $('tGo').onclick = runToday; $('tBudget').onkeydown = e => { if (e.key === 'Enter') runToday(); };
+    $('toPlan').onclick = e => { e.preventDefault(); document.querySelector('.tabs button[data-t="plan"]').click(); window.scrollTo(0, 0); };
+  } catch (e) { out.innerHTML = `<div class="card bad">${esc(e.message || e)}</div>`; }
 }
 
 // ---------- save / history / re-run ----------
