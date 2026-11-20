@@ -666,32 +666,56 @@ $('curve').onclick = async () => {
 };
 
 // ---------- simulation ----------
+let SIM_PREV = null;
 function runSim() {
   if (!SNAP) return;
   const H = Math.max(1, +$('hz').value || 7), mult = 1 + (+$('mult').value || 0) / 100, svc = +$('svc').value;
   const r = AFOpt.simulate(SNAP, { horizon: H, mult, service: svc });
   const min = +$('minRisk').value;
-  const rows = r.rows.filter(x => min === 0 || x.pOut >= min);
-  const tot = rows.reduce((s, x) => s + x.cost, 0);
-  const rnd = x => Math.ceil(x / 25) * 25;
-  $('simOut').innerHTML = `<div class="card"><h3>${rows.length} زيت في خطر خلال ${H} أيام</h3>
-    <p class="mut" style="margin-top:0">تكلفة الطلب المقترح حوالي ${f0(tot)} ج. ${r.nDays < 30 ? `<span class="warn">التاريخ المتاح ${r.nDays} يوم بس، والدقة هتزيد مع الوقت.</span>` : ''}</p>
-    <details><summary>إزاي اتحسب؟ (المعادلة والداتا)</summary><div class="math">الداتا: استهلاك كل زيت يوم بيوم في آخر ${r.nDays} يوم، من السطور اللي اتعبّت فعلاً (الكمية × الجرامات الفعلية).
-الحر = الرصيد − احتياج الطلبات المفتوحة
-سيناريو واحد = مجموع ${H} يوم، كل يوم مسحوب عشوائياً من الأيام الحقيقية × ${f2(mult)}
-بنكرر ده 2000 مرة (بذرة عشوائية ثابتة، فالنتيجة بتتكرر بالظبط)
-احتمال إنه يخلص = عدد السيناريوهات اللي الاستهلاك فيها > الحر ÷ 2000
-الكمية المقترحة = الاستهلاك عند ${Math.round(svc * 100)}% من السيناريوهات − الحر (مقرّبة لأقرب 25 جم)</div></details>
-    <div class="noprint" style="margin:8px 0"><button class="btn sec" id="copySim">نسخ القايمة</button></div>
-    ${rows.map(x => `<details><summary><span style="color:var(--ink)">${esc(x.name)}</span> <span class="mut">Z${x.cnt ?? '-'}</span> — <b class="${x.pOut >= .5 ? 'bad' : x.pOut >= .2 ? 'warn' : 'ok'}">${Math.round(x.pOut * 100)}%</b> يخلص · اطلب <b style="color:var(--ink)">${f0(rnd(x.order))} جم</b></summary>
+  const def = Math.max(1, +$('lot').value || 125);
+  const lotOf = id => AFOpt.lotOf(SNAP, { lotOil: def, lotByOil: LOT_OV }, id).lot;
+  const rnd = x => { const L = lotOf(x.id); return Math.ceil(Math.max(0, x.order) / L - 1e-9) * L; };
+  const amt = g => g >= 1000 ? `${f2(g / 1000)} كجم` : `${f0(g)} جم`;
+  // two different things, shown separately: short for orders already placed vs. expected to run out from usage
+  const shortNow = r.rows.filter(x => x.free < 0);
+  const risky = r.rows.filter(x => x.free >= 0 && x.order > 0 && (min === 0 || x.pOut >= min));
+  const rows = [...shortNow, ...risky];
+  const totG = rows.reduce((s, x) => s + rnd(x), 0), tot = rows.reduce((s, x) => s + rnd(x) * (x.order > 0 ? x.cost / x.order : 0), 0);
+  const cur = { H, mult, svc, n: rows.length, risky: risky.length, totG, tot };
+  const diff = SIM_PREV && (SIM_PREV.H !== H || SIM_PREV.mult !== mult || SIM_PREV.svc !== svc)
+    ? `<div class="msg" style="margin:8px 0">التغيير عن المرة اللي فاتت (${SIM_PREV.H} يوم · طلب ${SIM_PREV.mult >= 1 ? '+' : ''}${Math.round((SIM_PREV.mult - 1) * 100)}% · أمان ${Math.round(SIM_PREV.svc * 100)}%):
+        زيوت هتخلص من الاستهلاك ${SIM_PREV.risky} ← <b>${risky.length}</b> · الكمية المقترحة ${amt(SIM_PREV.totG)} ← <b>${amt(totG)}</b> · التكلفة ${f0(SIM_PREV.tot)} ← <b>${f0(tot)} ج</b></div>` : '';
+  const item = x => `<details><summary><span style="color:var(--ink)">${esc(x.name)}</span> <span class="mut">Z${x.cnt ?? '-'}</span> — ${x.free < 0 ? `<b class="bad">ناقص ${amt(-x.free)} للأوردرات</b>` : `<b class="${x.pOut >= .5 ? 'bad' : x.pOut >= .2 ? 'warn' : 'ok'}">${Math.round(x.pOut * 100)}%</b> يخلص`} · اطلب <b style="color:var(--ink)">${amt(rnd(x))}</b></summary>
       <div class="why">الرصيد ${f0(x.stock)} − الطلبات المفتوحة ${f0(x.need)} = حر <b class="${x.free < 0 ? 'bad' : ''}">${f0(x.free)} جم</b><br>
       اتستخدم في ${x.activeDays} يوم من ${r.nDays}، بمتوسط ${f0(x.avgDay)} جم/يوم وأعلى يوم ${f0(x.maxDay)} جم<br>
       استهلاك ${H} أيام: النص ${f0(x.p50)} جم، وفي ${Math.round(svc * 100)}% من الحالات ≤ ${f0(x.q)} جم<br>
-      يكفي ≈ ${x.cover === Infinity ? '∞' : f1(x.cover)} يوم · اطلب ${f0(x.q)} − ${f0(x.free)} = ${f0(x.order)} → <b>${f0(rnd(x.order))} جم</b> (≈ ${f0(x.cost)} ج بآخر تكلفة)</div></details>`).join('')}
+      يكفي ≈ ${x.cover === Infinity ? '∞' : f1(x.cover)} يوم · اطلب ${f0(x.q)} − ${f0(x.free)} = ${f0(x.order)} جم → بوحدة الشراء (${amt(lotOf(x.id))}) = <b>${amt(rnd(x))}</b></div></details>`;
+  $('simOut').innerHTML = `<div class="card">
+    <p class="mut" style="margin:0 0 6px;font-size:13px">✓ اتحسبت ${new Date().toLocaleTimeString('ar-EG-u-nu-latn')} — ${H} يوم · طلب ${mult >= 1 ? '+' : ''}${Math.round((mult - 1) * 100)}% · أمان ${Math.round(svc * 100)}% · 2000 سيناريو</p>
+    <div class="kpis"><div class="kpi"><small>ناقص للأوردرات المفتوحة</small><b class="bad">${shortNow.length}</b> زيت</div>
+      <div class="kpi"><small>هيخلص من الاستهلاك المتوقع</small><b class="warn">${risky.length}</b> زيت</div>
+      <div class="kpi"><small>الكمية المقترحة</small><b>${amt(totG)}</b></div>
+      <div class="kpi"><small>التكلفة التقريبية</small><b>${f0(tot)}</b> ج</div></div>
+    ${diff}
+    ${r.nDays < 30 ? `<p class="warn" style="font-size:13px">التاريخ المتاح ${r.nDays} يوم بس، والدقة هتزيد مع الوقت.</p>` : ''}
+    <details><summary>إزاي اتحسب؟ (المعادلة والداتا)</summary><div class="math">الداتا: استهلاك كل زيت يوم بيوم في آخر ${r.nDays} يوم، من السطور اللي اتعبّت فعلاً (الكمية × الجرامات الفعلية).
+الحر = الرصيد − احتياج الطلبات المفتوحة
+سيناريو واحد = مجموع ${H} يوم، كل يوم مسحوب عشوائياً من الأيام الحقيقية × ${f2(mult)}
+بنكرر ده 2000 مرة (بذرة عشوائية ثابتة، فنفس الإعدادات بتطلّع نفس النتيجة بالظبط)
+احتمال إنه يخلص = عدد السيناريوهات اللي الاستهلاك فيها > الحر ÷ 2000
+الكمية المقترحة = الاستهلاك عند ${Math.round(svc * 100)}% من السيناريوهات − الحر، مقرّبة لفوق لوحدة شراء الزيت نفسه</div></details>
+    <div class="noprint" style="margin:8px 0"><button class="btn sec" id="copySim">نسخ القايمة</button></div>
+    ${shortNow.length ? `<h3 style="margin:14px 0 6px">ناقص للأوردرات المفتوحة دلوقتي (${shortNow.length})</h3>
+      <p class="mut" style="margin:0 0 6px;font-size:13px">دول ناقصين فعلاً مهما غيّرت الإعدادات، لأن الأوردرات المسجلة محتاجة أكتر من الرصيد. الإعدادات بتغيّر الكمية المقترحة بس.</p>${shortNow.map(item).join('')}` : ''}
+    <h3 style="margin:14px 0 6px">هيخلص من الاستهلاك المتوقع (${risky.length})</h3>
+    ${risky.length ? risky.map(item).join('') : '<p class="mut">مفيش زيوت في الفئة دي بالإعدادات الحالية. جرّب عدد أيام أكتر أو خطر أقل.</p>'}
     </div>`;
-  $('copySim').onclick = () => navigator.clipboard.writeText(rows.filter(x => x.order > 0).map(x => `- ${x.name}: ${f0(rnd(x.order))} جرام`).join('\n'));
+  SIM_PREV = cur;
+  $('copySim').onclick = () => copyBtn($('copySim'), rows.filter(x => rnd(x) > 0).map((x, i) => `\u200F${i + 1}. ${x.name}\u200F ← *${amt(rnd(x))}*`).join('\n'));
 }
-$('runSim').onclick = runSim;
+$('runSim').onclick = () => { const b = $('runSim'); b.disabled = true; b.textContent = 'بيحسب…'; $('simOut').style.opacity = .4;
+  setTimeout(() => { runSim(); $('simOut').style.opacity = 1; b.disabled = false; b.textContent = 'شغّل المحاكاة'; $('simOut').scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 250); };
+['hz', 'mult', 'svc', 'minRisk'].forEach(id => $(id).onchange = () => $('runSim').click());
 
 // ---------- workforce ----------
 function renderWork() {
