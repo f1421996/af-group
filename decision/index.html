@@ -462,6 +462,14 @@ const RLM = '‏';
 const hm = mins => { const m = Math.round(mins); return m < 60 ? `${m} دقيقة` : `${Math.floor(m / 60)} ساعة${m % 60 ? ' و' + (m % 60) + ' دقيقة' : ''}`; };
 const gq = g => g >= 1000 ? `${f2(g / 1000)} كجم` : `${f0(g)} جم`;
 const copyBtn = (btn, txt) => navigator.clipboard.writeText(txt).then(() => { const o = btn.textContent; btn.textContent = 'اتنسخ ✓'; setTimeout(() => btn.textContent = o, 1500); });
+function whyBatch(b, w, A) {
+  const mg = b.lines.length > 1 ? `نفس الصنف في ${b.lines.length} أوردر اتجمّع في صنف واحد (${f0(b.qty)} قطعة)، فالتجهيز بيتعمل مرة. ` : '';
+  if (!b.why) return mg;
+  if (b.why.type === 'held') return mg + `${esc(w.name)} داس "ابدأ" عليه قبل كده، فكمّل معاه.`;
+  const unit = A.timed ? 'دقيقة' : 'قطعة';
+  const others = b.why.others.map(o => `${esc(o.name)} ${f0(o.load)}`).join('، ');
+  return mg + `اتوزع لـ${esc(w.name)} لأن حمله وقتها كان الأقل: ${f0(b.why.before)} ${unit}${others ? ` (مقابل ${others})` : ''}.`;
+}
 function workerText(w, timed) {
   return `${RLM}*شغل ${w.name}* — ${f0(w.pcs)} قطعة${timed ? ' · حوالي ' + hm(w.mins) : ''}\n` +
     w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
@@ -490,8 +498,12 @@ async function runToday() {
     const wk = A.workers.filter(w => w.batches.length).map((w, i) => `<details class="wk" ${i === 0 ? 'open' : ''}>
       <summary><b>${esc(w.name)}</b><span class="tag">${w.batches.length} صنف</span><span class="tag">${f0(w.pcs)} قطعة</span>${A.timed ? `<span class="tag">≈ ${hm(w.mins)}</span>` : ''}
         <button class="btn sec noprint" data-wcopy="${w.id}">نسخ للواتساب</button></summary>
-      <div class="in">${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}
-        <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small></span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
+      <div class="in">
+        ${A.timed ? `<div class="why" style="font-size:13px;margin:0 0 8px"><b>الوقت ≈ ${hm(w.mins)}</b> = ${f0(w.nBatches)} صنف × ${f1(T.setup)} دقيقة تجهيز (${hm(w.setupMins)}) + ${f0(w.pcs)} قطعة × ${f2(T.perPc)} دقيقة (${hm(w.pieceMins)})</div>` : ''}
+        ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}
+        <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small>
+        <small style="color:var(--ink);opacity:.8">ليه هنا؟ ${whyBatch(b, w, A)}</small>
+        ${A.timed ? `<small>وقته ≈ ${f1(b.mins)} دقيقة = ${f1(T.setup)} تجهيز + ${f0(b.qty)} × ${f2(T.perPc)}</small>` : ''}</span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
     const idle = A.workers.filter(w => !w.batches.length).map(w => esc(w.name));
     const s1 = nowPcs ? `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي — الخامات موجودة</h3></div>
       <p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف ينفع يتعملوا النهارده من غير أي شراء.${saved > 0 ? ` جمّعت نفس الصنف من كل الأوردرات، فالتجهيز هيتعمل ${B.length} مرة بدل ${nowLines}${T.ok ? ` (توفير حوالي ${hm(saved * T.setup)})` : ''}.` : ''}</p>
@@ -499,10 +511,18 @@ async function runToday() {
       ${workers.length ? wk : '<p class="warn">اختار المصنّعين اللي شغالين النهارده عشان أوزّع عليهم.</p>'}
       ${idle.length ? `<p class="mut" style="font-size:13px">من غير شغل دلوقتي: ${idle.join('، ')}.</p>` : ''}
       ${workers.length ? `<div class="row noprint"><button class="btn" id="wAll">نسخ توزيع الكل</button></div>` : ''}
-      <p class="mut" style="font-size:12.5px;margin-bottom:0">${A.timed
-        ? `التوزيع متوازن بالوقت: كل صنف وقته = ${f1(T.setup)} دقيقة تجهيز + ${f2(T.perPc)} دقيقة للقطعة (مقاس من ${f0(T.n)} سطر اتعملوا فعلاً). ده تقدير مش ميعاد مضمون.`
-        : `لسه مفيش قياس وقت كفاية (${f0(T.n)} سطر)، فالتوزيع متوازن بعدد القطع.`}
-        الأصناف مترتبة بأولوية الأوردر، واللي حد بدأ فيه فضل معاه. التوزيع حسب شطارة كل واحد في نوع الصنف لسه ماتفعّلش (محتاج بيانات أكتر).</p></div>`
+      <details class="noprint" style="margin-top:10px"><summary>إزاي اتوزّع الشغل وإزاي اتحسب الوقت؟</summary><div class="why" style="line-height:1.9">
+        <b>1) إيه اللي دخل التوزيع؟</b> الأصناف اللي <b>الزيت والفارغ بتوعها كاملين دلوقتي</b> (${f0(nowPcs)} قطعة). اللي ناقصها خامات مش بتتوزع قبل الشراء.<br>
+        <b>2) التجميع:</b> نفس الصنف (نفس الزيت ونفس الفارغ) من كل الأوردرات اتجمع في صنف واحد، عشان يتجهز مرة واحدة عند عامل واحد.<br>
+        <b>3) مين ياخد إيه:</b><br>
+        &nbsp;&nbsp;• اللي عامل <b>داس "ابدأ"</b> عليه فعلاً فضل معاه (علامة "بدأ فيه").<br>
+        &nbsp;&nbsp;• الباقي اتوزع <b>من الأكبر للأصغر</b> (بالوقت)، وكل صنف اتدّى <b>للعامل اللي حمله لحد اللحظة دي هو الأقل</b>. ده بيخلّي الكل يخلص في وقت قريب. (جوه كل صنف مكتوب الأرقام اللي اتقارنت.)<br>
+        &nbsp;&nbsp;• جوه كل عامل، الأصناف مترتبة بأولوية الأوردر اللي فيه.<br>
+        <b>4) الوقت جاي منين؟</b> ${A.timed ? `من أوقات الشغل <b>الفعلية</b> اللي اتسجلت في السيستم: ${f0(T.n)} سطر اتعملوا من ${esc(String(EXTRA.timing.from || ''))}. وقت كل سطر = من لما العامل داس "ابدأ" لحد "خلصته" (أو من آخر "خلصته" ليه). السيستم رسم العلاقة بين الكمية ووقت السطر، فطلع:<br>
+          <b>وقت الصنف = ${f1(T.setup)} دقيقة تجهيز ثابتة + ${f2(T.perPc)} دقيقة لكل قطعة</b>.<br>
+          يعني الصنف الصغير بياخد وقت تجهيز كبير نسبياً، والصنف الكبير بياخد وقت أكتر لكن التجهيز بيتوزع على قطع كتير.` : `لسه مفيش قياس وقت كفاية (${f0(T.n)} سطر)، فالتوزيع متوازن بعدد القطع بدون ساعات.`}<br>
+        <b>5) إيه حدود الدقة؟</b> ${A.timed ? `الوقت <b>تقدير مش ميعاد</b>. العلاقة دي بتفسّر جزء بس من الفرق بين سطر وسطر (R² = ${f2(+EXTRA.timing.r2 || 0)}؛ 1 يعني دقيقة جداً)، والباقي نوع الصنف والعامل وظروف اليوم. وكل العمال اتحسبوا بنفس السرعة. الأرقام هتبقى أدق بعد تجمّع بيانات أكتر.` : ''}<br>
+        <b>ومش متحسب:</b> شطارة كل عامل في نوع صنف معين، ولا صعوبة صنف معين، ولا استراحات.</div></details></div>`
       : `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي</h3></div><p class="lead">مفيش سطر كامل ينفع يتعمل بالمخزون الحالي. لازم شراء الأول.</p></div>`;
     // --- 2) buy
     const groups = new Map();

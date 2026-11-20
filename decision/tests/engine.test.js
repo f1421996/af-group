@@ -287,6 +287,11 @@ test('batches merge the same product across orders; distribution is complete, ba
   // balance: the gap between the busiest and the least busy worker never exceeds the biggest single batch
   const loads = R.workers.map(w => w.mins), maxB = Math.max(...B.map(b => 18.57 + 1.088 * b.qty));
   assert.ok(Math.max(...loads) - Math.min(...loads) <= maxB + 1e-9);
+  // every batch carries its reason; a worker's minutes = batches x setup + pieces x per-piece (shown to the owner)
+  assert.ok(R.workers.every(w => w.batches.every(b => b.why && (b.why.type === 'held' || (b.why.type === 'balance' && b.why.others.length === 2)))));
+  for (const w of R.workers) assert.ok(Math.abs(w.mins - (w.setupMins + w.pieceMins)) < 1e-9);
+  // 'balance' reason is true: when it was given, nobody else had a smaller load
+  for (const w of R.workers) for (const b of w.batches) if (b.why.type === 'balance') assert.ok(b.why.others.every(o => o.load >= b.why.before - 1e-9));
   // deterministic
   assert.deepEqual(A.assignWork(B, workers, claims, timing), R);
   // not enough measured data -> no minutes are shown, balance by pieces instead

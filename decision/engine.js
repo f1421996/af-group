@@ -478,15 +478,20 @@
     if (!W.length) { out.unassigned = batches.slice(); return out; }
     const byId = new Map(W.map(w => [w.id, w]));
     const claimOf = new Map((claims || []).map(c => [c.line, c.by]));
-    const put = (w, b, held) => { w.batches.push(Object.assign({}, b, { mins: T.ok ? load(b) : null, held: !!held })); w.pcs += b.qty; w.load += load(b); if (T.ok) w.mins += load(b); };
+    const put = (w, b, held, why) => { w.batches.push(Object.assign({}, b, { mins: T.ok ? load(b) : null, held: !!held, why: why || null })); w.pcs += b.qty; w.load += load(b); if (T.ok) w.mins += load(b); };
     const rest = [];
     for (const b of batches) {
       const holder = b.lines.map(l => claimOf.get(l.id)).find(id => id && byId.has(id));
-      if (holder) put(byId.get(holder), b, true); else rest.push(b);
+      if (holder) put(byId.get(holder), b, true, { type: 'held' }); else rest.push(b);
     }
     rest.sort((a, b) => load(b) - load(a) || String(a.key).localeCompare(String(b.key)));
-    for (const b of rest) put(W.reduce((m, w) => (w.load < m.load ? w : m), W[0]), b, false);
+    for (const b of rest) {
+      const pick = W.reduce((m, w) => (w.load < m.load ? w : m), W[0]);
+      const others = W.filter(w => w !== pick).map(w => ({ name: w.name, load: w.load }));
+      put(pick, b, false, { type: 'balance', before: pick.load, others });
+    }
     for (const w of W) w.batches.sort((a, b) => (b.held - a.held) || a.rank - b.rank || String(a.name).localeCompare(String(b.name)));
+    for (const w of W) { w.nBatches = w.batches.length; w.setupMins = T.ok ? w.batches.length * T.setup : null; w.pieceMins = T.ok ? w.pcs * T.perPc : null; }
     out.makespan = Math.max(...W.map(w => w.load));
     return out;
   }
