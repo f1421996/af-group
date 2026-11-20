@@ -1,4 +1,4 @@
--- PROPOSED — NOT APPLIED. Needs owner approval before running on production.
+-- Applied to production 2026-11-20 (migration decision_verify_approve_20261120) after owner approval.
 -- Decision Center: independent verification inside Postgres (exact numeric) + human approval.
 -- Touches only public.decision_runs (currently empty) and adds two owner-only functions. No operational table is changed.
 -- Rollback: see the block at the end.
