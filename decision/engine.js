@@ -320,7 +320,7 @@
       const total = hist.reduce((a, b) => a + b, 0);
       const need = openNeed.get(o.id) || 0;
       if (!total && !need) continue;
-      const free = (+o.stock || 0) - need;
+      const free = pos(o.stock) - need; // a negative balance is a count error, not a debt: treated as zero, same as the purchase plan
       const sims = new Float64Array(P.runs); let outs = 0;
       for (let r = 0; r < P.runs; r++) {
         let d = 0;

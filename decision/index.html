@@ -681,6 +681,9 @@ function runSim() {
   const risky = r.rows.filter(x => x.free >= 0 && x.order > 0 && (min === 0 || x.pOut >= min));
   const rows = [...shortNow, ...risky];
   const totG = rows.reduce((s, x) => s + rnd(x), 0), tot = rows.reduce((s, x) => s + rnd(x) * (x.order > 0 ? x.cost / x.order : 0), 0);
+  // why the suggestion is bigger than the open-order shortage: three separate parts
+  const part = x => { const base = Math.max(0, -x.free), fut = Math.max(0, x.order - base); return { base, fut, up: rnd(x) - Math.max(0, x.order) }; };
+  const PT = rows.reduce((a, x) => { const q = part(x); a.base += q.base; a.fut += q.fut; a.up += q.up; return a; }, { base: 0, fut: 0, up: 0 });
   const cur = { H, mult, svc, n: rows.length, risky: risky.length, totG, tot };
   const diff = SIM_PREV && (SIM_PREV.H !== H || SIM_PREV.mult !== mult || SIM_PREV.svc !== svc)
     ? `<div class="msg" style="margin:8px 0">التغيير عن المرة اللي فاتت (${SIM_PREV.H} يوم · طلب ${SIM_PREV.mult >= 1 ? '+' : ''}${Math.round((SIM_PREV.mult - 1) * 100)}% · أمان ${Math.round(SIM_PREV.svc * 100)}%):
@@ -689,13 +692,19 @@ function runSim() {
       <div class="why">الرصيد ${f0(x.stock)} − الطلبات المفتوحة ${f0(x.need)} = حر <b class="${x.free < 0 ? 'bad' : ''}">${f0(x.free)} جم</b><br>
       اتستخدم في ${x.activeDays} يوم من ${r.nDays}، بمتوسط ${f0(x.avgDay)} جم/يوم وأعلى يوم ${f0(x.maxDay)} جم<br>
       استهلاك ${H} أيام: النص ${f0(x.p50)} جم، وفي ${Math.round(svc * 100)}% من الحالات ≤ ${f0(x.q)} جم<br>
-      يكفي ≈ ${x.cover === Infinity ? '∞' : f1(x.cover)} يوم · اطلب ${f0(x.q)} − ${f0(x.free)} = ${f0(x.order)} جم → بوحدة الشراء (${amt(lotOf(x.id))}) = <b>${amt(rnd(x))}</b></div></details>`;
+      يكفي ≈ ${x.cover === Infinity ? '∞' : f1(x.cover)} يوم<br>
+      <b>الكمية المقترحة ${amt(rnd(x))} =</b> ${f0(part(x).base)} جم ناقصين للأوردرات المفتوحة + ${f0(part(x).fut)} جم لاستهلاك ${H} أيام جاية (بأمان ${Math.round(svc * 100)}%، والمتوسط العادي ${f0(x.avgDay * H)} جم) + ${f0(part(x).up)} جم تقريب لوحدة الشراء (${amt(lotOf(x.id))})${x.stock < 0 ? `<br><span class="warn">الرصيد المسجل بالسالب (${f0(x.stock)}) واتحسب صفر. محتاج جرد.</span>` : ''}</div></details>`;
   $('simOut').innerHTML = `<div class="card">
     <p class="mut" style="margin:0 0 6px;font-size:13px">✓ اتحسبت ${new Date().toLocaleTimeString('ar-EG-u-nu-latn')} — ${H} يوم · طلب ${mult >= 1 ? '+' : ''}${Math.round((mult - 1) * 100)}% · أمان ${Math.round(svc * 100)}% · 2000 سيناريو</p>
     <div class="kpis"><div class="kpi"><small>ناقص للأوردرات المفتوحة</small><b class="bad">${shortNow.length}</b> زيت</div>
       <div class="kpi"><small>هيخلص من الاستهلاك المتوقع</small><b class="warn">${risky.length}</b> زيت</div>
       <div class="kpi"><small>الكمية المقترحة</small><b>${amt(totG)}</b></div>
       <div class="kpi"><small>التكلفة التقريبية</small><b>${f0(tot)}</b> ج</div></div>
+    <div class="why" style="font-size:13.5px"><b>الكمية المقترحة ${amt(totG)} متقسمة كده:</b><br>
+      • ${amt(PT.base)} ناقصين فعلاً للأوردرات المفتوحة<br>
+      • ${amt(PT.fut)} زيادة عشان أوردرات جديدة متوقعة في ${H} أيام، بأمان ${Math.round(svc * 100)}% (يعني تكفي حتى في الأسابيع التقيلة، مش المتوسط)<br>
+      • ${amt(PT.up)} تقريب لفوق لوحدة شراء كل زيت<br>
+      <span class="mut">عايز تشتري للأوردرات المفتوحة بس؟ استخدم "اعمل إيه النهارده ← اشتري". وعشان تقلل الزيادة هنا: قلل عدد الأيام أو مستوى الأمان.</span></div>
     ${diff}
     ${r.nDays < 30 ? `<p class="warn" style="font-size:13px">التاريخ المتاح ${r.nDays} يوم بس، والدقة هتزيد مع الوقت.</p>` : ''}
     <details><summary>إزاي اتحسب؟ (المعادلة والداتا)</summary><div class="math">الداتا: استهلاك كل زيت يوم بيوم في آخر ${r.nDays} يوم، من السطور اللي اتعبّت فعلاً (الكمية × الجرامات الفعلية).
