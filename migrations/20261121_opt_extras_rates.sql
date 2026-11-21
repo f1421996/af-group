@@ -11,7 +11,7 @@ begin
     from line_timing lt
     where lt.undone_at is null and lt.worker_id not in (select id from profiles where role='owner')),
   u as (select * from t where started_at is not null and mins between 0.25 and 120),
-  d as (select lt.worker_id, (lt.done_at at time zone 'Africa/Cairo')::date day, sum(lt.qty) pcs, count(*) ln
+  d as (select lt.worker_id, (lt.done_at at time zone 'Africa/Cairo')::date dy, sum(lt.qty) pcs, count(*) ln
         from line_timing lt
         where lt.undone_at is null and lt.done_at >= now() - interval '14 days'
           and (lt.done_at at time zone 'Africa/Cairo')::date < (now() at time zone 'Africa/Cairo')::date  -- full days only: today is not over yet
