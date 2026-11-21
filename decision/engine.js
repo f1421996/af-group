@@ -458,9 +458,10 @@
     for (const l of lines) {
       const g = l.grams != null && l.grams !== '' ? +l.grams : null;
       const key = (l.oil_id || '-') + '|' + (l.empty_id || l.name) + '|' + (g == null ? '?' : g);
-      if (!m.has(key)) m.set(key, { key, name: l.name, grams: g, prod: (l.oil_id || '-') + '|' + (l.empty_id || l.name), qty: 0, rank: Infinity, lines: [] });
+      if (!m.has(key)) m.set(key, { key, name: l.name, grams: g, prod: (l.oil_id || '-') + '|' + (l.empty_id || l.name), qty: 0, val: 0, rank: Infinity, lines: [] });
       const b = m.get(key);
       b.qty += +l.qty; b.rank = Math.min(b.rank, l.rk ?? 1e6);
+      b.val += isFinite(+l.w) && +l.w > 0 ? +l.w : +l.qty; // same weight the purchase/fill plan gives the line (priority + value)
       b.lines.push({ id: l.id, no: l.no, cust: l.cust, qty: +l.qty, rk: l.rk });
     }
     const out = [...m.values()];
@@ -502,7 +503,108 @@
     return out;
   }
 
-  const api = { makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  // ---------------------------------------------------------------------------------------------
+  // Capacity-aware work plan. assignWork() above splits ALL makeable work; this one answers the real
+  // question: "what should each worker do in the next N days, given what he can actually produce?"
+  //   capacity_w = pieces/day (measured, or set by the owner) x days
+  //   choose batches s_b in {0,1}:  maximize  sum val_b * s_b   s.t.  sum qty_b * s_b <= total free capacity
+  //   (val_b is the same priority/value weight the fill plan uses). Started batches stay with their worker.
+  // The choice is solved exactly, then packed into workers; anything that cannot be placed is reported,
+  // never silently dropped, and the result is checked independently (capacity respected, bound, gap).
+  // ---------------------------------------------------------------------------------------------
+  function workerRates(makers, rates, overrides) {
+    const byId = new Map((rates || []).map(r => [r.id, r]));
+    const known = (rates || []).filter(r => +r.days >= 2 && +r.pcs_day > 0).map(r => +r.pcs_day).sort((a, b) => a - b);
+    const median = known.length ? known[Math.floor((known.length - 1) / 2)] : null;
+    return makers.map(m => {
+      const ov = overrides && overrides[m.id];
+      const r = byId.get(m.id);
+      if (ov != null && ov !== '' && isFinite(+ov) && +ov >= 0) return { id: m.id, name: m.name, perDay: +ov, src: 'owner', days: r ? +r.days : 0 };
+      if (r && +r.days >= 2 && +r.pcs_day > 0) return { id: m.id, name: m.name, perDay: Math.round(+r.pcs_day), src: 'measured', days: +r.days };
+      return { id: m.id, name: m.name, perDay: median != null ? Math.round(median) : null, src: median != null ? 'estimate' : 'unknown', days: r ? +r.days : 0 };
+    });
+  }
+  async function planCapacity(solver, batches, workers, claims, timing, days) {
+    const N = Math.max(1, Math.round(+days || 1));
+    const T = timeModel(timing);
+    const mins = b => T.ok ? T.setup + T.perPc * b.qty : null;
+    const W = workers.map(w => ({ id: w.id, name: w.name, perDay: w.perDay, src: w.src, histDays: w.days, cap: w.perDay == null ? 0 : w.perDay * N, batches: [], pcs: 0, mins: 0, over: false }));
+    const total = batches.reduce((s, b) => s + b.qty, 0);
+    const out = { workers: W, days: N, timed: T.ok, model: T, deferred: [], total, status: 'OK', errors: [] };
+    const teamDay = W.reduce((s, w) => s + (w.perDay || 0), 0);
+    out.teamPerDay = teamDay;
+    out.daysForAll = teamDay > 0 ? total / teamDay : Infinity;
+    if (!W.length) { out.status = 'NO_WORKERS'; out.deferred = batches.map(b => Object.assign({}, b, { why: { type: 'noworkers' } })); return finish(); }
+    if (W.some(w => w.perDay == null)) { out.status = 'NO_RATE'; out.errors = W.filter(w => w.perDay == null).map(w => w.name); out.deferred = batches.map(b => Object.assign({}, b, { why: { type: 'norate' } })); return finish(); }
+    const byId = new Map(W.map(w => [w.id, w]));
+    const claimOf = new Map((claims || []).map(c => [c.line, c.by]));
+    const put = (w, b, why) => { w.batches.push(Object.assign({}, b, { mins: mins(b), held: why.type === 'held', why })); w.pcs += b.qty; if (T.ok) w.mins += mins(b); };
+    const cand = [];
+    for (const b of batches) {
+      const holder = b.lines.map(l => claimOf.get(l.id)).find(id => id && byId.has(id));
+      if (holder) put(byId.get(holder), b, { type: 'held' }); else cand.push(b);
+    }
+    for (const w of W) if (w.pcs > w.cap) w.over = true; // started more than his capacity: kept, and shown
+    const room = w => Math.max(0, w.cap - w.pcs);
+    const C = W.reduce((s, w) => s + room(w), 0);
+    out.freeCapacity = C;
+    // --- exact choice: 0/1 knapsack over the team's free capacity
+    let chosen = new Set(), z = 0, sstat = 'OPTIMAL';
+    const fits = cand.filter(b => b.qty <= C);
+    if (fits.length && C > 0) {
+      const lp = { name: 'capacity', objective: { direction: 2, name: 'obj', vars: fits.map((b, i) => ({ name: 's' + i, coef: b.val })) },
+        subjectTo: [{ name: 'cap', vars: fits.map((b, i) => ({ name: 's' + i, coef: b.qty })), bnds: { type: 3, ub: C, lb: 0 } }],
+        binaries: fits.map((b, i) => 's' + i), generals: [] };
+      const bad = validateModel(lp);
+      if (bad.length) { out.status = 'INVALID_MODEL'; out.errors = bad; out.deferred = cand.map(b => Object.assign({}, b, { why: { type: 'error' } })); return finish(); }
+      const r = await solver.solve(lp, 10);
+      if (r.status !== 'OPTIMAL' && r.status !== 'FEASIBLE') { out.status = r.status; out.errors = r.error ? [r.error] : []; out.deferred = cand.map(b => Object.assign({}, b, { why: { type: 'error' } })); return finish(); }
+      sstat = r.status;
+      fits.forEach((b, i) => { if (Math.round(r.vars['s' + i] || 0) === 1) { chosen.add(b.key); z += b.val; } });
+    }
+    // upper bound, computed without the solver: fill by value per piece, last item fractional
+    let left = C, bound = 0;
+    for (const b of cand.slice().sort((a, b2) => b2.val / b2.qty - a.val / a.qty)) { if (left <= 0) break; const t = Math.min(1, left / b.qty); bound += b.val * t; left -= b.qty * t; }
+    // --- pack the chosen batches into workers: biggest first, to the worker with the most free room
+    const sel = cand.filter(b => chosen.has(b.key)).sort((a, b2) => b2.qty - a.qty || String(a.key).localeCompare(String(b2.key)));
+    const placed = new Set();
+    const place = (b, type) => {
+      const ok = W.filter(w => room(w) >= b.qty);
+      if (!ok.length) return false;
+      const pick = ok.reduce((m, w) => (room(w) / (w.cap || 1) > room(m) / (m.cap || 1) ? w : m), ok[0]);
+      put(pick, b, { type, room: room(pick), cap: pick.cap, others: W.filter(w => w !== pick).map(w => ({ name: w.name, room: room(w) })) });
+      placed.add(b.key); return true;
+    };
+    for (const b of sel) place(b, 'capacity');
+    // leftover room (a few pieces per worker): fill with the best remaining batches that fit
+    for (const b of cand.filter(x => !placed.has(x.key)).sort((a, b2) => b2.val / b2.qty - a.val / a.qty || a.rank - b2.rank)) place(b, chosen.has(b.key) ? 'capacity' : 'fill');
+    out.deferred = cand.filter(b => !placed.has(b.key)).map(b => Object.assign({}, b, { why: { type: b.qty > Math.max(...W.map(w => w.cap)) ? 'toobig' : 'capacity' } }))
+      .sort((a, b2) => a.rank - b2.rank || b2.qty - a.qty);
+    const got = W.reduce((s, w) => s + w.batches.filter(b => !b.held).reduce((t, b) => t + b.val, 0), 0);
+    out.choice = { status: sstat, proven: sstat === 'OPTIMAL', z, bound, value: got, gap: bound > 0 ? Math.max(0, (bound - got) / bound) : 0, nCand: cand.length };
+    return finish();
+
+    function finish() {
+      for (const w of W) {
+        w.batches.sort((a, b) => (b.held - a.held) || a.rank - b.rank || String(a.name).localeCompare(String(b.name)));
+        w.nBatches = w.batches.length; w.setupMins = T.ok ? w.nBatches * T.setup : null; w.pieceMins = T.ok ? w.pcs * T.perPc : null;
+      }
+      out.assigned = W.reduce((s, w) => s + w.pcs, 0);
+      out.deferredPcs = out.deferred.reduce((s, b) => s + b.qty, 0);
+      // independent checks: nothing lost, nothing duplicated, capacity respected (except work already started)
+      const seen = new Map(); let dup = 0;
+      for (const b of [...W.flatMap(w => w.batches), ...out.deferred]) { if (seen.has(b.key)) dup++; seen.set(b.key, 1); }
+      out.checks = [
+        { name: 'كل صنف متاح ظهر مرة واحدة بالظبط (متوزّع أو مؤجّل)', ok: dup === 0 && seen.size === batches.length, detail: `${seen.size} من ${batches.length}` },
+        { name: 'مجموع القطع = المتاح', ok: Math.abs(out.assigned + out.deferredPcs - total) < 1e-6, detail: `${out.assigned} + ${out.deferredPcs} = ${total}` },
+        { name: 'محدش واخد أكتر من طاقته (غير اللي بدأ فيه فعلاً)', ok: W.every(w => w.pcs <= w.cap + 1e-6 || w.over), detail: W.map(w => `${w.name} ${w.pcs}/${w.cap}`).join(' · ') },
+      ];
+      out.ok = out.checks.every(c => c.ok);
+      return out;
+    }
+  }
+
+  const api = { workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 
