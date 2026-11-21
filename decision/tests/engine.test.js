@@ -388,3 +388,60 @@ test('capacity plan: says "no plan" instead of guessing', async () => {
   const z = await A.planCapacity(solver, B, [{ id: 'x', name: 'x', perDay: 0, src: 'owner', days: 0 }], [], {}, 1);
   assert.equal(z.assigned, 0); assert.ok(z.ok);
 });
+
+// ---------- deadlines: 4 working days after the invoice date, Friday off ----------
+test('working days: Friday is skipped, both directions', () => {
+  assert.equal(A.addWorkDays('2026-11-17', 4), '2026-11-22');   // Tue -> Wed, Thu, (Fri), Sat, Sun
+  assert.equal(A.addWorkDays('2026-11-13', 4), '2026-11-17');   // invoice dated on a Friday
+  assert.equal(A.addWorkDays('2026-11-21', 0), '2026-11-21');
+  assert.equal(A.workDaysBetween('2026-11-19', '2026-11-21'), 1); // Thu -> Sat: only Saturday counts
+  assert.equal(A.workDaysBetween('2026-11-21', '2026-11-19'), -1);
+  assert.equal(A.workDaysBetween('2026-11-21', '2026-11-21'), 0);
+});
+
+const dueSnap = () => ({ lines: [
+  { id: 'a1', inv_id: 'A', no: 'A', cust: 'x', date: '2026-11-17', rank: 3, qty: 100 },                       // due 22nd
+  { id: 'b1', inv_id: 'B', no: 'B', cust: 'y', date: '2026-11-10', rank: 1, qty: 50, due: '2026-11-30', due_manual: true }, // owner pushed it out
+  { id: 'c1', inv_id: 'C', no: 'C', cust: 'z', date: '2026-11-13', rank: null, qty: 30 },                     // due 17th, no manual rank
+  { id: 'c2', inv_id: 'C', no: 'C', cust: 'z', date: '2026-11-13', rank: null, qty: 20 },
+] });
+
+test('priority by deadline vs by manual rank; switching back and forth keeps the owner\'s original ranks', () => {
+  const d = A.withDuePriority(dueSnap(), 'due');
+  assert.deepEqual([...new Map(d.lines.map(l => [l.no, l.rank]))], [['A', 2], ['B', 3], ['C', 1]]);
+  assert.equal(d.lines.find(l => l.no === 'A').due, '2026-11-22');   // computed: no due in the data
+  assert.equal(d.lines.find(l => l.no === 'B').due, '2026-11-30');   // the owner's date is kept
+  const m = A.withDuePriority(d, 'manual');                             // applied on top of the 'due' result
+  assert.deepEqual([...new Map(m.lines.map(l => [l.no, l.rank]))], [['A', 2], ['B', 1], ['C', 3]]);
+  assert.deepEqual(m.lines.map(l => l.rank0), [3, 1, null, null]);
+  // the fill plan really follows it: with oil for one order only, the earliest deadline gets it
+  const s = Object.assign({ oils: [{ id: 'o', name: 'o', cnt_no: 1, stock: 500, cost: 1 }], empties: [], prices: [], suppliers: [], usage: [] },
+    { lines: dueSnap().lines.map(l => Object.assign({ oil_id: 'o', grams: 10, price: 100, page_pc: 0, track: false, name: 'p' }, l)) });
+  const P = Object.assign({}, A.defaults({}), { budget: 0 });
+  const first = snap => { const mm = A.buildPlan(snap, P); return mm.lines.slice().sort((x, y) => y.prio - x.prio)[0].no; };
+  assert.equal(first(A.withDuePriority(s, 'due')), 'C');
+  assert.equal(first(A.withDuePriority(s, 'manual')), 'B');
+});
+
+test('deadline plan: finish dates, lateness, overdue, and what the team would need', () => {
+  const s = A.withDuePriority(dueSnap(), 'due');            // order: C (50, due 17th), A (100, due 22nd), B (50, due 30th)
+  const p = A.deadlinePlan(s, new Set(['a1', 'c1']), 50, '2026-11-21'); // Saturday, 50 pieces a day
+  assert.equal(p.status, 'LATE');
+  const [C, Aa, B] = p.orders;
+  assert.deepEqual([C.no, C.left, C.makeable, C.blocked], ['C', 50, 30, 20]);
+  assert.equal(C.finish, '2026-11-21'); assert.equal(C.overdue, 3); assert.equal(C.late, 3);   // 18, 19, 21 (Fri skipped)
+  assert.equal(Aa.finish, '2026-11-23'); assert.equal(Aa.late, 1); assert.equal(Aa.daysLeft, 2); // 150 pieces = day 3 (Sat, Sun, Mon), due Sunday
+  assert.equal(B.finish, '2026-11-24'); assert.equal(B.late, 0);
+  assert.equal(p.needPerDay, 75);                           // 150 pieces in the 2 days left for A
+  assert.equal(p.daysForAll, 4); assert.equal(p.blockedPcs, 70); // C's 20 + all 50 of B
+  // enough people -> A is on time; C stays late because its date is already gone
+  const q = A.deadlinePlan(s, [], 75, '2026-11-21');
+  assert.equal(q.orders[1].late, 0); assert.equal(q.orders[0].overdue, 3); assert.equal(q.status, 'LATE');
+  // nothing overdue and enough capacity -> a clear yes
+  const ok = A.deadlinePlan(A.withDuePriority({ lines: dueSnap().lines.slice(0, 2) }, 'due'), [], 100, '2026-11-21');
+  assert.equal(ok.status, 'ON_TIME'); assert.equal(ok.lateOrders.length, 0);
+  // no team -> says so, invents nothing
+  assert.equal(A.deadlinePlan(s, [], 0, '2026-11-21').status, 'NO_CAPACITY');
+  // today is Friday -> work starts Saturday
+  assert.equal(A.deadlinePlan(s, [], 50, '2026-11-20').start, '2026-11-21');
+});

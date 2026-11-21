@@ -604,7 +604,81 @@
     }
   }
 
-  const api = { workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  // ---------------------------------------------------------------------------------------------
+  // Deadlines. Every order must be finished DUE_DAYS working days after its invoice date (Friday off),
+  // then it ships. The owner can set another date per order.
+  // ---------------------------------------------------------------------------------------------
+  const DUE_DAYS = 4, OFF_DOW = 5; // 5 = Friday
+  const pD = s => new Date(String(s).slice(0, 10) + 'T00:00:00Z');
+  const fD = d => d.toISOString().slice(0, 10);
+  const isOff = d => d.getUTCDay() === OFF_DOW;
+  function addWorkDays(iso, n) {
+    const d = pD(iso); let k = 0;
+    while (k < Math.max(0, n)) { d.setUTCDate(d.getUTCDate() + 1); if (!isOff(d)) k++; }
+    return fD(d);
+  }
+  const firstWorkDay = iso => { const d = pD(iso); while (isOff(d)) d.setUTCDate(d.getUTCDate() + 1); return fD(d); };
+  // working days in (a, b]; negative when b is before a
+  function workDaysBetween(a, b) {
+    if (a === b) return 0;
+    if (b < a) return -workDaysBetween(b, a);
+    const d = pD(a), e = pD(b); let k = 0;
+    while (d < e) { d.setUTCDate(d.getUTCDate() + 1); if (!isOff(d)) k++; }
+    return k;
+  }
+  const dueOf = l => l.due ? String(l.due).slice(0, 10) : addWorkDays(l.date, DUE_DAYS);
+  // Rewrites each line's rank so the whole engine (fill plan, purchases, work plan) follows the chosen order:
+  //   'due'    -> earliest deadline first; the owner's manual rank only breaks ties
+  //   'manual' -> the owner's manual rank first; deadline orders the unranked ones
+  function withDuePriority(snap, mode) {
+    const inv = new Map();
+    for (const l of snap.lines) if (!inv.has(l.inv_id)) inv.set(l.inv_id, { inv_id: l.inv_id, no: l.no, date: String(l.date), due: dueOf(l), r0: l.rank0 !== undefined ? l.rank0 : l.rank });
+    const mr = x => (x.r0 == null ? 1e6 : +x.r0);
+    const cmp = mode === 'manual'
+      ? (a, b) => mr(a) - mr(b) || a.due.localeCompare(b.due) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no))
+      : (a, b) => a.due.localeCompare(b.due) || mr(a) - mr(b) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no));
+    const order = [...inv.values()].sort(cmp);
+    const rank = new Map(order.map((x, i) => [x.inv_id, i + 1]));
+    return Object.assign({}, snap, { prioMode: mode === 'manual' ? 'manual' : 'due',
+      lines: snap.lines.map(l => Object.assign({}, l, { rank0: inv.get(l.inv_id).r0, due: inv.get(l.inv_id).due, rank: rank.get(l.inv_id) })) });
+  }
+  // Can every order be finished by its deadline with this team? Orders are worked in rank order
+  // (with mode 'due' that is earliest-deadline-first, which minimises the worst lateness on one team).
+  // cumulative pieces up to an order / team pieces per day = the working day it is finished on.
+  function deadlinePlan(snap, makeableIds, teamPerDay, todayIso) {
+    const today = String(todayIso).slice(0, 10), start = firstWorkDay(today);
+    const mk = makeableIds instanceof Set ? makeableIds : new Set(makeableIds || []);
+    const by = new Map();
+    for (const l of snap.lines) {
+      if (!by.has(l.inv_id)) by.set(l.inv_id, { inv_id: l.inv_id, no: l.no, cust: l.cust, date: String(l.date), due: dueOf(l), dueManual: !!l.due_manual, rank: l.rank == null ? 1e6 : +l.rank, left: 0, makeable: 0 });
+      const o = by.get(l.inv_id); o.left += +l.qty; if (mk.has(l.id)) o.makeable += +l.qty;
+    }
+    const orders = [...by.values()].sort((a, b) => a.rank - b.rank || a.due.localeCompare(b.due) || String(a.no).localeCompare(String(b.no)));
+    const rate = +teamPerDay > 0 ? +teamPerDay : 0;
+    const out = { today, start, teamPerDay: rate, orders, total: orders.reduce((s, o) => s + o.left, 0), status: 'ON_TIME', needPerDay: 0 };
+    if (!orders.length) return out;
+    let cum = 0;
+    for (const o of orders) {
+      cum += o.left; o.cum = cum; o.blocked = o.left - o.makeable;
+      o.daysLeft = o.due >= start ? workDaysBetween(start, o.due) + 1 : 0;           // working days available, today included
+      o.overdue = o.due < today ? workDaysBetween(o.due, today) : 0;                  // already past its deadline
+      if (rate > 0) {
+        o.finishDay = Math.max(1, Math.ceil(cum / rate - 1e-9));
+        o.finish = addWorkDays(start, o.finishDay - 1);
+        o.late = o.finish > o.due ? workDaysBetween(o.due, o.finish) : 0;
+      } else { o.finishDay = null; o.finish = null; o.late = null; }
+      if (o.daysLeft > 0) out.needPerDay = Math.max(out.needPerDay, cum / o.daysLeft);
+    }
+    out.lateOrders = orders.filter(o => o.late > 0);
+    out.overdueOrders = orders.filter(o => o.overdue > 0);
+    out.blockedPcs = orders.reduce((s, o) => s + o.blocked, 0);
+    out.daysForAll = rate > 0 ? Math.ceil(cum / rate - 1e-9) : Infinity;
+    out.finishAll = rate > 0 ? addWorkDays(start, out.daysForAll - 1) : null;
+    out.status = rate <= 0 ? 'NO_CAPACITY' : out.lateOrders.length ? 'LATE' : 'ON_TIME';
+    return out;
+  }
+
+  const api = { DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 
