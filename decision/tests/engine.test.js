@@ -316,3 +316,75 @@ test('same item at two concentrations is never merged into one batch', () => {
   assert.ok(g15.otherConc && g75.otherConc); assert.ok(!solo.otherConc);
   assert.equal(B.reduce((s, b) => s + b.qty, 0), 42); // nothing lost
 });
+
+// ---------- capacity plan: nobody gets more than he can really do ----------
+const capBatches = () => {
+  const L = []; let k = 0;
+  const add = (oil, qty, rk, no, w) => L.push({ id: 'l' + (k++), name: 'p' + oil, oil_id: 'o' + oil, empty_id: 'e' + oil, grams: 10, qty, rk, no, cust: 'c', w });
+  for (let i = 1; i <= 30; i++) add(i, 12, i, 'A' + i, 12 * (1000 * (31 - i) + 200));  // 360 pieces, strictly decreasing priority
+  return { L, B: A.makeBatches(L) };
+};
+const capWorkers = [{ id: 'w1', name: 'a' }, { id: 'w2', name: 'b' }, { id: 'w3', name: 'c' }];
+const capRates = [{ id: 'w1', days: 6, pcs_day: 60 }, { id: 'w2', days: 5, pcs_day: 36 }, { id: 'w3', days: 1, pcs_day: 500 }];
+
+test('worker rates: measured needs 2+ days, owner figure wins, unknown worker gets the median and is labelled', () => {
+  const r = A.workerRates(capWorkers, capRates, { w2: 40 });
+  assert.deepEqual(r.map(x => [x.perDay, x.src]), [[60, 'measured'], [40, 'owner'], [36, 'estimate']]);
+  assert.equal(A.workerRates(capWorkers, [], {})[0].src, 'unknown');
+  assert.equal(A.workerRates(capWorkers, [], {})[0].perDay, null);
+});
+
+test('capacity plan: respects each worker\'s capacity, takes the highest priority work, defers the rest, loses nothing', async () => {
+  const highs = await HIGHS(); const solver = A.highsAdapter(highs);
+  const { B } = capBatches();
+  const P = await A.planCapacity(solver, B, A.workerRates(capWorkers, capRates, {}), [], { n: 148, setup: 18.57, per_pc: 1.088 }, 1);
+  assert.equal(P.status, 'OK'); assert.ok(P.ok); assert.ok(P.choice.proven);
+  for (const w of P.workers) assert.ok(w.pcs <= w.cap, `${w.name} over capacity`);
+  assert.equal(P.assigned + P.deferredPcs, 360);
+  assert.equal(P.assigned, 132);                         // 60 + 36 + 36 = 132 = 11 batches of 12
+  const got = P.workers.flatMap(w => w.batches.map(b => b.rank)).sort((a, b) => a - b);
+  assert.deepEqual(got, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]); // exactly the 11 highest-priority orders
+  assert.ok(P.deferred.every(b => b.rank > 11));
+  assert.ok(Math.abs(P.daysForAll - 360 / 132) < 1e-9);
+  // brute-force check on a small case: the solver's choice equals the best subset
+  const small = B.slice(0, 12).map((b, i) => Object.assign({}, b, { qty: [5, 9, 12, 7, 3, 14, 6, 8, 11, 4, 10, 13][i] }));
+  const cap = 41, P2 = await A.planCapacity(solver, small, [{ id: 'x', name: 'x', perDay: cap, src: 'owner', days: 0 }], [], {}, 1);
+  let best = 0;
+  for (let m = 0; m < 1 << 12; m++) { let q = 0, v = 0; for (let i = 0; i < 12; i++) if (m >> i & 1) { q += small[i].qty; v += small[i].val; } if (q <= cap && v > best) best = v; }
+  assert.equal(P2.workers[0].batches.reduce((s, b) => s + b.val, 0), best);
+});
+
+test('capacity plan: more days -> more work; enough days -> everything fits and it says so', async () => {
+  const highs = await HIGHS(); const solver = A.highsAdapter(highs);
+  const { B } = capBatches(); const R = A.workerRates(capWorkers, capRates, {});
+  const p1 = await A.planCapacity(solver, B, R, [], {}, 1), p2 = await A.planCapacity(solver, B, R, [], {}, 2), p3 = await A.planCapacity(solver, B, R, [], {}, 3);
+  assert.ok(p2.assigned > p1.assigned);
+  assert.equal(p3.deferredPcs, 0); assert.equal(p3.assigned, 360); assert.ok(p3.ok);
+});
+
+test('capacity plan: started work stays with its worker and counts against his capacity', async () => {
+  const highs = await HIGHS(); const solver = A.highsAdapter(highs);
+  const { L, B } = capBatches();
+  const claims = [{ line: L[29].id, by: 'w2' }, { line: L[28].id, by: 'w2' }, { line: L[27].id, by: 'w2' }, { line: L[26].id, by: 'w2' }]; // 48 pcs of the LOWEST priority, cap is 36
+  const P = await A.planCapacity(solver, B, A.workerRates(capWorkers, capRates, {}), claims, {}, 1);
+  const w2 = P.workers.find(w => w.id === 'w2');
+  assert.equal(w2.batches.filter(b => b.held).length, 4); assert.ok(w2.over); assert.equal(w2.pcs, 48);
+  assert.equal(w2.batches.filter(b => !b.held).length, 0);            // no extra work on top
+  assert.ok(P.ok); assert.equal(P.assigned + P.deferredPcs, 360);
+});
+
+test('capacity plan: says "no plan" instead of guessing', async () => {
+  const highs = await HIGHS(); const solver = A.highsAdapter(highs);
+  const { B } = capBatches();
+  const none = await A.planCapacity(solver, B, [], [], {}, 1);
+  assert.equal(none.status, 'NO_WORKERS'); assert.equal(none.assigned, 0); assert.equal(none.deferredPcs, 360);
+  const unk = await A.planCapacity(solver, B, A.workerRates(capWorkers, [], {}), [], {}, 1);
+  assert.equal(unk.status, 'NO_RATE'); assert.equal(unk.assigned, 0); assert.deepEqual(unk.errors, ['a', 'b', 'c']);
+  // a single item bigger than anyone's capacity is deferred and flagged, never forced on a worker
+  const big = [Object.assign({}, B[0], { qty: 500 })];
+  const P = await A.planCapacity(solver, big, A.workerRates(capWorkers, capRates, {}), [], {}, 1);
+  assert.equal(P.assigned, 0); assert.equal(P.deferred[0].why.type, 'toobig');
+  // zero capacity
+  const z = await A.planCapacity(solver, B, [{ id: 'x', name: 'x', perDay: 0, src: 'owner', days: 0 }], [], {}, 1);
+  assert.equal(z.assigned, 0); assert.ok(z.ok);
+});

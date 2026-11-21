@@ -46,6 +46,7 @@ details{margin:4px 0}details summary{cursor:pointer;color:var(--mut)}
 details[open]>summary{margin-bottom:6px}
 .why{background:var(--code);border-radius:8px;padding:8px 10px;font-size:13.5px;margin:4px 0}
 .math{background:var(--code);border-radius:8px;padding:10px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;direction:rtl;white-space:pre-wrap;line-height:1.9}
+.tw{overflow-x:auto}
 .verdict{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;border:1px solid var(--line)}
 .verdict .ic{font-size:22px;line-height:1}
 .pill{font-size:12px;padding:1px 7px;border-radius:9px;border:1px solid var(--line)}
@@ -457,7 +458,11 @@ function renderPlan(R) {
 
 
 // ---------- TODAY: what to do now, in plain words ----------
-let EXTRA = { makers: [], claims: [], timing: {} }, W_SEL = null, TODAY = null;
+let EXTRA = { makers: [], claims: [], timing: {}, rates: [] }, W_SEL = null, TODAY = null;
+// capacity plan settings (kept on this device): how many days to plan, and the owner's own daily figure per worker
+let PLAN_DAYS = 1, CAP_OV = {};
+try { PLAN_DAYS = Math.min(14, Math.max(1, +localStorage.getItem('af-plan-days') || 1)); CAP_OV = JSON.parse(localStorage.getItem('af-cap-ov') || '{}') || {}; } catch (e) { /* defaults */ }
+const savePlanPrefs = () => { try { localStorage.setItem('af-plan-days', String(PLAN_DAYS)); localStorage.setItem('af-cap-ov', JSON.stringify(CAP_OV)); } catch (e) { /* private mode */ } };
 async function loadExtras() {
   const { data, error } = await sb.rpc('opt_extras');
   if (!error && data) EXTRA = data;
@@ -514,15 +519,18 @@ async function loadProgress() {
   $('wRedo').onclick = () => { load(); window.scrollTo(0, 0); };
 }
 function whyBatch(b, w, A) {
-  const mg = b.lines.length > 1 ? `نفس الصنف في ${b.lines.length} أوردر اتجمّع في صنف واحد (${f0(b.qty)} قطعة)، فالتجهيز بيتعمل مرة. ` : '';
-  if (!b.why) return mg;
-  if (b.why.type === 'held') return mg + `${esc(w.name)} داس "ابدأ" عليه قبل كده، فكمّل معاه.`;
-  const unit = A.timed ? 'دقيقة' : 'قطعة';
-  const others = b.why.others.map(o => `${esc(o.name)} ${f0(o.load)}`).join('، ');
-  return mg + `اتوزع لـ${esc(w.name)} لأن حمله وقتها كان الأقل: ${f0(b.why.before)} ${unit}${others ? ` (مقابل ${others})` : ''}.`;
+  const mg = b.lines.length > 1 ? `نفس الصنف في ${b.lines.length} أوردر اتجمّع (${f0(b.qty)} قطعة)، فالتجهيز مرة واحدة. ` : '';
+  const y = b.why;
+  if (!y) return mg;
+  if (y.type === 'held') return mg + `${esc(w.name)} داس "ابدأ" عليه قبل كده، فكمّل معاه.`;
+  const pr = b.rank < 1e6 ? `أوردره أولوية #${b.rank}. ` : '';
+  const others = (y.others || []).map(o => `${esc(o.name)} ${f0(o.room)}`).join('، ');
+  const near = (y.others || []).length && (y.others || []).every(o => Math.abs(o.room - y.room) <= 12);
+  if (y.type === 'fill') return mg + pr + `حجمه مناسب يكمّل المساحة اللي فاضلة عند ${esc(w.name)} (${f0(y.room)} قطعة).`;
+  return mg + pr + (near ? `الكل كان فاضل لهم مساحة متقاربة، فاتدّى لـ${esc(w.name)} عشان يتوزع بالعدل.` : `اتدّى لـ${esc(w.name)} لأنه كان أفضى واحد: فاضل له ${f0(y.room)} قطعة من طاقته${others ? ` (الباقيين: ${others})` : ''}.`);
 }
 function workerText(w, timed) {
-  return `${RLM}*شغل ${w.name}* — ${f0(w.pcs)} قطعة${timed ? ' · حوالي ' + hm(w.mins) : ''}\n` +
+  return `${RLM}*شغل ${w.name}* — ${f0(w.pcs)} قطعة\n` +
     w.batches.map((b, i) => `${RLM}${i + 1}. ${b.name}${b.grams != null ? ` · تركيز ${f1(b.grams)} جم` : ''}${b.otherConc ? ' ⚠️' : ''}${RLM} ← *${f0(b.qty)}*${b.lines.length > 1 ? ` (${b.lines.map(l => l.no + ' ×' + f0(l.qty)).join('، ')})` : ` (${b.lines[0].no})`}`).join('\n');
 }
 async function runToday() {
@@ -538,46 +546,67 @@ async function runToday() {
     const RB = await solve(SNAP, Object.assign({}, base, { budget: bud }));
     const workers = EXTRA.makers.filter(m => W_SEL.has(m.id));
     const B = AFOpt.makeBatches(R0.p.filled);
-    const A = AFOpt.assignWork(B, workers, EXTRA.claims, EXTRA.timing);
+    const RATES = AFOpt.workerRates(workers, EXTRA.rates || [], CAP_OV);
+    const A = await AFOpt.planCapacity(SOLVER, B, RATES, EXTRA.claims, EXTRA.timing, PLAN_DAYS);
     TODAY = { R0, RB, A, B };
     const allPcs = SNAP.lines.reduce((s, l) => s + +l.qty, 0), invN = new Set(SNAP.lines.map(l => l.inv_id)).size;
     const nowPcs = R0.p.filled.reduce((s, l) => s + l.qty, 0), nowLines = R0.p.filled.length;
     const buyPcs = RB.p.filled.reduce((s, l) => s + l.qty, 0) - nowPcs;
     const saved = nowLines - B.length;
     const T = A.model;
-    // --- 1) make now
+    // --- 1) make now: a plan each worker can actually finish in the chosen number of days
+    const dayW = PLAN_DAYS === 1 ? 'يوم واحد' : PLAN_DAYS === 2 ? 'يومين' : `${PLAN_DAYS} أيام`;
+    const SRC = { measured: w => `متوسطه الفعلي في ${f0(w.histDays)} يوم شغل`, owner: () => 'رقم انت كتبته', estimate: () => 'تقدير: مالوش إنتاج متسجل كفاية، فأخد وسط العمال', unknown: () => 'مفيش بيانات — اكتب رقم' };
     const wk = A.workers.filter(w => w.batches.length).map((w, i) => `<details class="wk" ${i === 0 ? 'open' : ''}>
-      <summary><b>${esc(w.name)}</b><span class="tag">${w.batches.length} صنف</span><span class="tag">${f0(w.pcs)} قطعة</span>${A.timed ? `<span class="tag">≈ ${hm(w.mins)}</span>` : ''}
+      <summary><b>${esc(w.name)}</b><span class="tag">${w.batches.length} صنف</span><span class="tag ${w.over ? 'bad' : ''}">${f0(w.pcs)} من ${f0(w.cap)} قطعة</span>
         <button class="btn sec noprint" data-wcopy="${w.id}">نسخ للواتساب</button></summary>
       <div class="in">
-        ${A.timed ? `<div class="why" style="font-size:13px;margin:0 0 8px"><b>الوقت ≈ ${hm(w.mins)}</b> = ${f0(w.nBatches)} صنف × ${f1(T.setup)} دقيقة تجهيز (${hm(w.setupMins)}) + ${f0(w.pcs)} قطعة × ${f2(T.perPc)} دقيقة (${hm(w.pieceMins)})</div>` : ''}
+        <div class="why" style="font-size:13px;margin:0 0 8px">طاقته: <b>${f0(w.perDay)} قطعة في اليوم</b> (${SRC[w.src](w)}) × ${dayW} = <b>${f0(w.cap)}</b>.${w.over ? ` <b class="bad">معاه ${f0(w.pcs)} لأنه بدأ فيهم فعلاً.</b>` : ''}${A.timed ? ` وقت الشغل الصافي التقريبي ≈ ${hm(w.mins)}.` : ''}</div>
         ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.grams != null ? ` · <b>تركيز ${f1(b.grams)} جم</b>` : ' · <b class="bad">مستني تركيز</b>'}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}${b.otherConc ? '<br><span class="pill warn">⚠️ نفس الصنف موجود بتركيز تاني — متخلطهمش</span>' : ''}
         <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small>
         <small style="color:var(--ink);opacity:.8">ليه هنا؟ ${whyBatch(b, w, A)}</small>
-        ${A.timed ? `<small>وقته ≈ ${f1(b.mins)} دقيقة = ${f1(T.setup)} تجهيز + ${f0(b.qty)} × ${f2(T.perPc)}</small>` : ''}</span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
+        ${A.timed ? `<small>وقته ≈ ${f0(b.mins)} دقيقة (تجهيز ${f0(T.setup)} + تعبئة ${f0(b.qty * T.perPc)})</small>` : ''}</span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
     const idle = A.workers.filter(w => !w.batches.length).map(w => esc(w.name));
+    const capRows = RATES.map(w => `<tr><td>${esc(w.name)}</td><td><input data-capov="${w.id}" inputmode="numeric" value="${CAP_OV[w.id] ?? ''}" placeholder="${w.perDay ?? '—'}" style="max-width:90px"></td><td class="mut" style="font-size:12.5px">${SRC[CAP_OV[w.id] != null && CAP_OV[w.id] !== '' ? 'owner' : w.src](Object.assign({ histDays: w.days }, w))}</td></tr>`).join('');
+    // verdict: what fits, what does not, and a plain "no solution" when the target cannot be met
+    const needPerDay = A.total / A.days, avgW = A.workers.length ? A.teamPerDay / A.workers.length : 0;
+    const extraW = avgW > 0 ? Math.ceil((needPerDay - A.teamPerDay) / avgW) : 0;
+    const verdict = A.status === 'NO_WORKERS' ? '' :
+      A.status === 'NO_RATE' ? `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش خطة.</b> ${A.errors.map(esc).join('، ')} مالهمش إنتاج متسجل، ومش هخمّن رقم. اكتب طاقتهم اليومية في الجدول فوق.</div></div>` :
+      A.status !== 'OK' ? `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش خطة: ${esc(STATE_AR[A.status] || A.status)}.</b> ${A.errors.slice(0, 2).map(esc).join('، ')}</div></div>` :
+      `<div class="verdict"><span class="ic ${A.deferredPcs ? 'warn' : 'ok'}">${A.deferredPcs ? '!' : '✓'}</span><div>
+        <b>خطة ${dayW}: ${f0(A.assigned)} قطعة من ${f0(A.total)} المتاحة.</b> طاقة الفريق ${f0(A.teamPerDay)} قطعة في اليوم × ${dayW}.<br>
+        ${A.deferredPcs ? `<b class="warn">${f0(A.deferredPcs)} قطعة مش هتلحق في المدة دي</b> (${A.deferred.length} صنف، أولويتهم أقل). كل المتاح محتاج حوالي <b>${f1(A.daysForAll)} يوم</b> بالفريق ده.<br>
+          <b class="bad">عشان كل المتاح يخلص في ${dayW}: مفيش حل بالفريق ده.</b> محتاج ${f0(Math.ceil(needPerDay))} قطعة في اليوم والفريق بيعمل ${f0(A.teamPerDay)}${extraW > 0 ? `، يعني حوالي <b>${extraW} عامل زيادة</b> بنفس المتوسط، أو تمدّ المدة لـ ${Math.ceil(A.daysForAll)} أيام` : ''}.`
+          : `<b class="ok">كل المتاح يخلص في المدة دي</b>، وفاضل طاقة ${f0(Math.max(0, A.teamPerDay * A.days - A.assigned))} قطعة. لو اشتريت الخامات الناقصة (الخطوة 2) تقدر تشغّلهم فيها.`}<br>
+        <span class="mut" style="font-size:13px">${A.choice.proven ? 'اختيار الأصناف هو الأمثل ومثبت رياضياً' : 'اختيار جيد لكن مش مثبت إنه الأمثل'} (فرقه عن أقصى حد نظري ${f2(A.choice.gap * 100)}%) · ${A.ok ? 'المراجعة المستقلة سليمة ✓' : '<b class="bad">المراجعة المستقلة فشلت ✕</b>'}</span></div></div>`;
+    const defer = A.deferred.length ? `<details class="noprint"><summary>مش في خطة المدة دي: ${A.deferred.length} صنف · ${f0(A.deferredPcs)} قطعة</summary><div class="in">
+        ${A.deferred.slice(0, 200).map(b => `<div class="it"><span>${esc(b.name)}${b.grams != null ? ` · تركيز ${f1(b.grams)} جم` : ''}<small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')} · ${b.why.type === 'toobig' ? `<span class="warn">أكبر من طاقة أي عامل في ${dayW} — زوّد الأيام</span>` : b.rank < 1e6 ? `أولوية أوردره #${b.rank}، واللي دخل الخطة أولويته أعلى أو حجمه مناسب للمساحة` : 'أوردره مالوش ترتيب أولوية'}</small></span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>` : '';
+    const canSend = A.status === 'OK' && A.ok && A.assigned > 0;
     const s1 = nowPcs ? `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي — الخامات موجودة</h3></div>
-      <p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف ينفع يتعملوا النهارده من غير أي شراء.${saved > 0 ? ` جمّعت نفس الصنف من كل الأوردرات، فالتجهيز هيتعمل ${B.length} مرة بدل ${nowLines}${T.ok ? ` (توفير حوالي ${hm(saved * T.setup)})` : ''}.` : ''}</p>
+      <p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف خاماتهم موجودة من غير أي شراء.${saved > 0 ? ` جمّعت نفس الصنف من كل الأوردرات، فالتجهيز هيتعمل ${B.length} مرة بدل ${nowLines}.` : ''}</p>
       <div class="chips noprint">${EXTRA.makers.map(m => `<label><input type="checkbox" data-w="${m.id}" ${W_SEL.has(m.id) ? 'checked' : ''}>${esc(m.name)}</label>`).join('') || '<span class="mut">مفيش مصنّعين مسجلين.</span>'}</div>
+      ${workers.length ? `<div class="sendbox noprint" style="margin:8px 0"><div class="row"><label style="margin:0">الخطة لكام يوم؟ <input id="tDays" type="number" min="1" max="14" value="${PLAN_DAYS}" style="max-width:80px"></label><span class="mut" style="font-size:13px">كل عامل بياخد قد اللي بيقدر يخلّصه فعلاً في المدة دي، مش أكتر.</span></div>
+        <div class="tw" style="margin-top:8px"><table><tr><th>العامل</th><th>بيعمل كام قطعة في اليوم؟</th><th>الرقم جاي منين</th></tr>${capRows}</table></div>
+        <small class="mut">سيب الخانة فاضية عشان أستخدم متوسطه الفعلي من السيستم (آخر 14 يوم)، أو اكتب رقمك.</small></div>` : ''}
+      ${verdict}
       ${workers.length ? wk : '<p class="warn">اختار المصنّعين اللي شغالين النهارده عشان أوزّع عليهم.</p>'}
-      ${idle.length ? `<p class="mut" style="font-size:13px">من غير شغل دلوقتي: ${idle.join('، ')}.</p>` : ''}
-      ${workers.length ? `<div class="sendbox noprint"><h4>📤 ابعت التوزيع لشاشات العمال</h4>
+      ${idle.length && A.status === 'OK' ? `<p class="mut" style="font-size:13px">من غير شغل في الخطة دي: ${idle.join('، ')}.</p>` : ''}
+      ${defer}
+      ${workers.length && canSend ? `<div class="sendbox noprint"><h4>📤 ابعت التوزيع لشاشات العمال</h4>
         <p>كل عامل هيلاقي أصنافه في قسم <b>"شغلك النهارده"</b> فوق في شاشته، مترتبة، وهيجيله إشعار. العامل هو اللي بيدوس "ابدأ" بنفسه عشان وقت الشغل يتسجل صح. اللي حد بدأ فيه فعلاً بيفضل معاه.</p>
-        <div class="row"><button class="btn" id="wSend">📤 ابعت للعمال (${A.workers.filter(w => w.batches.length).length} عامل · ${B.length} صنف)</button><button class="btn sec" id="wAll">نسخ توزيع الكل للواتساب</button></div>
+        <div class="row"><button class="btn" id="wSend">📤 ابعت للعمال (${A.workers.filter(w => w.batches.length).length} عامل · ${f0(A.assigned)} قطعة)</button><button class="btn sec" id="wAll">نسخ توزيع الكل للواتساب</button></div>
         <div id="wSendMsg"></div></div>
         <div id="wProg" class="noprint"></div>` : '<div id="wProg" class="noprint"></div>'}
-      <details class="noprint" style="margin-top:10px"><summary>إزاي اتوزّع الشغل وإزاي اتحسب الوقت؟</summary><div class="why" style="line-height:1.9">
-        <b>1) إيه اللي دخل التوزيع؟</b> الأصناف اللي <b>الزيت والفارغ بتوعها كاملين دلوقتي</b> (${f0(nowPcs)} قطعة). اللي ناقصها خامات مش بتتوزع قبل الشراء.<br>
-        <b>2) التجميع:</b> نفس الصنف (نفس الزيت ونفس الفارغ) من كل الأوردرات اتجمع في صنف واحد، عشان يتجهز مرة واحدة عند عامل واحد.<br>
-        <b>3) مين ياخد إيه:</b><br>
-        &nbsp;&nbsp;• اللي عامل <b>داس "ابدأ"</b> عليه فعلاً فضل معاه (علامة "بدأ فيه").<br>
-        &nbsp;&nbsp;• الباقي اتوزع <b>من الأكبر للأصغر</b> (بالوقت)، وكل صنف اتدّى <b>للعامل اللي حمله لحد اللحظة دي هو الأقل</b>. ده بيخلّي الكل يخلص في وقت قريب. (جوه كل صنف مكتوب الأرقام اللي اتقارنت.)<br>
-        &nbsp;&nbsp;• جوه كل عامل، الأصناف مترتبة بأولوية الأوردر اللي فيه.<br>
-        <b>4) الوقت جاي منين؟</b> ${A.timed ? `من أوقات الشغل <b>الفعلية</b> اللي اتسجلت في السيستم: ${f0(T.n)} سطر اتعملوا من ${esc(String(EXTRA.timing.from || ''))}. وقت كل سطر = من لما العامل داس "ابدأ" لحد "خلصته" (أو من آخر "خلصته" ليه). السيستم رسم العلاقة بين الكمية ووقت السطر، فطلع:<br>
-          <b>وقت الصنف = ${f1(T.setup)} دقيقة تجهيز ثابتة + ${f2(T.perPc)} دقيقة لكل قطعة</b>.<br>
-          يعني الصنف الصغير بياخد وقت تجهيز كبير نسبياً، والصنف الكبير بياخد وقت أكتر لكن التجهيز بيتوزع على قطع كتير.` : `لسه مفيش قياس وقت كفاية (${f0(T.n)} سطر)، فالتوزيع متوازن بعدد القطع بدون ساعات.`}<br>
-        <b>5) إيه حدود الدقة؟</b> ${A.timed ? `الوقت <b>تقدير مش ميعاد</b>. العلاقة دي بتفسّر جزء بس من الفرق بين سطر وسطر (R² = ${f2(+EXTRA.timing.r2 || 0)}؛ 1 يعني دقيقة جداً)، والباقي نوع الصنف والعامل وظروف اليوم. وكل العمال اتحسبوا بنفس السرعة. الأرقام هتبقى أدق بعد تجمّع بيانات أكتر.` : ''}<br>
-        <b>ومش متحسب:</b> شطارة كل عامل في نوع صنف معين، ولا صعوبة صنف معين، ولا استراحات.</div></details></div>`
+      <details class="noprint" style="margin-top:10px"><summary>الخطة دي اتحسبت إزاي؟</summary><div class="why" style="line-height:1.9">
+        <b>1) إيه اللي ممكن يتعمل؟</b> الأصناف اللي <b>الزيت والفارغ بتوعها كاملين دلوقتي</b> (${f0(nowPcs)} قطعة). اللي ناقصها خامات مش بتدخل قبل الشراء. ده محسوب بمعادلة مثبتة ومتراجعة.<br>
+        <b>2) التجميع:</b> نفس الصنف بنفس التركيز من كل الأوردرات بقى صنف واحد. التركيز المختلف صنف لوحده.<br>
+        <b>3) طاقة كل عامل:</b> متوسط القطع اللي خلّصها فعلاً في اليوم (آخر 14 يوم من السيستم) × عدد أيام الخطة. تقدر تكتب رقمك بدل المتوسط.<br>
+        <b>4) مين يدخل الخطة؟</b> المعادلة: اختار مجموعة الأصناف اللي <b>تعظّم الأولوية والقيمة</b> بشرط إن <b>مجموع قطعها ما يعدّيش طاقة الفريق</b>. اللي عامل بدأ فيه بيفضل معاه ومحسوب من طاقته. الحل بيتحسب بالظبط مش بالتقريب، وبيتقارن بأقصى حد نظري.<br>
+        <b>5) مين ياخد إيه؟</b> الأصناف المختارة بتتوزع من الأكبر للأصغر، وكل صنف بيروح للعامل اللي <b>فاضل له أكبر نسبة من طاقته</b>. جوه كل عامل مترتبة بأولوية الأوردر.<br>
+        <b>6) لو مفيش حل؟</b> لو المتاح أكبر من طاقة الفريق في المدة، بيتكتب صراحة "مفيش حل" ومحتاج كام عامل أو كام يوم. ولو عامل مالوش بيانات ومكتبتش رقمه، مفيش خطة.<br>
+        <b>حدود الدقة:</b> الطاقة بالقطع، فمش بتفرّق بين صنف صعب وصنف سهل، ولا بتحسب شطارة عامل في نوع معين. ${A.timed ? `الوقت المكتوب تقدير ضعيف (R² = ${f2(+EXTRA.timing.r2 || 0)}) ومش بيتبني عليه التوزيع.` : ''}
+        ${A.checks ? `<br><b>المراجعة المستقلة:</b> ${A.checks.map(c => `${c.ok ? '✓' : '✕'} ${esc(c.name)} (${esc(c.detail)})`).join(' · ')}` : ''}</div></details></div>`
       : `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي</h3></div><p class="lead">مفيش سطر كامل ينفع يتعمل بالمخزون الحالي. لازم شراء الأول.</p></div>`;
     // --- 2) buy
     const groups = new Map();
@@ -617,6 +646,8 @@ async function runToday() {
     out.querySelectorAll('[data-wcopy]').forEach(b => b.onclick = e => { e.preventDefault(); copyBtn(b, workerText(A.workers.find(w => w.id === b.dataset.wcopy), A.timed)); });
     if ($('wAll')) $('wAll').onclick = () => copyBtn($('wAll'), `${RLM}*توزيع الشغل — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}*\n\n` + A.workers.filter(w => w.batches.length).map(w => workerText(w, A.timed)).join('\n\n'));
     if ($('wSend')) $('wSend').onclick = () => sendWork(A);
+    if ($('tDays')) $('tDays').onchange = () => { PLAN_DAYS = Math.min(14, Math.max(1, Math.round(+$('tDays').value || 1))); savePlanPrefs(); runToday(); };
+    out.querySelectorAll('[data-capov]').forEach(inp => inp.onchange = () => { const v = inp.value.trim(); if (v === '' || !isFinite(+v) || +v < 0) delete CAP_OV[inp.dataset.capov]; else CAP_OV[inp.dataset.capov] = Math.round(+v); savePlanPrefs(); runToday(); });
     loadProgress();
     out.querySelectorAll('[data-scopy]').forEach(b => b.onclick = e => { e.preventDefault(); const k = b.dataset.scopy, bs = groups.get(k);
       copyBtn(b, `${RLM}*طلبية ${supName(k === 'none' ? null : k)} · AF Group*\n${RLM}${new Date().toLocaleDateString('ar-EG-u-nu-latn')} · ${bs.length} صنف\n\n` + bs.map((x, i) => `${RLM}${i + 1}. ${nm(x)}${RLM} ← *${x.kind === 'oil' ? gq(x.qty) : f0(x.qty) + ' قطعة'}*`).join('\n')); });
