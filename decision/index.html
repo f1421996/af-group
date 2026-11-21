@@ -572,16 +572,16 @@ async function runToday() {
         ${DL.overdueOrders.length ? `<b>${DL.overdueOrders.length} أوردر معادهم فات فعلاً</b>، ودول مفيش أي فريق يرجّعهم في معادهم.<br>` : ''}
         ${DL.needPerDay > DL.teamPerDay ? `عشان اللي لسه معاده ما فاتش يخلص في وقته: محتاج <b>${f0(Math.ceil(DL.needPerDay))} قطعة في اليوم</b> والفريق بيعمل ${f0(DL.teamPerDay)}${dlExtra ? `، يعني حوالي <b>${dlExtra} عامل زيادة</b> بنفس المتوسط` : ''}.` : 'اللي لسه معاده ما فاتش يلحق بالفريق ده.'}
         ${DL.blockedPcs ? `<br><span class="warn">ده غير إن ${f0(DL.blockedPcs)} قطعة واقفة على خامات ناقصة. المواعيد المتوقعة محسوبة على إن الخامات هتوصل.</span>` : ''}</div></div>`;
-    const dlRow = o => `<tr><td>${o.rank < 1e6 ? o.rank : '—'}</td><td><b dir="ltr">${esc(o.no)}</b><br><small class="mut">${esc(o.cust || '')}</small></td>
-      <td><input type="date" data-due="${o.inv_id}" value="${o.due}" min="${o.date}" style="max-width:150px;padding:4px 6px">${o.dueManual ? '<br><small class="warn">معاد انت حددته</small>' : ''}</td>
-      <td>${f0(o.left)}${o.blocked ? `<br><small class="warn">${f0(o.blocked)} واقفة على خامات</small>` : ''}</td>
-      <td>${o.finish ? dshort(o.finish) : '—'}</td>
-      <td>${o.overdue ? `<b class="bad">معاده فات من ${dayN(o.overdue)}</b>` : o.late ? `<b class="warn">هيتأخر ${dayN(o.late)}</b>` : o.late === 0 ? '<b class="ok">في معاده</b>' : '—'}</td></tr>`;
+    const dlRow = o => `<tr><td><b>${o.rank < 1e6 ? o.rank + '.' : ''}</b> <b dir="ltr">${esc(o.no)}</b><br><small class="mut">${esc(o.cust || '')}</small><br>
+        ${o.overdue ? `<b class="bad">معاده فات من ${dayN(o.overdue)}</b>` : o.late ? `<b class="warn">هيتأخر ${dayN(o.late)}</b>` : o.late === 0 ? '<b class="ok">في معاده</b>' : ''}</td>
+      <td><input type="date" data-due="${o.inv_id}" value="${o.due}" min="${o.date}" style="max-width:140px;padding:4px 6px">${o.dueManual ? '<br><small class="warn">معاد انت حددته</small>' : ''}
+        <br><small class="mut">${o.finish ? 'متوقع يخلص ' + dshort(o.finish) : ''}</small></td>
+      <td><b>${f0(o.left)}</b>${o.blocked ? `<br><small class="warn">${f0(o.blocked)} واقفة على خامات</small>` : ''}</td></tr>`;
     const s0 = `<div class="card"><div class="step"><span class="no">⏱</span><h3>المواعيد — كل أوردر لازم يخلص بعد ${AFOpt.DUE_DAYS} أيام شغل من تاريخه</h3></div>
       ${dlVerdict}
       <div class="row noprint" style="margin:10px 0"><label style="margin:0">ترتيب الشغل: <select id="prioBy"><option value="due" ${PRIO_BY === 'due' ? 'selected' : ''}>بالمعاد (الأقرب أول)</option><option value="manual" ${PRIO_BY === 'manual' ? 'selected' : ''}>ترتيبي اليدوي في السيستم</option></select></label>
         <span class="mut" style="font-size:13px">${PRIO_BY === 'due' ? 'الترتيب اليدوي بيفصل بس بين الأوردرات اللي معادها واحد.' : 'المعاد بيرتّب بس الأوردرات اللي مالهاش ترتيب يدوي.'}</span></div>
-      <div class="tw"><table><tr><th>#</th><th>الأوردر</th><th>المعاد</th><th>باقي (قطعة)</th><th>متوقع يخلص</th><th>الحالة</th></tr>${DL.orders.map(dlRow).join('')}</table></div>
+      <div class="tw"><table><tr><th>الأوردر</th><th>المعاد</th><th>باقي (قطعة)</th></tr>${DL.orders.map(dlRow).join('')}</table></div>
       <div id="dueMsg"></div>
       <details class="noprint" style="margin-top:8px"><summary>المواعيد دي اتحسبت إزاي؟</summary><div class="why" style="line-height:1.9">
         <b>المعاد:</b> تاريخ الفاتورة + ${AFOpt.DUE_DAYS} أيام شغل (الجمعة مش محسوبة). ده معاد تمام التصنيع، وبعده الشحن. تقدر تغيّر معاد أي أوردر من الجدول.<br>
