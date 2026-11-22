@@ -467,6 +467,10 @@ function renderPlan(R) {
 let EXTRA = { makers: [], claims: [], timing: {}, rates: [] }, W_SEL = null, TODAY = null;
 // capacity plan settings (kept on this device): how many days to plan, and the owner's own daily figure per worker
 let PLAN_DAYS = 1, CAP_OV = {};
+// goal of the work plan: 'due' = deadlines, 'profit' = highest profit while keeping the deadlines inside the plan
+let GOAL = 'due', SLACK = 0, PROFIT_BY_ID = null;
+try { GOAL = localStorage.getItem('af-goal') === 'profit' ? 'profit' : 'due'; SLACK = Math.min(5, Math.max(0, +localStorage.getItem('af-slack') || 0)); } catch (e) { /* defaults */ }
+const saveGoal = () => { try { localStorage.setItem('af-goal', GOAL); localStorage.setItem('af-slack', String(SLACK)); } catch (e) { /* private mode */ } };
 try { PLAN_DAYS = Math.min(14, Math.max(1, +localStorage.getItem('af-plan-days') || 1)); CAP_OV = JSON.parse(localStorage.getItem('af-cap-ov') || '{}') || {}; } catch (e) { /* defaults */ }
 const savePlanPrefs = () => { try { localStorage.setItem('af-plan-days', String(PLAN_DAYS)); localStorage.setItem('af-cap-ov', JSON.stringify(CAP_OV)); } catch (e) { /* private mode */ } };
 async function loadExtras() {
@@ -529,7 +533,12 @@ function whyBatch(b, w, A) {
   const y = b.why;
   if (!y) return mg;
   if (y.type === 'held') return mg + `${esc(w.name)} داس "ابدأ" عليه قبل كده، فكمّل معاه.`;
-  const pr = b.rank < 1e6 ? `أوردره أولوية #${b.rank}. ` : '';
+  let pr = b.rank < 1e6 ? `أوردره أولوية #${b.rank}. ` : '';
+  if (PROFIT_BY_ID) {
+    const ls = b.lines.map(x => PROFIT_BY_ID.get(x.id)).filter(Boolean);
+    const must = ls.some(l => l.must), ps = ls.map(l => AFOpt.profitPc(l)), known = ps.filter(p => p != null);
+    pr = (must ? 'معاده في المدة دي، فلازم يتعمل. ' : '') + (known.length === ps.length && known.length ? `ربح القطعة ${f0(Math.min(...known))}${Math.min(...known) !== Math.max(...known) ? '–' + f0(Math.max(...known)) : ''} ج. ` : 'تكلفته مش مسجلة. ');
+  }
   const others = (y.others || []).map(o => `${esc(o.name)} ${f0(o.room)}`).join('، ');
   const near = (y.others || []).length && (y.others || []).every(o => Math.abs(o.room - y.room) <= 12);
   if (y.type === 'fill') return mg + pr + `حجمه مناسب يكمّل المساحة اللي فاضلة عند ${esc(w.name)} (${f0(y.room)} قطعة).`;
@@ -548,20 +557,30 @@ async function runToday() {
   try {
     const base = params(false);
     const bud = keepBudget.trim() === '' ? 1e12 : Math.max(0, +keepBudget || 0);
-    const R0 = await solve(SNAP, Object.assign({}, base, { budget: 0 }));
+    const todayIso = SNAP.today || cairoDay(SNAP.at);
+    // which orders must be done in this plan to keep their deadline (+ the lateness the owner accepts)
+    const SNAPM = AFOpt.markMust(SNAP, todayIso, PLAN_DAYS, SLACK);
     const RB = await solve(SNAP, Object.assign({}, base, { budget: bud }));
     const workers = EXTRA.makers.filter(m => W_SEL.has(m.id));
-    const B = AFOpt.makeBatches(R0.p.filled);
     const RATES = AFOpt.workerRates(workers, EXTRA.rates || [], CAP_OV);
-    const A = await AFOpt.planCapacity(SOLVER, B, RATES, EXTRA.claims, EXTRA.timing, PLAN_DAYS);
-    TODAY = { R0, RB, A, B };
+    // two plans on the same stock and the same team: deadlines first, and profit-with-deadlines
+    const R0d = await solve(SNAPM, Object.assign({}, base, { budget: 0, mode: 'rank' }));
+    const R0p = await solve(SNAPM, Object.assign({}, base, { budget: 0, mode: 'profit', wholeInv: false }));
+    const Bd = AFOpt.makeBatches(R0d.p.filled), Bp = AFOpt.makeBatches(R0p.p.filled);
+    const Ad = await AFOpt.planCapacity(SOLVER, Bd, RATES, EXTRA.claims, EXTRA.timing, PLAN_DAYS);
+    const Ap = await AFOpt.planCapacity(SOLVER, Bp, RATES, EXTRA.claims, EXTRA.timing, PLAN_DAYS);
+    const PRd = AFOpt.planProfit(Ad, SNAPM), PRp = AFOpt.planProfit(Ap, SNAPM);
+    const useP = GOAL === 'profit';
+    const R0 = useP ? R0p : R0d, B = useP ? Bp : Bd, A = useP ? Ap : Ad, PR = useP ? PRp : PRd;
+    PROFIT_BY_ID = useP ? new Map(SNAPM.lines.map(l => [l.id, l])) : null;
+    TODAY = { R0, RB, A, B, PRd, PRp };
     const allPcs = SNAP.lines.reduce((s, l) => s + +l.qty, 0), invN = new Set(SNAP.lines.map(l => l.inv_id)).size;
     const nowPcs = R0.p.filled.reduce((s, l) => s + l.qty, 0), nowLines = R0.p.filled.length;
     const buyPcs = RB.p.filled.reduce((s, l) => s + l.qty, 0) - nowPcs;
     const saved = nowLines - B.length;
     const T = A.model;
     // --- 0) deadlines: can every order be finished by its date with this team?
-    const DL = AFOpt.deadlinePlan(SNAP, new Set(R0.p.filled.map(l => l.id)), A.teamPerDay, SNAP.today || cairoDay(SNAP.at));
+    const DL = AFOpt.deadlinePlan(SNAP, new Set(R0.p.filled.map(l => l.id)), A.teamPerDay, todayIso);
     const dlAvg = A.workers.length ? A.teamPerDay / A.workers.length : 0;
     const dlExtra = dlAvg > 0 ? Math.max(0, Math.ceil((DL.needPerDay - DL.teamPerDay) / dlAvg)) : 0;
     const worst = DL.lateOrders && DL.lateOrders.length ? Math.max(...DL.lateOrders.map(o => o.late)) : 0;
@@ -616,6 +635,33 @@ async function runToday() {
         <span class="mut" style="font-size:13px">${A.choice.proven ? 'اختيار الأصناف هو الأمثل ومثبت رياضياً' : 'اختيار جيد لكن مش مثبت إنه الأمثل'} (فرقه عن أقصى حد نظري ${f2(A.choice.gap * 100)}%) · ${A.ok ? 'المراجعة المستقلة سليمة ✓' : '<b class="bad">المراجعة المستقلة فشلت ✕</b>'}</span></div></div>`;
     const defer = A.deferred.length ? `<details class="noprint"><summary>مش في خطة المدة دي: ${A.deferred.length} صنف · ${f0(A.deferredPcs)} قطعة</summary><div class="in">
         ${A.deferred.slice(0, 200).map(b => `<div class="it"><span>${esc(b.name)}${b.grams != null ? ` · تركيز ${f1(b.grams)} جم` : ''}<small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')} · ${b.why.type === 'toobig' ? `<span class="warn">أكبر من طاقة أي عامل في ${dayW} — زوّد الأيام</span>` : b.rank < 1e6 ? `أولوية أوردره #${b.rank}، واللي دخل الخطة أولويته أعلى أو حجمه مناسب للمساحة` : 'أوردره مالوش ترتيب أولوية'}</small></span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>` : '';
+    // --- goal: deadlines vs profit-with-deadlines, side by side
+    const W = SNAPM.mustWindow, dW = PLAN_DAYS === 1 ? 'يوم واحد' : PLAN_DAYS === 2 ? 'يومين' : `${PLAN_DAYS} أيام`;
+    const cell = (v, good) => `<td class="${good ? 'ok' : ''}"><b>${v}</b></td>`;
+    const diff = PRp.profit - PRd.profit;
+    const unkNames = [...new Set(SNAPM.lines.filter(l => l.cost == null || l.cost === '').map(l => l.name))];
+    const goalVerdict = Ad.status !== 'OK' || Ap.status !== 'OK' ? '' :
+      PRp.mustLeft > 0 ? `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش خطة تلحق كل المواعيد في ${dW}.</b> ${f0(PRp.mustLeft)} قطعة معادها في المدة دي مش هتلحق حتى لو اشتغلنا عليها الأول (${PRp.mustLeftOrders.map(esc).join('، ')}). زوّد عمال أو أيام، أو اسمح بتأخير.${Math.abs(diff) >= 1 ? `<br>بين الخطتين: ${diff > 0 ? `<b>خطة الربح بتكسب ${f0(diff)} ج زيادة</b>` : `خطة المواعيد بتكسب ${f0(-diff)} ج زيادة`}، والمتأخر ${PRp.mustLeft <= PRd.mustLeft ? 'مش أكتر' : `أكتر بـ ${f0(PRp.mustLeft - PRd.mustLeft)} قطعة`} — لأن الأولوية في الاتنين للأكثر تأخيراً، والربح بيفصل بس بين اللي في نفس درجة التأخير.` : ''}</div></div>` :
+      Math.abs(diff) < 1 ? `<div class="verdict"><span class="ic ok">✓</span><div>الخطتين بيكسبوا نفس الربح، فخطة المواعيد كفاية.</div></div>` :
+      diff > 0 ? `<div class="verdict"><span class="ic ok">✓</span><div><b>خطة الربح بتكسب ${f0(diff)} ج زيادة</b> في ${dW}، ومن غير ما أي أوردر معاده في المدة دي يتأخر${SLACK ? ` أكتر من ${dayN(SLACK)}` : ''}.</div></div>` :
+      `<div class="verdict"><span class="ic warn">!</span><div>خطة المواعيد بتكسب أكتر هنا (${f0(-diff)} ج)، غالباً لأنها بتعمل أصناف تكلفتها مش مسجلة وخطة الربح بتتجنبها.</div></div>`;
+    const sG = `<div class="card"><div class="step"><span class="no">₤</span><h3>الهدف: مواعيد ولا ربح؟</h3></div>
+      <div class="row noprint" style="margin:0 0 10px"><label style="margin:0">اشتغل على <select id="goal"><option value="due" ${GOAL === 'due' ? 'selected' : ''}>المواعيد (الأقرب أول)</option><option value="profit" ${GOAL === 'profit' ? 'selected' : ''}>أعلى ربح بشرط المواعيد</option></select></label>
+        <label style="margin:0">أسمح بتأخير <select id="slack">${[0, 1, 2, 3].map(n => `<option value="${n}" ${SLACK === n ? 'selected' : ''}>${n ? dayN(n) : 'ولا يوم'}</option>`).join('')}</select></label></div>
+      <div class="tw"><table><tr><th>خطة ${dW}</th><th>المواعيد</th><th>ربح بشرط المواعيد</th></tr>
+        <tr><td>قطع</td>${cell(f0(PRd.pcs))}${cell(f0(PRp.pcs))}</tr>
+        <tr><td>ربح معروف</td>${cell(f0(PRd.profit) + ' ج', PRd.profit > PRp.profit)}${cell(f0(PRp.profit) + ' ج', PRp.profit > PRd.profit)}</tr>
+        <tr><td>قطع تكلفتها مش مسجلة</td>${cell(f0(PRd.unknownPcs))}${cell(f0(PRp.unknownPcs))}</tr>
+        <tr><td>قطع بتتباع بخسارة</td>${cell(PRd.lossPcs ? `${f0(PRd.lossPcs)} (${f0(PRd.loss)} ج)` : '0')}${cell(PRp.lossPcs ? `${f0(PRp.lossPcs)} (${f0(PRp.loss)} ج)` : '0')}</tr>
+        <tr><td>معادها في المدة ومش داخلة</td>${cell(f0(PRd.mustLeft), PRd.mustLeft === 0)}${cell(f0(PRp.mustLeft), PRp.mustLeft === 0)}</tr></table></div>
+      ${goalVerdict}
+      ${unkNames.length ? `<p class="warn" style="font-size:13px;margin:8px 0 0">⚠️ ${unkNames.length} صنف تكلفته مش مسجلة، فربحه بيتحسب صفر ومش بيتقدّم في خطة الربح: ${unkNames.slice(0, 12).map(esc).join('، ')}${unkNames.length > 12 ? '…' : ''}. دخّل تكاليفهم ودوس "أعد حساب التكاليف" في السيستم.</p>` : ''}
+      <details class="noprint" style="margin-top:8px"><summary>الخطتين بيختاروا إزاي؟</summary><div class="why" style="line-height:1.9">
+        <b>المواعيد:</b> الخامات والطاقة بتروح للأوردر الأقرب معاداً الأول، من غير ما يبص للربح.<br>
+        <b>ربح بشرط المواعيد:</b> أي أوردر معاده (+ التأخير المسموح) بيقع في المدة دي (من ${dshort(W.start)} لـ ${dshort(W.end)}) أو فات <b>لازم يدخل</b>. الطاقة والخامات اللي فاضلة بتروح للأصناف الأعلى ربح في القطعة.<br>
+        <b>الربح:</b> السعر الصافي (بعد نصيب الصفحة) − تكلفة القطعة المسجلة في السيستم. الصنف اللي تكلفته مش مسجلة ربحه بيتحسب صفر، فمش بيتقدّم إلا لو معاده لازم. الصنف اللي بيخسر مش بيدخل إلا لو معاده لازم.<br>
+        <b>المعادلة:</b> نفس المعادلة المثبتة، والمراجعة المستقلة بتعيد حساب القيمة بنفس القواعد.<br>
+        <b>حدود:</b> الربح هنا ربح الخامات (من غير مرتبات ومصاريف)، والطاقة بالقطع مش بالساعة، فمش بيفرّق بين صنف سريع وصنف بطيء. ده هيتحسن بعد مراجعة أوقات كل نوع صنف.</div></details></div>`;
     const canSend = A.status === 'OK' && A.ok && A.assigned > 0;
     const s1 = nowPcs ? `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي — الخامات موجودة</h3></div>
       <p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف خاماتهم موجودة من غير أي شراء.${saved > 0 ? ` جمّعت نفس الصنف من كل الأوردرات، فالتجهيز هيتعمل ${B.length} مرة بدل ${nowLines}.` : ''}</p>
@@ -674,12 +720,14 @@ async function runToday() {
     const s3 = `<div class="card"><div class="step"><span class="no">3</span><h3>محتاج منك</h3></div>
       ${todo.length ? todo.map(t => `<div class="todo"><span class="ic">${t[0]}</span><span>${t[1]}</span></div>`).join('') : '<p class="ok" style="margin:0">مفيش حاجة ناقصة. البيانات كاملة ✓</p>'}</div>`;
     out.innerHTML = `<div class="card"><p class="lead">عندك <b>${invN}</b> أوردر مفتوح فيهم <b>${f0(allPcs)}</b> قطعة: <b class="ok">${f0(nowPcs)}</b> ينفع يتعملوا دلوقتي، و<b class="warn">${f0(waiting)}</b> مستنيين خامات.</p></div>
-      ${s0}${s1}${s2}${s3}
+      ${s0}${sG}${s1}${s2}${s3}
       <p class="mut noprint" style="font-size:13px;text-align:center">عايز تشوف المعادلات والتحقق وتحفظ القرار؟ افتح <a href="#" id="toPlan">تفاصيل الخطة</a>.</p>`;
     out.querySelectorAll('[data-w]').forEach(c => c.onchange = () => { c.checked ? W_SEL.add(c.dataset.w) : W_SEL.delete(c.dataset.w); runToday(); });
     out.querySelectorAll('[data-wcopy]').forEach(b => b.onclick = e => { e.preventDefault(); copyBtn(b, workerText(A.workers.find(w => w.id === b.dataset.wcopy), A.timed)); });
     if ($('wAll')) $('wAll').onclick = () => copyBtn($('wAll'), `${RLM}*توزيع الشغل — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}*\n\n` + A.workers.filter(w => w.batches.length).map(w => workerText(w, A.timed)).join('\n\n'));
     if ($('wSend')) $('wSend').onclick = () => sendWork(A);
+    if ($('goal')) $('goal').onchange = () => { GOAL = $('goal').value === 'profit' ? 'profit' : 'due'; saveGoal(); runToday(); };
+    if ($('slack')) $('slack').onchange = () => { SLACK = Math.max(0, Math.min(5, +$('slack').value || 0)); saveGoal(); runToday(); };
     if ($('prioBy')) $('prioBy').onchange = () => { PRIO_BY = $('prioBy').value === 'manual' ? 'manual' : 'due'; try { localStorage.setItem('af-prio-by', PRIO_BY); } catch (e) { /* private mode */ } load(); };
     out.querySelectorAll('[data-due]').forEach(inp => inp.onchange = async () => {
       const msg = $('dueMsg'); inp.disabled = true;

@@ -445,3 +445,71 @@ test('deadline plan: finish dates, lateness, overdue, and what the team would ne
   // today is Friday -> work starts Saturday
   assert.equal(A.deadlinePlan(s, [], 50, '2026-11-20').start, '2026-11-21');
 });
+
+// ---------- profit with deadlines ----------
+// one oil, enough for ONE of the two orders (the example used to explain it to the owner)
+const profitSnap = () => ({ today: '2026-11-22', oils: [{ id: 'o', name: 'سوفاج', cnt_no: 1, stock: 300, cost: 4 }], empties: [], prices: [], suppliers: [], usage: [],
+  lines: [
+    { id: 'k', inv_id: 'K', no: 'كرولس', date: '2026-11-17', rank: 1, qty: 20, price: 175, page_pc: 0, cost: 120, grams: 15, oil_id: 'o', track: false, name: 'سوفاج' }, // due 22nd: today
+    { id: 'a', inv_id: 'A', no: 'احمد', date: '2026-11-21', rank: 2, qty: 20, price: 300, page_pc: 0, cost: 120, grams: 15, oil_id: 'o', track: false, name: 'سوفاج' },  // due 25th
+  ] });
+const solveWith = async (snap, mode) => {
+  const highs = await HIGHS(); const R = await A.solvePlan(A.highsAdapter(highs), snap, Object.assign({}, A.defaults({}), { budget: 0, mode }), 10);
+  assert.equal(R.status, 'OPTIMAL'); assert.ok(R.ver.ok, 'independent verifier must agree: ' + R.ver.checks.filter(c => !c.ok).map(c => c.name).join(',')); return R;
+};
+
+test('profit per piece: net price minus recorded cost; unknown cost is null, not zero', () => {
+  assert.equal(A.profitPc({ price: 300, page_pc: 20, cost: 120 }), 160);
+  assert.equal(A.profitPc({ price: 300, cost: null }), null);
+  assert.equal(A.profitPc({ price: 180, cost: 190 }), -10);
+});
+
+test('profit mode: keeps the deadline that falls inside the plan, otherwise takes the higher profit', async () => {
+  const s = profitSnap();
+  // 1-day plan: Karollos is due today -> must be done, even though Ahmed earns more
+  const m1 = A.markMust(s, '2026-11-22', 1, 0);
+  assert.deepEqual(m1.lines.map(l => l.must), [true, false]);
+  assert.deepEqual((await solveWith(m1, 'profit')).p.filled.map(l => l.id), ['k']);
+  // owner accepts 1 day of lateness -> nothing is forced, the oil goes to the higher profit
+  const m2 = A.markMust(s, '2026-11-22', 1, 1);
+  assert.deepEqual(m2.lines.map(l => l.must), [false, false]);
+  assert.deepEqual((await solveWith(m2, 'profit')).p.filled.map(l => l.id), ['a']);
+  // deadline mode ignores profit
+  assert.deepEqual((await solveWith(A.withDuePriority(s, 'due'), 'rank')).p.filled.map(l => l.id), ['k']);
+});
+
+test('profit mode: a loss-making line is not made unless its deadline forces it; unknown cost never beats a known profit', async () => {
+  const s = profitSnap();
+  s.oils[0].stock = 600;                                  // enough for both
+  s.lines[0].cost = 200;                                  // Karollos now sells at a loss (175 < 200)
+  const free = await solveWith(A.markMust(s, '2026-11-22', 1, 2), 'profit');
+  assert.deepEqual(free.p.filled.map(l => l.id), ['a']);
+  const forced = await solveWith(A.markMust(s, '2026-11-22', 1, 0), 'profit');
+  assert.deepEqual(forced.p.filled.map(l => l.id).sort(), ['a', 'k']);
+  s.oils[0].stock = 300; s.lines[0].cost = null; s.lines[0].price = 900;
+  assert.deepEqual((await solveWith(A.markMust(s, '2026-11-22', 1, 2), 'profit')).p.filled.map(l => l.id), ['a']);
+});
+
+test('plan profit summary: known profit, unknown cost, losses and must-do work left out', async () => {
+  const s0 = profitSnap(); s0.lines[1].grams = 10;            // different concentration -> two separate batches
+  const s = A.markMust(s0, '2026-11-22', 1, 0);
+  s.lines.push({ id: 'u', inv_id: 'U', no: 'U', date: '2026-11-22', rank: 3, qty: 5, price: 200, page_pc: 0, cost: null, grams: 0, track: false, name: 'x' });
+  const B = A.makeBatches(s.lines.map(l => Object.assign({}, l, { w: 1 })));
+  const P = await A.planCapacity(A.highsAdapter(await HIGHS()), B, [{ id: 'w', name: 'w', perDay: 25, src: 'owner', days: 0 }], [], {}, 1);
+  const r = A.planProfit(P, s);
+  assert.equal(r.pcs, 25);                                     // 20 + 5 fill the 25 pieces exactly
+  const tookK = P.workers[0].batches.some(b => b.lines.some(l => l.id === 'k'));
+  assert.equal(r.mustLeft, tookK ? 0 : 20);
+  assert.deepEqual(r.mustLeftOrders, tookK ? [] : ['كرولس']);
+  assert.equal(r.unknownPcs, 5); assert.equal(r.unknownLines[0].id, 'u');
+  assert.equal(r.profit + 0, P.workers[0].batches.flatMap(b => b.lines).reduce((t, x) => { const l = s.lines.find(y => y.id === x.id); const p = A.profitPc(l); return t + (p == null ? 0 : l.qty * p); }, 0));
+});
+
+test('profit mode: when deadlines cannot all be kept, the most overdue order goes first, not the most profitable', async () => {
+  const s = profitSnap();
+  s.lines[0].date = '2026-11-10';                         // Karollos: due the 15th, a week overdue, low profit
+  s.lines[1].date = '2026-11-17'; s.lines[1].price = 900; // Ahmed: due today, very profitable
+  const m = A.markMust(s, '2026-11-22', 1, 0);
+  assert.ok(m.lines.every(l => l.must)); assert.ok(m.lines[0].mustW > m.lines[1].mustW);
+  assert.deepEqual((await solveWith(m, 'profit')).p.filled.map(l => l.id), ['k']);
+});
