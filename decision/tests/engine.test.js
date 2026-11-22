@@ -430,6 +430,7 @@ test('deadline plan: finish dates, lateness, overdue, and what the team would ne
   const [C, Aa, B] = p.orders;
   assert.deepEqual([C.no, C.left, C.makeable, C.blocked], ['C', 50, 30, 20]);
   assert.equal(C.finish, '2026-11-21'); assert.equal(C.overdue, 3); assert.equal(C.late, 3);   // 18, 19, 21 (Fri skipped)
+  assert.equal(C.readyDay, 1); assert.equal(B.readyDay, null);                                 // B has nothing makeable yet
   assert.equal(Aa.finish, '2026-11-23'); assert.equal(Aa.late, 1); assert.equal(Aa.daysLeft, 2); // 150 pieces = day 3 (Sat, Sun, Mon), due Sunday
   assert.equal(B.finish, '2026-11-24'); assert.equal(B.late, 0);
   assert.equal(p.needPerDay, 75);                           // 150 pieces in the 2 days left for A
@@ -535,4 +536,25 @@ test('bottlenecks: counts only work the plan could not make, separates "this alo
   assert.deepEqual([e2.short, e2.buyQty, e2.cost, e2.blockedPcs, e2.alonePcs], [2, 2, null, 6, 0]);       // no recorded cost -> no invented price
   assert.equal(b.list.length, 2);                                // o2 and e1 are not short
   assert.deepEqual(o1.orders, ['B', 'C']);
+});
+
+test('fast lane: small orders go first, then everything by deadline', () => {
+  const snap = { lines: [
+    { id: 'b1', inv_id: 'BIG', no: 'BIG', date: '2026-11-02', rank: 1, qty: 2000 },      // oldest, huge, all blocked on materials
+    { id: 'm1', inv_id: 'MID', no: 'MID', date: '2026-11-18', rank: 2, qty: 300 },
+    { id: 's1', inv_id: 'S1', no: 'S1', date: '2026-11-21', rank: 3, qty: 60 },
+    { id: 's2', inv_id: 'S2', no: 'S2', date: '2026-11-20', rank: 4, qty: 40 }, { id: 's3', inv_id: 'S2', no: 'S2', date: '2026-11-20', rank: 4, qty: 60 }, // 100 = still small
+    { id: 'x1', inv_id: 'X', no: 'X', date: '2026-11-19', rank: 5, qty: 101 },           // just over the limit
+  ] };
+  const s = A.withDuePriority(snap, 'small');
+  const order = [...new Map(s.lines.map(l => [l.no, l.rank]))].sort((a, b) => a[1] - b[1]).map(x => x[0]);
+  assert.deepEqual(order, ['S2', 'S1', 'BIG', 'MID', 'X']);          // smalls by deadline, then the rest by deadline
+  assert.deepEqual(A.withDuePriority(snap, 'due').lines.filter(l => l.rank === 1).map(l => l.no), ['BIG']);
+  const p = A.deadlinePlan(s, new Set(['m1', 's1', 's2', 's3', 'x1']), 200, '2026-11-22');
+  const by = Object.fromEntries(p.orders.map(o => [o.no, o]));
+  assert.equal(by.S2.finishDay, 1); assert.equal(by.S1.finishDay, 1);   // 160 small pieces fit in day 1
+  assert.equal(by.BIG.finishDay, 11);                                    // 160 + 2000 (earliest: if its materials are bought in time)
+  assert.equal(by.MID.finishDay, 13); assert.equal(by.X.finishDay, 13);  // 2460 and 2561 pieces
+  assert.equal(by.BIG.readyDay, null); assert.equal(by.MID.readyDay, 3); // the part that is ready now: 160 + 300 = day 3
+  assert.equal(by.S2.late, 0); assert.equal(by.S1.late, 0);
 });

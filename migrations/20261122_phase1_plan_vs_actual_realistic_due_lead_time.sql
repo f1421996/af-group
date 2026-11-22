@@ -20,11 +20,15 @@ returns numeric language sql stable security definer set search_path to 'public'
     having count(*) >= 2 and max(d.dy) >= (now() at time zone 'Africa/Cairo')::date - 7) r
 $function$;
 
--- finish date if the open orders are worked first-come-first-served at the team's real output.
+-- Realistic finish date for one invoice, on the same policy the decision center plans with:
+--   * small orders (<= 100 open pieces) go through a fast lane: only other small orders are ahead of them
+--   * a bigger order waits for every small order + the bigger orders saved before it
+--   * all open pieces ahead are counted (same assumption as the decision center: missing materials get bought),
+--     so the date is one the workshop can keep
 -- Never earlier than the standard rule (invoice date + 4 working days). NULL when there is no output history.
 create or replace function public.realistic_due(p_invoice uuid)
 returns date language plpgsql stable security definer set search_path to 'public' as $function$
-declare i record; rate numeric; ahead numeric; mine numeric; n int; st date; std date;
+declare i record; rate numeric; ahead numeric; mine numeric; n int; st date; std date; small_max constant numeric := 100;
 begin
   select id, date, created_at into i from invoices where id = p_invoice;
   if not found then return null; end if;
@@ -32,10 +36,15 @@ begin
   rate := team_rate();
   if rate is null or rate <= 0 then return null; end if;
   select coalesce(sum(l.qty), 0) into mine from invoice_lines l where l.invoice_id = p_invoice and l.active and l.done_at is null;
-  select coalesce(sum(l.qty), 0) into ahead
-    from invoice_lines l join invoices o on o.id = l.invoice_id
-    where l.active and l.done_at is null and o.id <> p_invoice and o.created_at < i.created_at
-      and o.deleted_at is null and o.fulfilled_at is null and o.cancelled_by is null;
+  with o as (
+    select o.id, o.created_at, sum(l.qty) pcs
+    from invoices o join invoice_lines l on l.invoice_id = o.id
+    where l.active and l.done_at is null and o.id <> p_invoice
+      and o.deleted_at is null and o.fulfilled_at is null and o.cancelled_by is null
+    group by o.id, o.created_at)
+  select coalesce(sum(pcs), 0) into ahead from o
+  where case when mine <= small_max then o.pcs <= small_max and o.created_at < i.created_at
+             else o.pcs <= small_max or o.created_at < i.created_at end;
   n := greatest(1, ceil((ahead + mine) / rate)::int);
   st := (now() at time zone 'Africa/Cairo')::date;
   if extract(dow from st) = 5 then st := st + 1; end if;

@@ -618,6 +618,7 @@
   // then it ships. The owner can set another date per order.
   // ---------------------------------------------------------------------------------------------
   const DUE_DAYS = 4, OFF_DOW = 5; // 5 = Friday
+  const SMALL_ORDER = 100; // an order with this many open pieces or fewer goes through the fast lane
   const pD = s => new Date(String(s).slice(0, 10) + 'T00:00:00Z');
   const fD = d => d.toISOString().slice(0, 10);
   const isOff = d => d.getUTCDay() === OFF_DOW;
@@ -637,19 +638,23 @@
   }
   const dueOf = l => l.due ? String(l.due).slice(0, 10) : addWorkDays(l.date, DUE_DAYS);
   // Rewrites each line's rank so the whole engine (fill plan, purchases, work plan) follows the chosen order:
+  //   'small'  -> fast lane: small orders (<= SMALL_ORDER open pieces) first, then everything by deadline.
+  //               Shortest-first cuts the average wait and the number of late orders; the big ones lose about a day.
   //   'due'    -> earliest deadline first; the owner's manual rank only breaks ties
   //   'manual' -> the owner's manual rank first; deadline orders the unranked ones
   function withDuePriority(snap, mode) {
     const inv = new Map();
-    for (const l of snap.lines) if (!inv.has(l.inv_id)) inv.set(l.inv_id, { inv_id: l.inv_id, no: l.no, date: String(l.date), due: dueOf(l), r0: l.rank0 !== undefined ? l.rank0 : l.rank });
+    for (const l of snap.lines) { if (!inv.has(l.inv_id)) inv.set(l.inv_id, { inv_id: l.inv_id, no: l.no, date: String(l.date), due: dueOf(l), r0: l.rank0 !== undefined ? l.rank0 : l.rank, pcs: 0 }); inv.get(l.inv_id).pcs += +l.qty; }
+    const big = x => (x.pcs > SMALL_ORDER ? 1 : 0);
     const mr = x => (x.r0 == null ? 1e6 : +x.r0);
+    const byDue = (a, b) => a.due.localeCompare(b.due) || mr(a) - mr(b) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no));
     const cmp = mode === 'manual'
       ? (a, b) => mr(a) - mr(b) || a.due.localeCompare(b.due) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no))
-      : (a, b) => a.due.localeCompare(b.due) || mr(a) - mr(b) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no));
+      : mode === 'small' ? (a, b) => big(a) - big(b) || byDue(a, b) : byDue;
     const order = [...inv.values()].sort(cmp);
     const rank = new Map(order.map((x, i) => [x.inv_id, i + 1]));
-    return Object.assign({}, snap, { prioMode: mode === 'manual' ? 'manual' : 'due',
-      lines: snap.lines.map(l => Object.assign({}, l, { rank0: inv.get(l.inv_id).r0, due: inv.get(l.inv_id).due, rank: rank.get(l.inv_id) })) });
+    return Object.assign({}, snap, { prioMode: mode === 'manual' ? 'manual' : mode === 'small' ? 'small' : 'due',
+      lines: snap.lines.map(l => Object.assign({}, l, { rank0: inv.get(l.inv_id).r0, due: inv.get(l.inv_id).due, rank: rank.get(l.inv_id), small: inv.get(l.inv_id).pcs <= SMALL_ORDER })) });
   }
   // Can every order be finished by its deadline with this team? Orders are worked in rank order
   // (with mode 'due' that is earliest-deadline-first, which minimises the worst lateness on one team).
@@ -666,9 +671,14 @@
     const rate = +teamPerDay > 0 ? +teamPerDay : 0;
     const out = { today, start, teamPerDay: rate, orders, total: orders.reduce((s, o) => s + o.left, 0), status: 'ON_TIME', needPerDay: 0 };
     if (!orders.length) return out;
-    let cum = 0;
+    // One assumption, stated on screen: the missing materials are bought in time. So every piece is scheduled
+    // in rank order; an order's finish date is the EARLIEST it can be complete. readyDay is when the part whose
+    // materials are already here is done.
+    let cum = 0, cumMake = 0;
     for (const o of orders) {
-      cum += o.left; o.cum = cum; o.blocked = o.left - o.makeable;
+      cum += o.left; o.cum = cum; o.blocked = o.left - o.makeable; cumMake += o.makeable;
+      o.small = o.left <= SMALL_ORDER;
+      o.readyDay = rate > 0 && o.makeable > 0 ? Math.max(1, Math.ceil(cumMake / rate - 1e-9)) : null;
       o.daysLeft = o.due >= start ? workDaysBetween(start, o.due) + 1 : 0;           // working days available, today included
       o.overdue = o.due < today ? workDaysBetween(o.due, today) : 0;                  // already past its deadline
       if (rate > 0) {
@@ -681,7 +691,7 @@
     out.lateOrders = orders.filter(o => o.late > 0);
     out.overdueOrders = orders.filter(o => o.overdue > 0);
     out.blockedPcs = orders.reduce((s, o) => s + o.blocked, 0);
-    out.daysForAll = rate > 0 ? Math.ceil(cum / rate - 1e-9) : Infinity;
+    out.daysForAll = rate > 0 ? Math.ceil(out.total / rate - 1e-9) : Infinity;
     out.finishAll = rate > 0 ? addWorkDays(start, out.daysForAll - 1) : null;
     out.status = rate <= 0 ? 'NO_CAPACITY' : out.lateOrders.length ? 'LATE' : 'ON_TIME';
     return out;
@@ -771,7 +781,7 @@
     return { list: list.filter(r => r.blockedPcs > 0), shortOils: shortOil.size, shortEmpties: shortEmp.size, blockedPcs: blockedAll };
   }
 
-  const api = { bottlenecks, MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  const api = { SMALL_ORDER, bottlenecks, MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 

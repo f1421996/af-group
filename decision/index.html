@@ -185,8 +185,8 @@ const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '
 const dt = d => d ? new Date(d).toLocaleString('ar-EG-u-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }) : '';
 let SNAP = null, HASH = '', SOLVER = null, LAST = null, BASE = null, RAW = null;
 // order of work: 'due' = earliest deadline first (default), 'manual' = the owner's own ranking first
-let PRIO_BY = 'due';
-try { PRIO_BY = localStorage.getItem('af-prio-by') === 'manual' ? 'manual' : 'due'; } catch (e) { /* default */ }
+let PRIO_BY = 'small';
+try { const v = localStorage.getItem('af-prio-by2'); PRIO_BY = v === 'manual' || v === 'due' ? v : 'small'; } catch (e) { /* default */ }
 const dshort = d => d ? new Date(String(d).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'short', day: 'numeric', month: 'numeric', timeZone: 'UTC' }) : '—';
 const cairoDay = t => new Date(t).toLocaleDateString('en-CA', { timeZone: 'Africa/Cairo' });
 const dayN = n => n === 1 ? 'يوم' : n === 2 ? 'يومين' : `${n} أيام`;
@@ -615,22 +615,23 @@ async function runToday() {
         ${DL.overdueOrders.length ? `<b>${DL.overdueOrders.length} أوردر معادهم فات فعلاً</b>، ودول مفيش أي فريق يرجّعهم في معادهم.<br>` : ''}
         ${DL.needPerDay > DL.teamPerDay ? `عشان اللي لسه معاده ما فاتش يخلص في وقته: محتاج <b>${f0(Math.ceil(DL.needPerDay))} قطعة في اليوم</b> والفريق بيعمل ${f0(DL.teamPerDay)}${dlExtra ? `، يعني حوالي <b>${dlExtra} عامل زيادة</b> بنفس المتوسط` : ''}.` : 'اللي لسه معاده ما فاتش يلحق بالفريق ده.'}
         ${DL.blockedPcs ? `<br><span class="warn">ده غير إن ${f0(DL.blockedPcs)} قطعة واقفة على خامات ناقصة. المواعيد المتوقعة محسوبة على إن الخامات هتوصل.</span>` : ''}</div></div>`;
-    const dlRow = o => `<tr><td><b>${o.rank < 1e6 ? o.rank + '.' : ''}</b> <b dir="ltr">${esc(o.no)}</b><br><small class="mut">${esc(o.cust || '')}</small><br>
+    const dlRow = o => `<tr><td><b>${o.rank < 1e6 ? o.rank + '.' : ''}</b> <b dir="ltr">${esc(o.no)}</b>${o.small && PRIO_BY === 'small' ? ' <span class="pill ok">مسار سريع</span>' : ''}<br><small class="mut">${esc(o.cust || '')}</small><br>
         ${o.overdue ? `<b class="bad">معاده فات من ${dayN(o.overdue)}</b>` : o.late ? `<b class="warn">هيتأخر ${dayN(o.late)}</b>` : o.late === 0 ? '<b class="ok">في معاده</b>' : ''}</td>
       <td><input type="date" data-due="${o.inv_id}" value="${o.due}" min="${o.date}" style="max-width:140px;padding:4px 6px">${o.dueManual ? '<br><small class="warn">معاد انت حددته</small>' : o.due > AFOpt.addWorkDays(o.date, AFOpt.DUE_DAYS) ? `<br><small class="mut">معاد واقعي اتحسب وقت التسجيل (قاعدة الـ${AFOpt.DUE_DAYS} أيام كانت ${dshort(AFOpt.addWorkDays(o.date, AFOpt.DUE_DAYS))})</small>` : ''}
-        <br><small class="mut">${o.finish ? 'متوقع يخلص ' + dshort(o.finish) : ''}</small></td>
+        <br><small class="mut">${o.finish ? (o.blocked ? 'أقرب معاد لو الخامات اتشرت: ' : 'متوقع يخلص ') + dshort(o.finish) : ''}${o.blocked && o.readyDay ? `<br>الجاهز منه (${f0(o.makeable)} قطعة) يخلص ${dshort(AFOpt.addWorkDays(DL.start, o.readyDay - 1))}` : ''}</small></td>
       <td><b>${f0(o.left)}</b>${o.blocked ? `<br><small class="warn">${f0(o.blocked)} واقفة على خامات</small>` : ''}</td></tr>`;
     const s0 = `<div class="card"><div class="step"><span class="no">⏱</span><h3>المواعيد — كل أوردر لازم يخلص بعد ${AFOpt.DUE_DAYS} أيام شغل من تاريخه</h3></div>
       ${dlVerdict}
-      <div class="row noprint" style="margin:10px 0"><label style="margin:0">ترتيب الشغل: <select id="prioBy"><option value="due" ${PRIO_BY === 'due' ? 'selected' : ''}>بالمعاد (الأقرب أول)</option><option value="manual" ${PRIO_BY === 'manual' ? 'selected' : ''}>ترتيبي اليدوي في السيستم</option></select></label>
-        <span class="mut" style="font-size:13px">${PRIO_BY === 'due' ? 'الترتيب اليدوي بيفصل بس بين الأوردرات اللي معادها واحد.' : 'المعاد بيرتّب بس الأوردرات اللي مالهاش ترتيب يدوي.'}</span></div>
+      <div class="row noprint" style="margin:10px 0"><label style="margin:0">ترتيب الشغل: <select id="prioBy"><option value="small" ${PRIO_BY === 'small' ? 'selected' : ''}>الصغير أول ثم بالمعاد (المقترح)</option><option value="due" ${PRIO_BY === 'due' ? 'selected' : ''}>بالمعاد بس (الأقرب أول)</option><option value="manual" ${PRIO_BY === 'manual' ? 'selected' : ''}>ترتيبي اليدوي في السيستم</option></select></label>
+        <span class="mut" style="font-size:13px">${PRIO_BY === 'small' ? `الأوردر اللي ${AFOpt.SMALL_ORDER} قطعة أو أقل بيتعمل الأول، والباقي بالمعاد.` : PRIO_BY === 'due' ? 'الترتيب اليدوي بيفصل بس بين الأوردرات اللي معادها واحد.' : 'المعاد بيرتّب بس الأوردرات اللي مالهاش ترتيب يدوي.'}</span></div>
       <div class="tw"><table><tr><th>الأوردر</th><th>المعاد</th><th>باقي (قطعة)</th></tr>${DL.orders.map(dlRow).join('')}</table></div>
       <div id="dueMsg"></div>
       <details class="noprint" style="margin-top:8px"><summary>المواعيد دي اتحسبت إزاي؟</summary><div class="why" style="line-height:1.9">
         <b>المعاد:</b> تاريخ الفاتورة + ${AFOpt.DUE_DAYS} أيام شغل (الجمعة مش محسوبة). ده معاد تمام التصنيع، وبعده الشحن. تقدر تغيّر معاد أي أوردر من الجدول.<br>
-        <b>متوقع يخلص:</b> الأوردرات بتتعمل بالترتيب اللي فوق. مجموع القطع لحد الأوردر ÷ إنتاج الفريق في اليوم (${f0(DL.teamPerDay)} قطعة) = رقم يوم الشغل اللي يخلص فيه، ابتداءً من ${dshort(DL.start)}.<br>
-        <b>الحكم:</b> لو أي أوردر متوقع يخلص بعد معاده، بيتكتب "مفيش حل" ومعاه مين هيتأخر وبكام يوم. الترتيب بالمعاد هو اللي بيدّي أقل تأخير ممكن لأسوأ أوردر.<br>
-        <b>حدود الدقة:</b> إنتاج الفريق متوسط فعلي بالقطع، ومش بيفرّق بين صنف صعب وسهل. والحساب مفترض إن الخامات الناقصة هتوصل؛ الواقف عليها مكتوب جنب كل أوردر.</div></details></div>`;
+        <b>الترتيب:</b> "الصغير أول" بيخلّص الأوردرات اللي ${AFOpt.SMALL_ORDER} قطعة أو أقل في الأول (كلهم مع بعض غالباً شغل يوم)، وبعدهم الباقي بالمعاد. ده بيقلل عدد الأوردرات المتأخرة ومتوسط انتظار العملاء، والكبار بيتأخروا حوالي يوم.<br>
+        <b>متوقع يخلص:</b> مجموع القطع لحد الأوردر بالترتيب ÷ إنتاج الفريق في اليوم (${f0(DL.teamPerDay)} قطعة) = يوم الشغل اللي يخلص فيه، ابتداءً من ${dshort(DL.start)}. ده <b>أقرب معاد ممكن</b>، ومفترض إن الخامات الناقصة هتتشرى في وقتها. الجزء اللي خاماته موجودة مكتوب معاده لوحده.<br>
+        <b>الحكم:</b> لو أي أوردر متوقع يخلص بعد معاده، بيتكتب "مفيش حل" ومعاه مين هيتأخر وبكام يوم.<br>
+        <b>حدود الدقة:</b> إنتاج الفريق متوسط فعلي بالقطع، ومش بيفرّق بين صنف صعب وسهل. ولو الأوردرات الصغيرة بتيجي كتير كل يوم، الكبار ممكن يتأخروا أكتر من المكتوب؛ راقب ده من كارت الخطة مقابل الفعلي.</div></details></div>`;
     // --- 1) make now: a plan each worker can actually finish in the chosen number of days
     const dayW = PLAN_DAYS === 1 ? 'يوم واحد' : PLAN_DAYS === 2 ? 'يومين' : `${PLAN_DAYS} أيام`;
     const SRC = { measured: w => `متوسطه الفعلي في ${f0(w.histDays)} يوم شغل`, owner: () => 'رقم انت كتبته', estimate: () => 'تقدير: مالوش إنتاج متسجل كفاية، فأخد وسط العمال', unknown: () => 'مفيش بيانات — اكتب رقم' };
@@ -768,7 +769,7 @@ async function runToday() {
     loadPVA();
     if ($('goal')) $('goal').onchange = () => { GOAL = $('goal').value === 'profit' ? 'profit' : 'due'; saveGoal(); runToday(); };
     if ($('slack')) $('slack').onchange = () => { SLACK = Math.max(0, Math.min(5, +$('slack').value || 0)); saveGoal(); runToday(); };
-    if ($('prioBy')) $('prioBy').onchange = () => { PRIO_BY = $('prioBy').value === 'manual' ? 'manual' : 'due'; try { localStorage.setItem('af-prio-by', PRIO_BY); } catch (e) { /* private mode */ } load(); };
+    if ($('prioBy')) $('prioBy').onchange = () => { PRIO_BY = ['manual', 'due'].includes($('prioBy').value) ? $('prioBy').value : 'small'; try { localStorage.setItem('af-prio-by2', PRIO_BY); } catch (e) { /* private mode */ } load(); };
     out.querySelectorAll('[data-due]').forEach(inp => inp.onchange = async () => {
       const msg = $('dueMsg'); inp.disabled = true;
       const { error } = await sb.rpc('set_due_date', { p_invoice: inp.dataset.due, p_date: inp.value || null });
