@@ -513,3 +513,26 @@ test('profit mode: when deadlines cannot all be kept, the most overdue order goe
   assert.ok(m.lines.every(l => l.must)); assert.ok(m.lines[0].mustW > m.lines[1].mustW);
   assert.deepEqual((await solveWith(m, 'profit')).p.filled.map(l => l.id), ['k']);
 });
+
+// ---------- bottleneck materials ----------
+test('bottlenecks: counts only work the plan could not make, separates "this alone is enough" from "needs something else too"', async () => {
+  const snap = { oils: [{ id: 'o1', name: 'زيت أ', cnt_no: 1, stock: 100, cost: 2 }, { id: 'o2', name: 'زيت ب', cnt_no: 2, stock: 1000, cost: 3 }], prices: [], suppliers: [], usage: [],
+    empties: [{ id: 'e1', name: 'فارغ 1', cnt_no: 1, shelf: 100, cost: 50 }, { id: 'e2', name: 'فارغ 2', cnt_no: 2, shelf: 4, cost: null }],
+    lines: [
+      { id: 'a', inv_id: 'A', no: 'A', date: '2026-11-20', rank: 1, qty: 10, price: 200, page_pc: 0, grams: 10, oil_id: 'o1', empty_id: 'e1', track: true, name: 'x' }, // uses all 100 g of o1
+      { id: 'b', inv_id: 'B', no: 'B', date: '2026-11-20', rank: 2, qty: 12, price: 200, page_pc: 0, grams: 10, oil_id: 'o1', empty_id: 'e1', track: true, name: 'x' }, // short of oil o1 only
+      { id: 'c', inv_id: 'C', no: 'C', date: '2026-11-20', rank: 3, qty: 6, price: 200, page_pc: 0, grams: 10, oil_id: 'o1', empty_id: 'e2', track: true, name: 'y' },  // short of o1 AND e2
+      { id: 'd', inv_id: 'D', no: 'D', date: '2026-11-20', rank: 4, qty: 5, price: 200, page_pc: 0, grams: 10, oil_id: 'o2', empty_id: 'e1', track: true, name: 'z' },  // fine
+    ] };
+  const P = Object.assign({}, A.defaults({}), { lotOil: 125 });
+  const R = await A.solvePlan(A.highsAdapter(await HIGHS()), snap, Object.assign({}, P, { budget: 0 }), 10);
+  assert.deepEqual(R.p.filled.map(l => l.id).sort(), ['a', 'd']);
+  const b = A.bottlenecks(snap, P, new Set(R.p.filled.map(l => l.id)));
+  assert.equal(b.blockedPcs, 18);
+  const o1 = b.list.find(r => r.kind === 'oil'), e2 = b.list.find(r => r.kind === 'empty');
+  assert.equal(b.list[0], o1);                                   // frees the most on its own -> first
+  assert.deepEqual([o1.short, o1.buyQty, o1.cost, o1.blockedPcs, o1.alonePcs], [180, 250, 500, 18, 12]); // 180 g short -> two 125 g packs
+  assert.deepEqual([e2.short, e2.buyQty, e2.cost, e2.blockedPcs, e2.alonePcs], [2, 2, null, 6, 0]);       // no recorded cost -> no invented price
+  assert.equal(b.list.length, 2);                                // o2 and e1 are not short
+  assert.deepEqual(o1.orders, ['B', 'C']);
+});

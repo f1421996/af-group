@@ -720,7 +720,58 @@
     return r;
   }
 
-  const api = { MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  // ---------------------------------------------------------------------------------------------
+  // Bottleneck materials: which single oil / empty is holding back the most work, and what it costs to cover.
+  //   short        = total open need - stock (negative stock counts as zero)
+  //   blockedPcs   = pieces on lines the no-purchase plan could NOT make and that use this short material
+  //   aloneLines   = of those, lines where this is the ONLY short material -> buying it is enough to make them
+  //   cost         = shortage rounded up to the purchase unit x recorded price (null when no price is recorded)
+  // ---------------------------------------------------------------------------------------------
+  function bottlenecks(snap, prm, filledIds) {
+    const made = filledIds instanceof Set ? filledIds : new Set(filledIds || []);
+    const m = buildPlan(snap, Object.assign({}, prm, { budget: 0 }));
+    const P = m.P, shortOil = new Map(), shortEmp = new Map();
+    for (const [oid, need] of m.needOil) { const have = pos((m.oilById.get(oid) || {}).stock); if (need > have + 1e-9) shortOil.set(oid, { need, have, short: need - have }); }
+    for (const [eid, need] of m.needEmp) { const have = pos((m.empById.get(eid) || {}).shelf); if (need > have + 1e-9) shortEmp.set(eid, { need, have, short: need - have }); }
+    const rows = new Map();
+    const row = (kind, id) => {
+      const k = kind + ':' + id;
+      if (!rows.has(k)) {
+        const S = (kind === 'oil' ? shortOil : shortEmp).get(id), o = (kind === 'oil' ? m.oilById : m.empById).get(id) || {};
+        let buyQty, cost = null, price = null, sup = null;
+        if (kind === 'oil') {
+          const lot = (m.lots.get(id) || lotOf(snap, P, id)).lot, op = (m.opts.get(id) || [])[0];
+          buyQty = Math.ceil(S.short / lot - 1e-9) * lot;
+          if (op) { price = op.ppg; cost = buyQty * op.ppg; sup = op.sup_id || null; }
+        } else {
+          buyQty = Math.ceil(S.short - 1e-9);
+          const c = P.priceOverride[id] != null && +P.priceOverride[id] > 0 ? +P.priceOverride[id] : (o.cost != null && +o.cost > 0 ? +o.cost : null);
+          if (c != null) { price = c; cost = buyQty * c; }
+        }
+        rows.set(k, { kind, id, name: o.name || id, need: S.need, have: S.have, short: S.short, buyQty, price, cost, sup, blockedPcs: 0, blockedLines: 0, alonePcs: 0, aloneLines: 0, orders: new Set(), minRank: 1e6, value: 0 });
+      }
+      return rows.get(k);
+    };
+    let blockedAll = 0;
+    for (const l of m.lines) {
+      if (made.has(l.id)) continue;
+      const so = l.oil_id && l.g && shortOil.has(l.oil_id), se = l.track && l.empty_id && shortEmp.has(l.empty_id);
+      if (!so && !se) continue;
+      blockedAll += l.qty;
+      for (const [kind, id, hit, other] of [['oil', l.oil_id, so, se], ['empty', l.empty_id, se, so]]) {
+        if (!hit) continue;
+        const r = row(kind, id);
+        r.blockedPcs += l.qty; r.blockedLines++; r.orders.add(l.no); r.minRank = Math.min(r.minRank, l.rk ?? 1e6); r.value += l.qty * netPrice(l);
+        if (!other) { r.alonePcs += l.qty; r.aloneLines++; }
+      }
+    }
+    const list = [...rows.values()].map(r => Object.assign(r, { orders: [...r.orders], pcsPer1000: r.cost > 0 ? r.alonePcs / r.cost * 1000 : null }));
+    // most pieces freed by this purchase alone first; ties: more blocked pieces, then cheaper
+    list.sort((a, b) => b.alonePcs - a.alonePcs || b.blockedPcs - a.blockedPcs || (a.cost ?? 1e12) - (b.cost ?? 1e12) || String(a.name).localeCompare(String(b.name)));
+    return { list: list.filter(r => r.blockedPcs > 0), shortOils: shortOil.size, shortEmpties: shortEmp.size, blockedPcs: blockedAll };
+  }
+
+  const api = { bottlenecks, MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 
