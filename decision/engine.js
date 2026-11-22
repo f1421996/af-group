@@ -4,6 +4,7 @@
   const pos = v => Math.max(0, +v || 0);
   const PRIO = 1000; // priority weight per piece per rank step (rank mode)
   const WHOLE = 0.2; // whole-invoice bonus = 20% of invoice net value
+  const MUST = 10000; // profit mode: weight per piece of a line that must be done to keep its deadline (far above any piece profit)
 
   function defaults(prm) {
     return Object.assign({
@@ -12,6 +13,14 @@
     }, prm || {});
   }
   function netPrice(l) { return pos(l.price) - pos(l.page_pc); }
+  // profit per piece = net price - recorded unit cost of the line; null when the cost is not recorded
+  function profitPc(l) { return l.cost == null || l.cost === '' || !isFinite(+l.cost) ? null : netPrice(l) - +l.cost; }
+  // profit mode: lines that must be done keep a huge weight; the rest are worth their real profit
+  // (unknown cost counts as zero profit, so it is never preferred over a known one; a loss stays negative)
+  function lineWeight(l, P, prioRank) {
+    if (P.mode === 'profit') return l.qty * ((profitPc(l) ?? 0) + (l.must ? (+l.mustW || MUST) : 0));
+    return l.qty * (netPrice(l) + (P.mode === 'rank' ? prioRank : 0));
+  }
 
   // Purchase unit per oil (grams). The owner buys some oils by the gram, some in 125 g packs, some by the kilo.
   // Order: owner's value for this analysis -> inferred from the recorded supplier purchases of that oil -> default.
@@ -91,14 +100,14 @@
       l.var = 'y' + i;
       l.rk = invRank.get(l.inv_id);
       l.prio = P.mode === 'rank' ? PRIO * (R + 1 - l.rk) : 0;
-      l.w = l.qty * (netPrice(l) + l.prio);
+      l.w = lineWeight(l, P, l.prio);
       objV.push({ name: l.var, coef: l.w });
       binaries.push(l.var);
     });
     const invs = new Map();
     for (const l of lines) { if (!invs.has(l.inv_id)) invs.set(l.inv_id, []); invs.get(l.inv_id).push(l); }
     const zmap = new Map(); let zi = 0;
-    if (P.wholeInv) for (const [iid, ls] of invs) {
+    if (P.wholeInv && P.mode !== 'profit') for (const [iid, ls] of invs) {
       const z = 'z' + (zi++); zmap.set(iid, z); binaries.push(z);
       objV.push({ name: z, coef: WHOLE * ls.reduce((s, l) => s + l.qty * netPrice(l), 0) });
       for (const l of ls) cons.push({ name: 'inv_' + z + '_' + l.var, vars: [{ name: z, coef: 1 }, { name: l.var, coef: -1 }], bnds: { type: 3, ub: 0, lb: 0 } });
@@ -284,8 +293,8 @@
     const order = [...firstOf.values()].sort((a, b) => (a.rank ?? 1e6) - (b.rank ?? 1e6) || String(a.date).localeCompare(String(b.date)) || String(a.no).localeCompare(String(b.no)));
     const rk = new Map(order.map((l, i) => [l.inv_id, i + 1]));
     let val = 0;
-    for (const l of lines) val += l.qty * (netPrice(l) + (P.mode === 'rank' ? PRIO * (R + 1 - rk.get(l.inv_id)) : 0));
-    if (P.wholeInv) for (const [iid] of firstOf) {
+    for (const l of lines) val += lineWeight(l, P, PRIO * (R + 1 - rk.get(l.inv_id)));
+    if (P.wholeInv && P.mode !== 'profit') for (const [iid] of firstOf) {
       const all = snap.lines.filter(l => l.inv_id === iid);
       if (all.every(l => filledIds.has(l.id))) val += WHOLE * all.reduce((s, l) => s + l.qty * netPrice(l), 0);
     }
@@ -678,7 +687,40 @@
     return out;
   }
 
-  const api = { DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  // ---------------------------------------------------------------------------------------------
+  // Profit with deadlines. An order "must" be done in this plan when its deadline (+ the lateness the
+  // owner accepts) falls inside the plan window, or has already passed. Everything else competes on profit.
+  // ---------------------------------------------------------------------------------------------
+  function markMust(snap, todayIso, days, slack) {
+    const start = firstWorkDay(String(todayIso).slice(0, 10));
+    const end = addWorkDays(start, Math.max(1, Math.round(+days || 1)) - 1);
+    const sl = Math.max(0, Math.round(+slack || 0));
+    // among must-do lines the most overdue come first: each working day of urgency adds a full MUST step,
+    // so urgency always beats profit, and profit only decides between lines that are equally urgent
+    const lines = snap.lines.map(l => {
+      const due = dueOf(l), must = addWorkDays(due, sl) <= end;
+      return Object.assign({}, l, { due, must, mustW: must ? MUST * (1 + Math.max(0, workDaysBetween(addWorkDays(due, sl), end))) : 0 });
+    });
+    return Object.assign({}, snap, { lines, mustWindow: { start, end, slack: sl } });
+  }
+  // what a capacity plan earns and what it leaves behind
+  function planProfit(A, snap) {
+    const byId = new Map(snap.lines.map(l => [l.id, l]));
+    const r = { pcs: 0, profit: 0, revenue: 0, unknownPcs: 0, unknownLines: [], lossPcs: 0, loss: 0, mustPcs: 0, mustLeft: 0, mustLeftOrders: new Set() };
+    const seen = new Set();
+    for (const w of A.workers) for (const b of w.batches) for (const x of b.lines) {
+      const l = byId.get(x.id); if (!l || seen.has(l.id)) continue; seen.add(l.id);
+      const q = +l.qty, p = profitPc(l);
+      r.pcs += q; r.revenue += q * netPrice(l);
+      if (p == null) { r.unknownPcs += q; r.unknownLines.push(l); } else { r.profit += q * p; if (p < 0) { r.lossPcs += q; r.loss += q * p; } }
+      if (l.must) r.mustPcs += q;
+    }
+    for (const l of snap.lines) if (l.must && !seen.has(l.id)) { r.mustLeft += +l.qty; r.mustLeftOrders.add(l.no); }
+    r.mustLeftOrders = [...r.mustLeftOrders];
+    return r;
+  }
+
+  const api = { MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 
