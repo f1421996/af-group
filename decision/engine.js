@@ -618,6 +618,7 @@
   // then it ships. The owner can set another date per order.
   // ---------------------------------------------------------------------------------------------
   const DUE_DAYS = 4, OFF_DOW = 5; // 5 = Friday
+  const SMALL_ORDER = 100; // an order with this many open pieces or fewer goes through the fast lane
   const pD = s => new Date(String(s).slice(0, 10) + 'T00:00:00Z');
   const fD = d => d.toISOString().slice(0, 10);
   const isOff = d => d.getUTCDay() === OFF_DOW;
@@ -637,19 +638,23 @@
   }
   const dueOf = l => l.due ? String(l.due).slice(0, 10) : addWorkDays(l.date, DUE_DAYS);
   // Rewrites each line's rank so the whole engine (fill plan, purchases, work plan) follows the chosen order:
+  //   'small'  -> fast lane: small orders (<= SMALL_ORDER open pieces) first, then everything by deadline.
+  //               Shortest-first cuts the average wait and the number of late orders; the big ones lose about a day.
   //   'due'    -> earliest deadline first; the owner's manual rank only breaks ties
   //   'manual' -> the owner's manual rank first; deadline orders the unranked ones
   function withDuePriority(snap, mode) {
     const inv = new Map();
-    for (const l of snap.lines) if (!inv.has(l.inv_id)) inv.set(l.inv_id, { inv_id: l.inv_id, no: l.no, date: String(l.date), due: dueOf(l), r0: l.rank0 !== undefined ? l.rank0 : l.rank });
+    for (const l of snap.lines) { if (!inv.has(l.inv_id)) inv.set(l.inv_id, { inv_id: l.inv_id, no: l.no, date: String(l.date), due: dueOf(l), r0: l.rank0 !== undefined ? l.rank0 : l.rank, pcs: 0 }); inv.get(l.inv_id).pcs += +l.qty; }
+    const big = x => (x.pcs > SMALL_ORDER ? 1 : 0);
     const mr = x => (x.r0 == null ? 1e6 : +x.r0);
+    const byDue = (a, b) => a.due.localeCompare(b.due) || mr(a) - mr(b) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no));
     const cmp = mode === 'manual'
       ? (a, b) => mr(a) - mr(b) || a.due.localeCompare(b.due) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no))
-      : (a, b) => a.due.localeCompare(b.due) || mr(a) - mr(b) || a.date.localeCompare(b.date) || String(a.no).localeCompare(String(b.no));
+      : mode === 'small' ? (a, b) => big(a) - big(b) || byDue(a, b) : byDue;
     const order = [...inv.values()].sort(cmp);
     const rank = new Map(order.map((x, i) => [x.inv_id, i + 1]));
-    return Object.assign({}, snap, { prioMode: mode === 'manual' ? 'manual' : 'due',
-      lines: snap.lines.map(l => Object.assign({}, l, { rank0: inv.get(l.inv_id).r0, due: inv.get(l.inv_id).due, rank: rank.get(l.inv_id) })) });
+    return Object.assign({}, snap, { prioMode: mode === 'manual' ? 'manual' : mode === 'small' ? 'small' : 'due',
+      lines: snap.lines.map(l => Object.assign({}, l, { rank0: inv.get(l.inv_id).r0, due: inv.get(l.inv_id).due, rank: rank.get(l.inv_id), small: inv.get(l.inv_id).pcs <= SMALL_ORDER })) });
   }
   // Can every order be finished by its deadline with this team? Orders are worked in rank order
   // (with mode 'due' that is earliest-deadline-first, which minimises the worst lateness on one team).
@@ -666,9 +671,14 @@
     const rate = +teamPerDay > 0 ? +teamPerDay : 0;
     const out = { today, start, teamPerDay: rate, orders, total: orders.reduce((s, o) => s + o.left, 0), status: 'ON_TIME', needPerDay: 0 };
     if (!orders.length) return out;
-    let cum = 0;
+    // One assumption, stated on screen: the missing materials are bought in time. So every piece is scheduled
+    // in rank order; an order's finish date is the EARLIEST it can be complete. readyDay is when the part whose
+    // materials are already here is done.
+    let cum = 0, cumMake = 0;
     for (const o of orders) {
-      cum += o.left; o.cum = cum; o.blocked = o.left - o.makeable;
+      cum += o.left; o.cum = cum; o.blocked = o.left - o.makeable; cumMake += o.makeable;
+      o.small = o.left <= SMALL_ORDER;
+      o.readyDay = rate > 0 && o.makeable > 0 ? Math.max(1, Math.ceil(cumMake / rate - 1e-9)) : null;
       o.daysLeft = o.due >= start ? workDaysBetween(start, o.due) + 1 : 0;           // working days available, today included
       o.overdue = o.due < today ? workDaysBetween(o.due, today) : 0;                  // already past its deadline
       if (rate > 0) {
@@ -681,7 +691,7 @@
     out.lateOrders = orders.filter(o => o.late > 0);
     out.overdueOrders = orders.filter(o => o.overdue > 0);
     out.blockedPcs = orders.reduce((s, o) => s + o.blocked, 0);
-    out.daysForAll = rate > 0 ? Math.ceil(cum / rate - 1e-9) : Infinity;
+    out.daysForAll = rate > 0 ? Math.ceil(out.total / rate - 1e-9) : Infinity;
     out.finishAll = rate > 0 ? addWorkDays(start, out.daysForAll - 1) : null;
     out.status = rate <= 0 ? 'NO_CAPACITY' : out.lateOrders.length ? 'LATE' : 'ON_TIME';
     return out;
@@ -720,7 +730,58 @@
     return r;
   }
 
-  const api = { MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
+  // ---------------------------------------------------------------------------------------------
+  // Bottleneck materials: which single oil / empty is holding back the most work, and what it costs to cover.
+  //   short        = total open need - stock (negative stock counts as zero)
+  //   blockedPcs   = pieces on lines the no-purchase plan could NOT make and that use this short material
+  //   aloneLines   = of those, lines where this is the ONLY short material -> buying it is enough to make them
+  //   cost         = shortage rounded up to the purchase unit x recorded price (null when no price is recorded)
+  // ---------------------------------------------------------------------------------------------
+  function bottlenecks(snap, prm, filledIds) {
+    const made = filledIds instanceof Set ? filledIds : new Set(filledIds || []);
+    const m = buildPlan(snap, Object.assign({}, prm, { budget: 0 }));
+    const P = m.P, shortOil = new Map(), shortEmp = new Map();
+    for (const [oid, need] of m.needOil) { const have = pos((m.oilById.get(oid) || {}).stock); if (need > have + 1e-9) shortOil.set(oid, { need, have, short: need - have }); }
+    for (const [eid, need] of m.needEmp) { const have = pos((m.empById.get(eid) || {}).shelf); if (need > have + 1e-9) shortEmp.set(eid, { need, have, short: need - have }); }
+    const rows = new Map();
+    const row = (kind, id) => {
+      const k = kind + ':' + id;
+      if (!rows.has(k)) {
+        const S = (kind === 'oil' ? shortOil : shortEmp).get(id), o = (kind === 'oil' ? m.oilById : m.empById).get(id) || {};
+        let buyQty, cost = null, price = null, sup = null;
+        if (kind === 'oil') {
+          const lot = (m.lots.get(id) || lotOf(snap, P, id)).lot, op = (m.opts.get(id) || [])[0];
+          buyQty = Math.ceil(S.short / lot - 1e-9) * lot;
+          if (op) { price = op.ppg; cost = buyQty * op.ppg; sup = op.sup_id || null; }
+        } else {
+          buyQty = Math.ceil(S.short - 1e-9);
+          const c = P.priceOverride[id] != null && +P.priceOverride[id] > 0 ? +P.priceOverride[id] : (o.cost != null && +o.cost > 0 ? +o.cost : null);
+          if (c != null) { price = c; cost = buyQty * c; }
+        }
+        rows.set(k, { kind, id, name: o.name || id, need: S.need, have: S.have, short: S.short, buyQty, price, cost, sup, blockedPcs: 0, blockedLines: 0, alonePcs: 0, aloneLines: 0, orders: new Set(), minRank: 1e6, value: 0 });
+      }
+      return rows.get(k);
+    };
+    let blockedAll = 0;
+    for (const l of m.lines) {
+      if (made.has(l.id)) continue;
+      const so = l.oil_id && l.g && shortOil.has(l.oil_id), se = l.track && l.empty_id && shortEmp.has(l.empty_id);
+      if (!so && !se) continue;
+      blockedAll += l.qty;
+      for (const [kind, id, hit, other] of [['oil', l.oil_id, so, se], ['empty', l.empty_id, se, so]]) {
+        if (!hit) continue;
+        const r = row(kind, id);
+        r.blockedPcs += l.qty; r.blockedLines++; r.orders.add(l.no); r.minRank = Math.min(r.minRank, l.rk ?? 1e6); r.value += l.qty * netPrice(l);
+        if (!other) { r.alonePcs += l.qty; r.aloneLines++; }
+      }
+    }
+    const list = [...rows.values()].map(r => Object.assign(r, { orders: [...r.orders], pcsPer1000: r.cost > 0 ? r.alonePcs / r.cost * 1000 : null }));
+    // most pieces freed by this purchase alone first; ties: more blocked pieces, then cheaper
+    list.sort((a, b) => b.alonePcs - a.alonePcs || b.blockedPcs - a.blockedPcs || (a.cost ?? 1e12) - (b.cost ?? 1e12) || String(a.name).localeCompare(String(b.name)));
+    return { list: list.filter(r => r.blockedPcs > 0), shortOils: shortOil.size, shortEmpties: shortEmp.size, blockedPcs: blockedAll };
+  }
+
+  const api = { SMALL_ORDER, bottlenecks, MUST, profitPc, markMust, planProfit, DUE_DAYS, addWorkDays, workDaysBetween, withDuePriority, deadlinePlan, workerRates, planCapacity, makeBatches, timeModel, assignWork, buildPlan, relaxed, readPlan, verify, simulate, workforce, defaults, validateModel, toLP, lotOf, highsAdapter, glpkAdapter, solvePlan, PRIO, WHOLE };
   if (typeof module !== 'undefined') module.exports = api; else root.AFOpt = api;
 })(this);
 
