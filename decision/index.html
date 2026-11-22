@@ -2,102 +2,288 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0A0908">
 <title>مركز القرار — AF Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#f6f6f4;--card:#fff;--ink:#1c1c1a;--mut:#6b6b66;--line:#e4e3de;--acc:#b8860b;--ok:#2e7d4f;--bad:#c0392b;--warn:#b26b00;--chip:#f1efe8;--code:#f3f2ee}
-@media (prefers-color-scheme:dark){:root{--bg:#141413;--card:#1e1e1c;--ink:#f0efe9;--mut:#a3a29b;--line:#33322e;--chip:#2a2926;--code:#262522}}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 system-ui,"Segoe UI",Tahoma,sans-serif}
-header{position:sticky;top:0;z-index:5;background:var(--card);border-bottom:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:10px}
-header b{font-size:17px}header .sp{flex:1}header small{color:var(--mut)}
-main{max-width:1100px;margin:0 auto;padding:12px}
-.tabs{display:flex;gap:6px;overflow:auto;margin-bottom:12px}
-.tabs button{border:1px solid var(--line);background:var(--card);color:var(--ink);padding:8px 14px;border-radius:20px;font:inherit;white-space:nowrap;cursor:pointer}
-.tabs button.on{background:var(--ink);color:var(--card);border-color:var(--ink)}
-.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
-.card h3{margin:0 0 10px;font-size:16px}.card h3 .q{color:var(--acc);margin-left:6px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
-label{display:block;font-size:13px;color:var(--mut)}
-input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:inherit;margin-top:3px}
-input[type=checkbox]{width:auto;margin:0 0 0 6px}
-.chk{display:flex;align-items:center;color:var(--ink);font-size:14px;margin-top:22px}
-.btn{border:0;background:var(--acc);color:#fff;padding:11px 18px;border-radius:10px;font:inherit;font-weight:600;cursor:pointer}
-.btn.sec{background:var(--chip);color:var(--ink);border:1px solid var(--line);font-weight:500;padding:7px 12px}
-.btn:disabled{opacity:.55}
-.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
-.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px}
-.kpi small{color:var(--mut);display:block}.kpi b{font-size:21px}
-table{width:100%;border-collapse:collapse;font-size:14px}
-th,td{padding:7px 6px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
-th{color:var(--mut);font-weight:500;font-size:12.5px}
-td.n,th.n{text-align:left;direction:ltr;white-space:nowrap}
-.scroll{overflow:auto}
-.tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;background:var(--chip)}
+/* AF Group identity: warm near-black surfaces, one gold accent, Readex Pro. Colour is reserved for status. */
+:root{--bg:#131210;--top:#0A0908;--card:#1B1A17;--in:#161513;--line:#2D2A25;--line2:#3F3A31;--ink:#F1ECE2;--mut:#A49C8D;
+  --gold:#C9A45C;--goldhi:#E3C383;--golds:#2B2414;--ok:#86C9A0;--oks:#17291D;--warn:#E9A25B;--warns:#33240F;--bad:#EA8C7C;--bads:#3A1E19;
+  --acc:var(--gold);--chip:#25231F;--code:var(--in);color-scheme:dark}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14.5px/1.6 'Readex Pro','IBM Plex Sans Arabic','Cairo',system-ui,sans-serif;font-variant-numeric:tabular-nums;padding-bottom:env(safe-area-inset-bottom,0px)}
+button,input,select{font:inherit;color:inherit}
+h3,h4,p{margin:0}
+b{font-weight:600}
+a{color:var(--goldhi)}
+:focus-visible{outline:2px solid var(--goldhi);outline-offset:2px;border-radius:6px}
+.hide{display:none!important}
 .ok{color:var(--ok)}.bad{color:var(--bad)}.warn{color:var(--warn)}.mut{color:var(--mut)}
-.bar{height:8px;background:var(--chip);border-radius:4px;overflow:hidden;min-width:70px}.bar i{display:block;height:100%;background:var(--ok)}
-.sup{border:1px solid var(--line);border-radius:10px;padding:10px;margin-bottom:10px}
-.sup .hd{display:flex;align-items:center;gap:8px;margin-bottom:6px}.sup .hd b{flex:1}
-.suprow{display:grid;grid-template-columns:1.4fr .8fr .8fr;gap:8px;align-items:end;padding:6px 0;border-bottom:1px dashed var(--line)}
-.hide{display:none}
-#login{max-width:360px;margin:60px auto}
-.msg{padding:10px;border-radius:8px;background:var(--chip);margin-bottom:10px;font-size:14px}
-details{margin:4px 0}details summary{cursor:pointer;color:var(--mut)}
-details[open]>summary{margin-bottom:6px}
-.why{background:var(--code);border-radius:8px;padding:8px 10px;font-size:13.5px;margin:4px 0}
-.math{background:var(--code);border-radius:8px;padding:10px 12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:13px;direction:rtl;white-space:pre-wrap;line-height:1.9}
-.tw{overflow-x:auto}
-.verdict{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:10px;border:1px solid var(--line)}
-.verdict .ic{font-size:22px;line-height:1}
-.pill{font-size:12px;padding:1px 7px;border-radius:9px;border:1px solid var(--line)}
-.sendbox{border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:12px;background:var(--code)}
-.sendbox h4{margin:0 0 4px;font-size:15px}.sendbox p{margin:0 0 10px;font-size:13.5px;color:var(--mut);line-height:1.7}
-.prow{padding:9px 0;border-top:1px solid var(--line)}.prow .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap}.prow .top span{font-size:13px;color:var(--mut)}
-.pbar{height:8px;border-radius:99px;background:var(--chip);overflow:hidden;margin:6px 0 4px;display:flex}.pbar i{display:block;height:100%;background:var(--ok)}.pbar i.st{background:var(--acc);opacity:.55}
-.prow small{font-size:12.5px;color:var(--mut);line-height:1.6;display:block}
-@media print{header,.tabs,.noprint{display:none!important}.card{border:0;padding:0}body{background:#fff;color:#000}details{display:block}details>*{display:block!important}}
+.i{flex:none;vertical-align:-3px}
 
-.step{display:flex;align-items:center;gap:10px;margin:0 0 10px}
-.step .no{flex:none;width:30px;height:30px;border-radius:50%;background:var(--acc);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-.step h3{margin:0;font-size:17px}
-.lead{font-size:16px;line-height:1.8;margin:0}
-.lead b{font-size:19px}
-.wk{border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden}
-.wk>summary{display:flex;align-items:center;gap:10px;padding:12px;cursor:pointer;color:var(--ink);list-style:none;flex-wrap:wrap}
-.wk>summary::-webkit-details-marker{display:none}
-.wk>summary b{font-size:16px;flex:1;min-width:110px}
+/* top bar + tabs: one sticky unit */
+.top{position:sticky;top:0;z-index:20;background:var(--top);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px)}
+.top .hbar{max-width:880px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:10px}
+.top .ttl{font-size:18px;font-weight:700;color:var(--goldhi)}
+.top .sp{flex:1}
+.back{display:inline-flex;align-items:center;gap:2px;min-height:40px;padding:0 10px 0 6px;border-radius:10px;color:var(--mut);text-decoration:none;font-size:13.5px}
+.back:hover{color:var(--ink);background:var(--chip)}
+.tabs{max-width:880px;margin:0 auto;padding:0 10px;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+body:not(.in) .tabs{display:none}
+.tabs button{flex:none;border:0;background:none;color:var(--mut);padding:10px 12px 9px;border-bottom:3px solid transparent;font-weight:600;font-size:14px;white-space:nowrap;cursor:pointer}
+.tabs button:hover{color:var(--ink)}
+.tabs button.on{color:var(--goldhi);border-bottom-color:var(--gold)}
+
+main{max-width:880px;margin:0 auto;padding:14px 16px 40px}
+.msg{font-size:12.5px;color:var(--mut);margin:0 2px 12px;line-height:1.7}
+.msg.bad,.msg.warn{padding:10px 14px;border-radius:12px;font-size:14px}
+.msg.bad{background:var(--bads);color:var(--bad)}.msg.warn{background:var(--warns);color:var(--warn)}
+.msg .hash{direction:ltr;unicode-bidi:isolate;opacity:.7}
+.note{background:var(--in);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13.5px}
+
+/* surfaces */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.card.mut,.card.bad{font-size:14px}
+.card.bad{background:var(--bads);border-color:transparent}
+.card>h3{font-size:16.5px;font-weight:600;margin-bottom:10px}
+.sub{color:var(--mut);font-size:13px;line-height:1.7}
+.lead{font-size:14.5px;line-height:1.75;color:var(--ink)}
+.lead b{font-size:16px}
+.grp{font-size:13px;font-weight:600;color:var(--mut);margin:20px 4px 8px}
+
+/* overview */
+.ov{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.ov .ovh{font-size:13.5px;color:var(--mut);margin-bottom:10px}.ov .ovh b{color:var(--ink)}
+.split{display:flex;gap:3px;height:10px;border-radius:99px;overflow:hidden;margin:12px 0 0}
+.split i{display:block;min-width:4px}.split .a{background:var(--ok)}.split .b{background:var(--warn);opacity:.85}
+.ovn{display:flex;justify-content:space-between;gap:16px}
+.ovn>span{display:flex;flex-direction:column;min-width:0}
+.ovn>span:last-child{text-align:left}
+.ovn b{font-size:28px;font-weight:700;line-height:1.15;letter-spacing:-.3px}
+.ovn small{font-size:13px;color:var(--mut)}
+
+/* accordion sections */
+.sec{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:10px}
+.sec>summary{display:flex;align-items:center;gap:12px;padding:12px 14px;min-height:64px;cursor:pointer;list-style:none;border-radius:16px}
+.sec>summary::-webkit-details-marker,.wk>summary::-webkit-details-marker,.set>summary::-webkit-details-marker{display:none}
+.sec>summary:hover .st b{color:var(--goldhi)}
+.bd{flex:none;width:36px;height:36px;border-radius:11px;background:var(--chip);color:var(--goldhi);display:grid;place-items:center;font-weight:700;font-size:15px}
+.bd.n{background:var(--gold);color:#1A1508;border-radius:50%}
+.st{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.st b{font-size:15.5px;font-weight:600;line-height:1.4}
+.st small{font-size:13px;color:var(--mut);line-height:1.5}
+.st small.ok{color:var(--ok)}.st small.warn{color:var(--warn)}.st small.bad{color:var(--bad)}
+.chev{flex:none;width:9px;height:9px;border-left:2px solid var(--mut);border-bottom:2px solid var(--mut);transform:rotate(45deg);margin:0 6px 4px;transition:transform .15s}
+details[open]>summary>.chev{transform:rotate(-45deg);margin-bottom:-2px}
+.sec[open]>summary{border-bottom:1px solid var(--line);border-radius:16px 16px 0 0}
+.sb{padding:14px;display:flex;flex-direction:column;gap:12px}
+.sb>*{margin:0}
+
+/* verdict banners */
+.verdict{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:12px;background:var(--in);border:1px solid var(--line);font-size:13.5px;line-height:1.7}
+.verdict .ic{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;background:var(--chip);color:var(--mut)}
+.verdict>div{min-width:0;flex:1}
+.verdict .vt{display:block;font-size:14.5px;font-weight:600;line-height:1.5}
+.verdict p,.verdict ul{color:#D2CABB;margin-top:4px}
+.verdict ul{padding:0 16px 0 0;margin-bottom:0}.verdict li{margin:3px 0}
+.verdict.ok{background:var(--oks);border-color:transparent}.verdict.ok .ic{background:var(--ok);color:#0D1A12}.verdict.ok .vt{color:var(--ok)}
+.verdict.warn{background:var(--warns);border-color:transparent}.verdict.warn .ic{background:var(--warn);color:#241703}.verdict.warn .vt{color:var(--warn)}
+.verdict.bad{background:var(--bads);border-color:transparent}.verdict.bad .ic{background:var(--bad);color:#2A0F0A}.verdict.bad .vt{color:var(--bad)}
+.verdict .fine{display:block;margin-top:6px;font-size:12.5px;color:var(--mut)}
+
+/* chips */
+.tag,.pill{display:inline-flex;align-items:center;gap:4px;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--chip);color:var(--mut);border:0}
+.tag.ok,.pill.ok{background:var(--oks);color:var(--ok)}.tag.warn,.pill.warn{background:var(--warns);color:var(--warn)}.tag.bad,.pill.bad{background:var(--bads);color:var(--bad)}
+.pill.wrap{white-space:normal;border-radius:10px}
+
+/* controls */
+label{display:block;font-size:12.5px;font-weight:600;color:var(--mut)}
+input,select{width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line2);border-radius:10px;background:var(--in);color:var(--ink);margin-top:4px}
+input::placeholder{color:#7C766A}
+input:focus,select:focus{outline:2px solid var(--gold);outline-offset:0;border-color:transparent}
+input[type=checkbox]{width:18px;height:18px;min-height:0;margin:0 0 0 8px;padding:0;accent-color:var(--gold)}
+.chk{display:flex;align-items:center;color:var(--ink);font-size:14px;font-weight:400;min-height:44px;align-self:end}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
+.ctl small{align-self:center;font-size:12.5px;line-height:1.6}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.sbw{justify-content:space-between}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--gold);background:var(--gold);color:#1A1508;min-height:44px;padding:8px 18px;border-radius:10px;font-weight:600;cursor:pointer;text-decoration:none}
+.btn:hover{background:var(--goldhi);border-color:var(--goldhi)}
+.btn.sec{background:transparent;color:var(--ink);border-color:var(--line2);font-weight:500;padding:8px 14px}
+.btn.sec:hover{border-color:var(--mut);background:var(--chip)}
+.btn.sm{min-height:36px;padding:4px 11px;font-size:13px}
+.btn.big{min-height:52px;font-size:15.5px;flex:1 1 240px}
+.btn:disabled{opacity:.5;cursor:default}
+
+/* numbers */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.kpi{background:var(--in);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;color:var(--mut)}
+.kpi small{display:block;font-size:12.5px;font-weight:600}
+.kpi b{font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.2px}
+.kpi b.ok{color:var(--ok)}.kpi b.warn{color:var(--warn)}.kpi b.bad{color:var(--bad)}
+
+/* tables */
+.tw,.scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th,td{padding:9px 8px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+tr:last-child>td{border-bottom:0}
+th{color:var(--mut);font-weight:600;font-size:12.5px;white-space:nowrap}
+td.n,th.n{text-align:left;direction:ltr;white-space:nowrap}
+td>b{white-space:nowrap}
+td input,td select{min-height:38px;padding:5px 9px;margin:0}
+.bar{height:6px;background:var(--chip);border-radius:99px;overflow:hidden;min-width:70px;margin-top:7px}.bar i{display:block;height:100%;background:var(--ok)}
+
+/* explanations */
+details summary{cursor:pointer}
+.how>summary,.mini>summary,.more>summary,.fold>summary,.li>summary{color:var(--mut);font-size:13px;list-style:none;display:inline-flex;align-items:center;gap:6px}
+.how>summary::-webkit-details-marker,.mini>summary::-webkit-details-marker,.more>summary::-webkit-details-marker,.fold>summary::-webkit-details-marker,.li>summary::-webkit-details-marker{display:none}
+.how>summary::before,.mini>summary::before,.more>summary::before,.fold>summary::before,.li>summary::before{flex:none;content:"";width:6px;height:6px;border-left:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(45deg);margin-bottom:2px}
+.how[open]>summary::before,.mini[open]>summary::before,.more[open]>summary::before,.fold[open]>summary::before,.li[open]>summary::before{transform:rotate(-45deg);margin-bottom:-3px}
+.how>summary:hover,.mini>summary:hover,.more>summary:hover{color:var(--ink)}
+.how[open]>summary,.more[open]>summary{margin-bottom:8px}
+.more>summary{font-weight:600;color:var(--goldhi);min-height:36px}
+.why{background:var(--in);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:13px;line-height:1.8;color:#D2CABB;margin:6px 0}
+.why b{color:var(--ink)}
+.why.bad{background:var(--bads);border-color:transparent;color:var(--bad)}
+.math{background:var(--in);border:1px solid var(--line);border-radius:12px;padding:12px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;direction:rtl;white-space:pre-wrap;line-height:1.9;overflow-x:auto}
+
+/* order rows (deadlines) */
+.olist{display:flex;flex-direction:column}
+.orow{padding:12px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.olist>.orow:first-child{border-top:0;padding-top:0}
+.oh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.rk{flex:none;min-width:26px;height:26px;padding:0 6px;border-radius:8px;background:var(--chip);color:var(--mut);display:grid;place-items:center;font-size:12.5px;font-weight:700}
+.on{flex:1;min-width:0;display:flex;flex-direction:column;line-height:1.35}
+.on b{text-align:right;font-size:14.5px}.on small{color:var(--mut);font-size:12.5px}
+.om{display:flex;align-items:flex-end;gap:12px;justify-content:space-between}
+.om label{flex:0 1 170px}.om input{min-height:38px;padding:5px 9px}
+.oq{text-align:left;font-size:13px;color:var(--mut);display:flex;flex-direction:column;line-height:1.4}
+.oq b{font-size:18px;font-weight:700;color:var(--ink)}
+.orow>small{font-size:12.5px;line-height:1.6}
+
+/* worker / supplier blocks */
+.wk{background:var(--in);border:1px solid var(--line);border-radius:12px}
+.wk>summary{display:flex;align-items:center;gap:10px;padding:10px 12px;min-height:56px;list-style:none;flex-wrap:wrap}
+.wn{flex:1;min-width:120px;display:flex;flex-direction:column;line-height:1.4}
+.wn b{font-size:15px}.wn small{font-size:12.5px;color:var(--mut)}
+.capbar{flex:1 0 100%;height:5px;border-radius:99px;background:var(--chip);overflow:hidden}
+.capbar i{display:block;height:100%;background:var(--gold)}.capbar.over i{background:var(--bad)}
 .wk .in{padding:0 12px 12px}
-.wk .it{display:flex;gap:8px;justify-content:space-between;padding:7px 0;border-top:1px dashed var(--line);font-size:14.5px}
-.wk .it small{display:block;color:var(--mut);font-size:12.5px}
-.wk .it .q{white-space:nowrap;font-weight:700}
-.chips{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
-.chips label{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);border-radius:16px;padding:5px 10px;font-size:13.5px;color:var(--ink);cursor:pointer;background:var(--bg)}
-.chips input{width:auto;margin:0}
-.todo{display:flex;gap:10px;padding:9px 0;border-top:1px dashed var(--line)}
-.todo:first-of-type{border-top:0}
-.todo .ic{flex:none;font-size:18px}
+.wk .in>.sub{margin-bottom:6px}
+.it{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line)}
+.ix{flex:none;width:22px;color:var(--mut);font-size:12.5px;font-weight:600;padding-top:2px}
+.ib{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ib>b{font-size:14.5px;font-weight:500}
+.ib .pl{display:flex;gap:5px;flex-wrap:wrap}
+.ib small{color:var(--mut);font-size:12.5px;line-height:1.6;display:block}
+.it .q{flex:none;font-size:17px;font-weight:700;white-space:nowrap}
+.it .q small{font-size:12px;font-weight:400;color:var(--mut)}
+.stack{display:flex;flex-direction:column;gap:8px}
+
+/* team settings */
+.set{border:1px dashed var(--line2);border-radius:12px}
+.set>summary{display:flex;align-items:center;gap:8px;padding:10px 12px;min-height:48px;list-style:none;font-weight:600;font-size:14px}
+.set>summary .mut{font-weight:400;font-size:13px;flex:1}
+.set .in{padding:2px 12px 12px;display:flex;flex-direction:column;gap:12px}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips label{display:inline-flex;align-items:center;gap:6px;min-height:38px;border:1px solid var(--line2);border-radius:99px;padding:4px 12px;font-size:13.5px;font-weight:500;color:var(--mut);cursor:pointer;background:transparent}
+.chips input{margin:0;width:16px;height:16px}
+.chips label:has(input:checked){border-color:var(--gold);background:var(--golds);color:var(--goldhi)}
+.caprow{display:flex;align-items:center;gap:10px;justify-content:space-between;padding:8px 0;border-top:1px solid var(--line)}
+.caprow span{display:flex;flex-direction:column;min-width:0;line-height:1.45}.caprow small{color:var(--mut);font-size:12.5px}
+.caprow input{flex:none;width:92px;min-height:38px;margin:0;text-align:center}
+.days{display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink);font-weight:500}
+.days input{width:76px;margin:0;text-align:center}
+
+/* send + follow-up */
+.sendbox{border:1px solid rgba(201,164,92,.45);border-radius:12px;padding:14px;background:linear-gradient(160deg,#1E1B14,#141310)}
+.sendbox h4,.prog h4{font-size:15px;font-weight:600}
+.sendbox p{margin:4px 0 12px;font-size:13px;color:var(--mut);line-height:1.7}
+.prog{border:1px solid var(--line);border-radius:12px;padding:14px;margin-top:12px}
+.prow{padding:10px 0;border-top:1px solid var(--line)}.prog .prow:first-of-type{margin-top:10px}
+.prow .top{position:static;display:flex;justify-content:space-between;gap:8px;align-items:baseline;flex-wrap:wrap;background:none;border:0;padding:0}
+.prow .top span{font-size:13px;color:var(--mut)}
+.pbar{height:6px;border-radius:99px;background:var(--chip);overflow:hidden;margin:7px 0 5px;display:flex}.pbar i{display:block;height:100%;background:var(--ok)}.pbar i.st{background:var(--gold)}
+.prow small,.prog>small{font-size:12.5px;color:var(--mut);line-height:1.6;display:block}
+
+/* bottlenecks */
+.bn{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:11px 0;border-top:1px solid var(--line)}
+.bn:first-child{border-top:0;padding-top:0}
+.bn .nm{min-width:0;line-height:1.45}.bn .nm small{display:block;color:var(--mut);font-size:12px;text-align:right}
+.bn .fr{text-align:left;line-height:1.3}.bn .fr b{font-size:18px;font-weight:700;color:var(--ok)}.bn .fr small{display:block;color:var(--mut);font-size:12px}
+.bn .ft{grid-column:1/-1;font-size:12.5px;color:var(--mut)}.bn .ft b{color:var(--ink)}
+
+/* needs-you list */
+.todo{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--line);font-size:13.5px;line-height:1.7}
+.todo:first-child{border-top:0;padding-top:0}
+.todo .ic{flex:none;width:30px;height:30px;border-radius:9px;background:var(--warns);color:var(--warn);display:grid;place-items:center}
+
+/* plan tab */
+.sup{border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--in)}
+.sup .hd{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}.sup .hd b{flex:1;font-size:15px}
+.li{padding:9px 0;border-top:1px solid var(--line);font-size:13.5px}.li[open]>summary{margin-bottom:4px}
+.li>summary{display:flex;width:100%;align-items:center;gap:8px;line-height:1.5}
+.li .bl{flex:1;min-width:0;display:flex;flex-direction:column;color:var(--ink)}.li .bl small{color:var(--mut);font-size:12.5px}
+.li .bq{flex:none;color:var(--ink);font-weight:600;white-space:nowrap}
+.suprow{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;align-items:end;padding:10px 0;border-top:1px solid var(--line)}
+.fold{border-top:1px solid var(--line);padding-top:10px;margin-top:12px}
+.fold>summary{color:var(--ink);font-size:13.5px;font-weight:500;min-height:32px;display:flex}
+.fold[open]>summary{margin-bottom:6px}
+
+/* saved decisions */
+.run{padding:14px 0;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.run:first-child{border-top:0;padding-top:4px}
+.run .rh{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.run .rh b{flex:1;font-size:14px}
+.run .rt{font-size:13px;color:var(--mut);line-height:1.65}
+.run .rn{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;color:var(--mut)}.run .rn b{color:var(--ink);font-size:15px}
+
+#login{max-width:380px;margin:48px auto}
+#login>h3{font-size:18px;color:var(--goldhi)}
+
+@media (max-width:520px){
+  main{padding:12px 12px 36px}
+  .top .hbar{padding:8px 12px}.tabs{padding:0 6px;justify-content:space-between}.tabs button{padding:10px 7px 9px;font-size:13.5px}
+  .suprow{grid-template-columns:1fr 1fr}.suprow>label:first-child{grid-column:1/-1}
+  .btn.big{flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+@media print{
+  :root{--bg:#fff;--card:#fff;--in:#fff;--ink:#000;--mut:#444;--line:#bbb;--line2:#999;--chip:#eee;--ok:#1d6b3a;--warn:#8a5200;--bad:#a02c1f;--oks:#fff;--warns:#fff;--bads:#fff;--goldhi:#000;--gold:#555;color-scheme:light}
+  .top,.noprint{display:none!important}
+  body{background:#fff;color:#000}.card,.sec,.ov{border:0;padding:0}
+  .verdict p,.verdict ul,.why{color:#222}
+  .chev,.bd,summary::before{display:none!important}.sec>summary{min-height:0;padding:10px 0 4px}.sb{padding:6px 0 10px}.wk,.sup{break-inside:avoid}
+}
 </style>
 </head>
 <body>
-<header><a href="/" class="btn sec noprint" style="text-decoration:none;padding:6px 10px" aria-label="رجوع للسيستم">› السيستم</a><b>مركز القرار</b><small id="who"></small><span class="sp"></span><button class="btn sec noprint" id="reload">تحديث الداتا</button></header>
+<header class="top">
+  <div class="hbar"><a href="/" class="back noprint" aria-label="رجوع للسيستم"><svg class="i" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>السيستم</a><b class="ttl">مركز القرار</b><small id="who" class="mut"></small><span class="sp"></span><button class="btn sec sm noprint" id="reload"><svg class="i" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14.5-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4M20 20v-4h-4"/></svg>تحديث</button></div>
+  <nav class="tabs noprint" aria-label="أقسام مركز القرار">
+    <button data-t="today" class="on">النهارده</button>
+    <button data-t="plan">تفاصيل الخطة</button>
+    <button data-t="what">ماذا لو؟</button>
+    <button data-t="sim">النواقص</button>
+    <button data-t="runs">السجل</button>
+  </nav>
+</header>
 
 <div id="login" class="card hide">
   <h3>دخول المالك</h3>
   <label>رقم الموبايل<input id="lphone" inputmode="tel" placeholder="01xxxxxxxxx"></label>
-  <label style="margin-top:8px">كلمة السر<input id="lpass" type="password"></label>
-  <div style="margin-top:12px"><button class="btn" id="lbtn">دخول</button></div>
-  <p id="lerr" class="bad"></p>
+  <label style="margin-top:10px">كلمة السر<input id="lpass" type="password"></label>
+  <div style="margin-top:14px"><button class="btn" id="lbtn" style="width:100%">دخول</button></div>
+  <p id="lerr" class="bad" style="margin-top:8px;font-size:13.5px"></p>
 </div>
 
 <main id="app" class="hide">
   <div id="status" class="msg">جاري تحميل الداتا…</div>
-  <div class="tabs noprint">
-    <button data-t="today" class="on">اعمل إيه النهارده</button>
-    <button data-t="plan">تفاصيل الخطة</button>
-    <button data-t="what">ماذا لو؟</button>
-    <button data-t="sim">النواقص الجاية</button>
-    <button data-t="runs">سجل القرارات</button>
-  </div>
 
   <!-- TODAY -->
   <section id="t-today">
@@ -109,16 +295,16 @@ details[open]>summary{margin-bottom:6px}
     <div class="card noprint">
       <h3>المدخلات</h3>
       <div class="grid">
-        <label>الميزانية المتاحة للشراء (ج) — فاضي = من غير حد<input id="budget" inputmode="decimal" placeholder="مثال 50000"></label>
+        <label>الميزانية المتاحة للشراء (ج)<input id="budget" inputmode="decimal" placeholder="فاضي = من غير حد"></label>
         <label>الأولوية
           <select id="mode"><option value="rank">بترتيب الشغل (الفاتورة رقم 1 الأول)</option><option value="cash">أعلى إيراد صافي مقابل الفلوس</option></select></label>
-        <label>وحدة الشراء للزيت اللي مالوش مشتريات مسجلة (جم)<input id="lot" inputmode="decimal" value="125"></label>
+        <label>وحدة شراء الزيت اللي مالوش مشتريات مسجلة (جم)<input id="lot" inputmode="decimal" value="125"></label>
         <label class="chk"><input type="checkbox" id="whole" checked>فضّل إكمال فواتير كاملة</label>
         <label class="chk"><input type="checkbox" id="buyE" checked>اسمح بشراء الفوارغ الناقصة</label>
       </div>
-      <details><summary>الموردين: تشغيل/إيقاف، حد صرف، تغيير سعر</summary><div id="sups"></div></details>
-      <details><summary id="lotsSum">وحدة الشراء لكل زيت (جرام / 125 جم / كيلو)</summary><div id="lots"></div></details>
-      <div class="row" style="margin-top:12px">
+      <details class="fold"><summary>الموردين: تشغيل/إيقاف، حد صرف، تغيير سعر</summary><div id="sups"></div></details>
+      <details class="fold"><summary id="lotsSum">وحدة الشراء لكل زيت (جرام / 125 جم / كيلو)</summary><div id="lots"></div></details>
+      <div class="row" style="margin-top:14px">
         <button class="btn" id="run">احسب القرار</button>
         <button class="btn sec" id="run0">بالمخزون الحالي بس</button>
       </div>
@@ -129,34 +315,33 @@ details[open]>summary{margin-bottom:6px}
   <!-- WHAT-IF -->
   <section id="t-what" class="hide">
     <div class="card">
-      <h3>ماذا لو؟</h3>
-      <p class="mut" style="margin-top:0">كل سيناريو هنا بيتحسب من الأول بنفس النموذج ونفس الداتا، والمتغير الوحيد هو الشرط اللي غيرته. كده تقدر تشوف أثر كل تغيير لوحده.</p>
-      <div class="row">
-        <button class="btn sec" id="pin">ثبّت آخر خطة كأساس للمقارنة</button>
-        <span id="pinInfo" class="mut" style="font-size:13px"></span>
+      <h3>قارن سيناريو بالأساس</h3>
+      <p class="sub">غيّر أي إعداد في "تفاصيل الخطة" (ميزانية، مورد واقف، زيادة سعر…) ودوس "احسب القرار"، وارجع هنا تلاقي المقارنة. كل سيناريو بيتحسب من الأول بنفس النموذج ونفس الداتا.</p>
+      <div class="row" style="margin:12px 0">
+        <button class="btn sec" id="pin">ثبّت آخر خطة كأساس</button>
+        <span id="pinInfo" class="mut" style="font-size:12.5px;flex:1;min-width:180px"></span>
       </div>
-      <p class="mut" style="font-size:13px">غيّر أي إعداد في تبويب "الشراء والتعبئة" (ميزانية، مورد واقف، زيادة سعر…) واضغط "احسب القرار"، وارجع هنا تلاقي المقارنة.</p>
       <div id="cmpOut"></div>
     </div>
     <div class="card">
-      <h3>منحنى الميزانية: كل جنيه زيادة بيجيب إيه؟</h3>
-      <p class="mut" style="margin-top:0">بيحل النموذج 6 مرات بميزانيات مختلفة، من صفر لحد تكلفة تغطية كل الطلبات.</p>
+      <h3>كل جنيه زيادة في الميزانية بيجيب إيه؟</h3>
+      <p class="sub" style="margin-bottom:12px">بيحل النموذج 6 مرات بميزانيات مختلفة، من صفر لحد تكلفة تغطية كل الطلبات.</p>
       <button class="btn sec" id="curve">احسب المنحنى (حوالي 30 ثانية)</button>
-      <div id="curveOut"></div>
+      <div id="curveOut" style="margin-top:10px"></div>
     </div>
   </section>
 
   <!-- SIM -->
   <section id="t-sim" class="hide">
     <div class="card noprint">
-      <h3>محاكاة الأيام الجاية (Monte Carlo)</h3>
+      <h3>محاكاة الأيام الجاية</h3>
       <div class="grid">
         <label>عدد الأيام لحد ما البضاعة توصل<input id="hz" inputmode="numeric" value="7"></label>
         <label>تغيير الطلب % (رمضان +30، ركود -20)<input id="mult" inputmode="decimal" value="0"></label>
         <label>مستوى الأمان<select id="svc"><option value="0.8">80%</option><option value="0.9" selected>90%</option><option value="0.95">95%</option></select></label>
         <label>اعرض الخطر من<select id="minRisk"><option value="0.2">20% وأكتر</option><option value="0.5">50% وأكتر</option><option value="0">الكل</option></select></label>
       </div>
-      <div class="row" style="margin-top:12px"><button class="btn" id="runSim">شغّل المحاكاة</button></div>
+      <div class="row" style="margin-top:14px"><button class="btn" id="runSim">شغّل المحاكاة</button></div>
     </div>
     <div id="simOut"></div>
   </section>
@@ -164,8 +349,8 @@ details[open]>summary{margin-bottom:6px}
   <section id="t-work" class="hide"><div id="workOut"></div></section>
 
   <section id="t-runs" class="hide">
-    <div class="card"><h3>سجل القرارات المحفوظة</h3>
-      <p class="mut" style="margin-top:0">كل قرار محفوظ معاه الداتا اللي اتبنى عليها بالظبط ومدخلاته. "إعادة الحساب" بتشغّل النموذج تاني على نفس الداتا، وتتأكد إن النتيجة مطابقة، وتعدّي القرار على الفحص المستقل.</p>
+    <div class="card"><h3>القرارات المحفوظة</h3>
+      <p class="sub" style="margin-bottom:8px">كل قرار محفوظ معاه الداتا اللي اتبنى عليها ومدخلاته. "إعادة الحساب" بتشغّل النموذج تاني على نفس الداتا وتتأكد إن النتيجة مطابقة.</p>
       <div id="runsOut" class="mut">…</div></div>
   </section>
 </main>
@@ -204,11 +389,45 @@ function download(name, text, type = 'text/plain') {
   const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name; a.click();
 }
 
+// ---------- UI helpers ----------
+const IC = {
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  link: '<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  check: '<path d="M5 12.5l4.500 4.500L19 7.500"/>',
+  alert: '<path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.500v.010"/>',
+  x: '<path d="M6 6l12 12M18 6L6 18"/>',
+  send: '<path d="M21 3L10 14"/><path d="M21 3l-7 18-4-7-7-4z"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/>',
+  refresh: '<path d="M20 11a8 8 0 0 0-14.500-4M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.500 4M20 20v-4h-4"/>',
+  coin: '<circle cx="12" cy="12" r="9"/><path d="M15 9.500c-.500-1-1.500-1.500-3-1.500-1.700 0-2.800.800-2.800 2s1.100 1.700 2.800 2 2.800.800 2.800 2-1.100 2-2.800 2c-1.500 0-2.500-.500-3-1.500M12 6v12"/>',
+  bottle: '<path d="M10 3h4v4l2 3v10a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V10l2-3z"/><path d="M8 14h8"/>',
+  clip: '<rect x="5" y="5" width="14" height="16" rx="2"/><path d="M9 5V3h6v2M9 11h6M9 15h4"/>',
+  flask: '<path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.800 3h10.400a2 2 0 0 0 1.800-3l-5-9V3"/><path d="M7.500 15h9"/>',
+  ban: '<circle cx="12" cy="12" r="9"/><path d="M5.600 5.600l12.800 12.800"/>',
+  undo: '<path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/>',
+  team: '<circle cx="9" cy="8" r="3.500"/><path d="M2.500 20a6.500 6.500 0 0 1 13 0"/><path d="M16 4.800a3.500 3.500 0 0 1 0 6.400M18.500 14.500A6.500 6.500 0 0 1 21.500 20"/>'
+};
+const ic = (n, s = 18) => `<svg class="i" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${IC[n]}</svg>`;
+// verdict banner: tone = ok | warn | bad
+const vd = (tone, title, body = '') => `<div class="verdict ${tone}"><span class="ic">${ic(tone === 'ok' ? 'check' : tone === 'bad' ? 'x' : 'alert', 15)}</span><div><b class="vt">${title}</b>${body}</div></div>`;
+// collapsible sections remember whether the owner left them open (on this device)
+let OPEN = { make: true, 'p-buy': true };
+try { OPEN = Object.assign(OPEN, JSON.parse(localStorage.getItem('af-dc-open') || '{}')); } catch (e) { /* defaults */ }
+const isOpen = (k, force) => (force || OPEN[k]) ? 'open' : '';
+const sec = (key, badge, title, sum, body, tone = '', force = false) => `<details class="sec" data-sec="${key}" ${isOpen(key, force)}>
+  <summary><span class="bd ${/^\d$/.test(badge) ? 'n' : ''}">${badge}</span><span class="st"><b>${title}</b>${sum ? `<small class="${tone}">${sum}</small>` : ''}</span><span class="chev" aria-hidden="true"></span></summary>
+  <div class="sb">${body}</div></details>`;
+const bindSecs = root => root.querySelectorAll('details[data-sec]').forEach(d => d.addEventListener('toggle', () => {
+  OPEN[d.dataset.sec] = d.open; try { localStorage.setItem('af-dc-open', JSON.stringify(OPEN)); } catch (e) { /* private mode */ }
+}));
+
 // ---------- auth ----------
 async function boot() {
   const { data } = await sb.auth.getSession();
   if (!data.session) { $('login').classList.remove('hide'); return; }
-  $('app').classList.remove('hide'); $('login').classList.add('hide');
+  $('app').classList.remove('hide'); $('login').classList.add('hide'); document.body.classList.add('in');
   await load();
 }
 $('lbtn').onclick = async () => {
@@ -230,7 +449,7 @@ async function load() {
   RAW = data; SNAP = AFOpt.withDuePriority(RAW, PRIO_BY); HASH = await sha(SNAP);
   const pcs = SNAP.lines.reduce((s, l) => s + +l.qty, 0);
   const invN = new Set(SNAP.lines.map(l => l.inv_id)).size;
-  $('status').innerHTML = `الداتا من السيستم لحظة ${esc(dt(SNAP.at))}: ${invN} فاتورة مفتوحة، ${SNAP.lines.length} سطر، ${f0(pcs)} قطعة. <span class="mut">بصمة الداتا ${HASH.slice(0, 10)}</span>`;
+  $('status').innerHTML = `الداتا من السيستم لحظة ${esc(dt(SNAP.at))} · ${invN} فاتورة مفتوحة · ${SNAP.lines.length} سطر · ${f0(pcs)} قطعة · بصمة <span class="hash">${HASH.slice(0, 10)}</span>`;
   renderSups(); renderLots(); runPlan(false); runSim(); renderWork(); loadRuns();
   loadExtras().then(runToday);
 }
@@ -325,13 +544,6 @@ $('run').onclick = () => runPlan(false);
 $('run0').onclick = () => runPlan(true);
 
 // ---------- render: plan with full explanation ----------
-function optimalityHTML(S) {
-  if (S.status === 'optimal') return `<div class="verdict"><span class="ic ok">✓</span><div><b class="ok">ده الحل الأمثل، ومثبت رياضياً.</b><br>
-    <span class="mut" style="font-size:13.5px">الـ Solver (${esc(S.name || '')}، Branch & Bound) خلّص البحث في ${f0(S.ms)} ملّي ثانية، ومفيش أي خطة تانية تحترم نفس القيود وتطلّع قيمة أعلى.</span></div></div>`;
-  return `<div class="verdict"><span class="ic warn">≈</span><div><b class="warn">خطة ممكنة ومتحقق منها، بس مش مثبت إنها الأحسن.</b><br>
-    <span class="mut" style="font-size:13.5px">الـ Solver وقف بعد ${f0(S.tmlim)} ثانية قبل ما يخلّص البحث، فممكن يكون فيه خطة أحسن.</span>
-    <div class="noprint" style="margin-top:6px"><button class="btn sec" id="longer">كمّل البحث لحد دقيقتين</button></div></div></div>`;
-}
 function modelHTML(R) {
   const { m, solver: S, P } = R;
   const nOil = m.needOil.size, nEmp = m.needEmp.size, nL = m.lines.length, nI = m.invs.size;
@@ -364,12 +576,7 @@ function dataHTML(R) {
     <tr><td>سعر البيع وربح الصفحة</td><td>من سطر الفاتورة ومن ربح الصفحة على الفاتورة</td></tr>
     <tr><td>ترتيب الشغل</td><td>من ترتيب الفواتير في السيستم. الفواتير اللي مالهاش ترتيب بتيجي بعدهم بالتاريخ.</td></tr>
   </table>
-  ${m.warn.length ? `<details><summary class="warn">${m.warn.length} ملاحظة على الداتا اتعاملنا معاها</summary><ul>${m.warn.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>` : '<p class="ok">مفيش ملاحظات على الداتا.</p>'}`;
-}
-function verifyHTML(V) {
-  return `<div class="verdict" style="margin-bottom:8px"><span class="ic ${V.ok ? 'ok' : 'bad'}">${V.ok ? '✓' : '✗'}</span><div><b class="${V.ok ? 'ok' : 'bad'}">${V.ok ? 'كل القيود متحققة' : 'فيه قيد مكسور!'}</b><br>
-    <span class="mut" style="font-size:13.5px">الفحص ده مش بيصدّق الـ Solver. بيرجع للداتا الخام، ويعيد حساب كل قيد وكل جنيه بنفسه من القرارات النهائية.</span></div></div>
-    <table>${V.checks.map(c => `<tr><td>${c.ok ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}</td><td>${esc(c.name)}</td><td class="mut">${esc(c.detail)}</td></tr>`).join('')}</table>`;
+  ${m.warn.length ? `<details class="how"><summary class="warn">${m.warn.length} ملاحظة على الداتا اتعاملنا معاها</summary><ul>${m.warn.map(w => `<li>${esc(w)}</li>`).join('')}</ul></details>` : '<p class="ok">مفيش ملاحظات على الداتا.</p>'}`;
 }
 function buyWhy(b, m) {
   const w = b.why;
@@ -386,6 +593,18 @@ function buyWhy(b, m) {
   }
   return h + `</div>`;
 }
+function optimalityHTML(S) {
+  if (S.status === 'optimal') return vd('ok', 'ده الحل الأمثل، ومثبت رياضياً',
+    `<p>الـ Solver (${esc(S.name || '')}، Branch & Bound) خلّص البحث في ${f0(S.ms)} ملّي ثانية، ومفيش أي خطة تانية تحترم نفس القيود وتطلّع قيمة أعلى.</p>`);
+  return vd('warn', 'خطة ممكنة ومتحقق منها، بس مش مثبت إنها الأحسن',
+    `<p>الـ Solver وقف بعد ${f0(S.tmlim)} ثانية قبل ما يخلّص البحث، فممكن يكون فيه خطة أحسن.</p>
+    <div class="noprint" style="margin-top:8px"><button class="btn sec sm" id="longer">كمّل البحث لحد دقيقتين</button></div>`);
+}
+function verifyHTML(V) {
+  return vd(V.ok ? 'ok' : 'bad', V.ok ? 'كل القيود متحققة' : 'فيه قيد مكسور!',
+    `<p>الفحص ده مش بيصدّق الـ Solver. بيرجع للداتا الخام، ويعيد حساب كل قيد وكل جنيه بنفسه من القرارات النهائية.</p>`) +
+    `<table>${V.checks.map(c => `<tr><td style="width:28px">${c.ok ? `<span class="ok">${ic('check', 16)}</span>` : `<span class="bad">${ic('x', 16)}</span>`}</td><td>${esc(c.name)}</td><td class="mut">${esc(c.detail)}</td></tr>`).join('')}</table>`;
+}
 function renderPlan(R) {
   const { m, p, solver: S, ver: V, P } = R;
   const pcsAll = m.lines.reduce((s, l) => s + l.qty, 0), pcsF = p.filled.reduce((s, l) => s + l.qty, 0);
@@ -398,59 +617,63 @@ function renderPlan(R) {
   for (const b of p.buys) { const k = b.sup ?? 'none'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
   const name = b => b.kind === 'oil' ? (m.oilById.get(b.id)?.name || '?') : (m.empById.get(b.id)?.name || '?');
   const code = b => b.kind === 'oil' ? 'Z' + (m.oilById.get(b.id)?.cnt_no ?? '-') : 'F' + (m.empById.get(b.id)?.cnt_no ?? '-');
+  const opt = S.status === 'optimal';
 
-  let h = `<div class="card"><h3><span class="q">١</span>القرار المقترح</h3>
-    <p class="mut" style="margin-top:0;font-size:13px">${esc(describeParams(P))}</p>
+  let h = `<div class="card"><h3>القرار المقترح</h3>
+    <p class="sub" style="margin-bottom:12px">${esc(describeParams(P))}</p>
     <div class="kpis">
-      <div class="kpi"><small>قطع هتتعبّى</small><b>${f0(pcsF)}</b> <span class="mut">من ${f0(pcsAll)}</span></div>
-      <div class="kpi"><small>إيراد صافي هيتفتح</small><b>${f0(p.revenue)}</b> <span class="mut">من ${f0(p.allRev)} ج</span></div>
-      <div class="kpi"><small>تكلفة الشراء</small><b>${f0(p.buyCost)}</b> <span class="mut">ج</span></div>
-      <div class="kpi"><small>توفير مقابل أغلى مورد</small><b class="ok">${f0(save)}</b> <span class="mut">ج</span></div>
+      <div class="kpi"><small>قطع هتتعبّى</small><b>${f0(pcsF)}</b> من ${f0(pcsAll)}</div>
+      <div class="kpi"><small>إيراد صافي هيتفتح</small><b>${f0(p.revenue)}</b> من ${f0(p.allRev)} ج</div>
+      <div class="kpi"><small>تكلفة الشراء</small><b>${f0(p.buyCost)}</b> ج</div>
+      <div class="kpi"><small>توفير مقابل أغلى مورد</small><b class="ok">${f0(save)}</b> ج</div>
     </div>
-    <div class="row noprint"><button class="btn" id="save">احفظ القرار في السجل</button><button class="btn sec" onclick="window.print()">طباعة / PDF</button><span id="saveMsg" class="mut"></span></div></div>`;
-
-  h += `<div class="card"><h3><span class="q">٢</span>هل الحل ده أمثل؟</h3>${optimalityHTML(S)}</div>`;
-  h += `<div class="card"><h3><span class="q">٣</span>القيود: اتحترمت ولا لأ؟</h3>${verifyHTML(V)}</div>`;
+    <div class="row" style="margin-top:12px"><span class="pill ${opt ? 'ok' : 'warn'}">${ic(opt ? 'check' : 'alert', 13)}${opt ? 'الحل الأمثل، مثبت رياضياً' : 'مش مثبت إنه الأحسن'}</span>
+      <span class="pill ${V.ok ? 'ok' : 'bad'}">${ic(V.ok ? 'check' : 'x', 13)}${V.ok ? 'كل القيود متحققة' : 'فيه قيد مكسور'}</span></div>
+    <div class="row noprint" style="margin-top:14px"><button class="btn" id="save">احفظ القرار في السجل</button><button class="btn sec" onclick="window.print()">طباعة / PDF</button><span id="saveMsg" class="mut" style="font-size:13px"></span></div></div>`;
 
   // buy list with why
-  h += `<div class="card"><h3><span class="q">٤</span>هنشتري إيه ومن مين، وليه</h3>`;
-  if (!p.buys.length) h += `<p class="mut">مش محتاج تشتري حاجة للخطة دي.</p>`;
+  let buy = '';
+  if (!p.buys.length) buy = `<p class="mut">مش محتاج تشتري حاجة للخطة دي.</p>`;
   for (const [k, bs] of groups) {
     const tot = bs.reduce((s, b) => s + b.cost, 0);
     bs.sort((a, b) => b.cost - a.cost);
-    h += `<div class="sup"><div class="hd"><b>${esc(supName(k === 'none' ? null : k))}</b><span class="tag">${bs.length} صنف · ${f0(tot)} ج</span>
-      <button class="btn sec noprint" data-copy="${esc(k)}">نسخ للواتساب</button></div>
-      ${bs.map(b => `<details><summary><span style="color:var(--ink)">${esc(name(b))}</span> <span class="mut">${code(b)}</span> — <b style="color:var(--ink)">${f0(b.qty)} ${b.kind === 'oil' ? 'جم' : 'قطعة'}</b> × ${b.kind === 'oil' ? f0(b.ppg * 1000) + '/كجم' : f0(b.ppg)} = ${f0(b.cost)} ج</summary>${buyWhy(b, m)}</details>`).join('')}
+    buy += `<div class="sup"><div class="hd"><b>${esc(supName(k === 'none' ? null : k))}</b><span class="tag">${bs.length} صنف · ${f0(tot)} ج</span>
+      <button class="btn sec sm noprint" data-copy="${esc(k)}">نسخ للواتساب</button></div>
+      ${bs.map(b => `<details class="li"><summary><span class="bl"><span>${esc(name(b))} <span class="mut" dir="ltr">${code(b)}</span></span><small><b style="color:var(--ink)">${f0(b.qty)} ${b.kind === 'oil' ? 'جم' : 'قطعة'}</b> × ${b.kind === 'oil' ? f0(b.ppg * 1000) + ' ج/كجم' : f0(b.ppg) + ' ج'}</small></span><span class="bq">${f0(b.cost)} ج</span></summary>${buyWhy(b, m)}</details>`).join('')}
     </div>`;
   }
-  h += `</div>`;
+  h += sec('p-buy', ic('coin'), 'هنشتري إيه ومن مين، وليه', p.buys.length ? `${p.buys.length} صنف من ${groups.size} مورد · ${f0(p.buyCost)} ج` : 'مفيش شراء', buy);
 
   // invoices
-  h += `<div class="card"><h3><span class="q">٥</span>الفواتير بعد القرار</h3><div class="scroll"><table>
-    <tr><th>#</th><th>الفاتورة</th><th>العميل</th><th>سطور</th><th class="n">قطع</th><th class="n">قيمة صافية</th><th></th></tr>
-    ${p.invDone.map(i => `<tr><td>${i.rank}</td><td>${esc(i.no)}</td><td>${esc(i.cust || '')}</td><td>${i.filled}/${i.lines}</td><td class="n">${f0(i.pcsFilled)}/${f0(i.pcs)}</td><td class="n">${f0(i.valueFilled)}</td>
-      <td><div class="bar"><i style="width:${Math.round(100 * i.pcsFilled / (i.pcs || 1))}%"></i></div></td></tr>`).join('')}</table></div></div>`;
+  const fullInv = p.invDone.filter(i => i.filled === i.lines).length;
+  h += sec('p-inv', ic('clip'), 'الفواتير بعد القرار', `${fullInv} فاتورة كاملة من ${p.invDone.length}`, `<div class="scroll"><table>
+    <tr><th>#</th><th>الفاتورة</th><th>العميل</th><th>سطور</th><th class="n">قطع</th><th class="n">قيمة صافية</th></tr>
+    ${p.invDone.map(i => `<tr><td>${i.rank}</td><td><span dir="ltr">${esc(i.no)}</span><div class="bar"><i style="width:${Math.round(100 * i.pcsFilled / (i.pcs || 1))}%"></i></div></td><td>${esc(i.cust || '')}</td><td>${i.filled}/${i.lines}</td><td class="n">${f0(i.pcsFilled)}/${f0(i.pcs)}</td><td class="n">${f0(i.valueFilled)}</td></tr>`).join('')}</table></div>`);
 
   // unfilled
   if (p.unfilled.length) {
     const byInv = new Map();
     for (const l of p.unfilled) { if (!byInv.has(l.no)) byInv.set(l.no, []); byInv.get(l.no).push(l); }
-    h += `<div class="card"><h3><span class="q">٦</span>سطور اتأجلت، وليه</h3>`;
-    for (const [no, ls] of byInv) h += `<details><summary>${esc(no)}: ${ls.length} سطر، ${f0(ls.reduce((s, l) => s + l.qty, 0))} قطعة</summary>
+    let u = '';
+    for (const [no, ls] of byInv) u += `<details class="how"><summary><span dir="ltr">${esc(no)}</span>: ${ls.length} سطر، ${f0(ls.reduce((s, l) => s + l.qty, 0))} قطعة</summary>
       ${ls.map(l => `<div class="why"><b>${esc(l.name)}</b> × ${f0(l.qty)} (${f1(l.g)} جم)<br>${esc(l.why)}</div>`).join('')}</details>`;
-    h += `</div>`;
+    h += sec('p-un', ic('clock'), 'سطور اتأجلت، وليه', `${p.unfilled.length} سطر · ${f0(p.unfilled.reduce((s, l) => s + l.qty, 0))} قطعة في ${byInv.size} فاتورة`, u, 'warn');
   }
 
-  h += `<div class="card"><h3><span class="q">٧</span>المعادلة اللي اتحلت</h3>${modelHTML(R)}
-    <div class="row noprint"><button class="btn sec" id="dlLP">نزّل النموذج (.lp)</button><button class="btn sec" id="dlJSON">نزّل التشغيلة كاملة (JSON)</button></div>
-    <p class="mut" style="font-size:12.5px">ملف .lp ده بصيغة CPLEX LP القياسية. تقدر تفتحه في أي Solver تاني (GLPK أو CBC أو Gurobi) وتتأكد إنه بيطلّع نفس النتيجة.</p></div>`;
-  h += `<div class="card"><h3><span class="q">٨</span>الداتا اللي اتبنى عليها القرار</h3>${dataHTML(R)}</div>`;
-  h += `<div class="card"><details><summary>كل الزيوت المطلوبة للطلبات المفتوحة (${p.oilRows.length})</summary><div class="scroll"><table>
+  h += `<h4 class="grp">التحقق والتفاصيل الفنية</h4>`;
+  h += sec('p-opt', ic('target'), 'هل الحل ده أمثل؟', opt ? 'أيوه، ومثبت رياضياً' : 'خطة ممكنة، بس مش مثبت إنها الأحسن', optimalityHTML(S), opt ? 'ok' : 'warn', !opt);
+  h += sec('p-ver', ic('check'), 'القيود: اتحترمت ولا لأ؟', V.ok ? `${V.checks.length} فحص مستقل، كلهم سليم` : 'فيه قيد مكسور', verifyHTML(V), V.ok ? 'ok' : 'bad', !V.ok);
+  h += sec('p-math', ic('flask'), 'المعادلة اللي اتحلت', `${S.nVars} متغير · ${S.nCons} قيد`, `${modelHTML(R)}
+    <div class="row noprint"><button class="btn sec sm" id="dlLP">نزّل النموذج (.lp)</button><button class="btn sec sm" id="dlJSON">نزّل التشغيلة كاملة (JSON)</button></div>
+    <p class="sub" style="font-size:12.5px">ملف .lp ده بصيغة CPLEX LP القياسية. تقدر تفتحه في أي Solver تاني (GLPK أو CBC أو Gurobi) وتتأكد إنه بيطلّع نفس النتيجة.</p>`);
+  h += sec('p-data', ic('chart'), 'الداتا اللي اتبنى عليها القرار', m.warn.length ? `${m.warn.length} ملاحظة على الداتا` : 'مفيش ملاحظات على الداتا', dataHTML(R), m.warn.length ? 'warn' : '');
+  h += sec('p-oils', ic('bottle'), 'كل الزيوت المطلوبة للطلبات المفتوحة', `${p.oilRows.length} زيت · ${p.oilRows.filter(o => o.gap).length} ناقص`, `<div class="scroll"><table>
     <tr><th>الزيت</th><th>كود</th><th class="n">رصيد</th><th class="n">مطلوب</th><th class="n">ناقص</th><th class="n">هيتشري</th><th class="n">هيتستخدم</th><th class="n">يفضل</th></tr>
     ${p.oilRows.slice().sort((a, b) => b.gap - a.gap).map(o => `<tr><td>${esc(o.name)}</td><td class="mut">Z${o.cnt ?? '-'}</td><td class="n ${o.stock < 0 ? 'bad' : ''}">${f0(o.stock)}</td><td class="n">${f0(o.need)}</td><td class="n ${o.gap ? 'bad' : ''}">${f0(o.gap)}</td><td class="n">${f0(o.bought)}</td><td class="n">${f0(o.used)}</td><td class="n">${f0(o.left)}</td></tr>`).join('')}
-    </table></div></details></div>`;
+    </table></div>`);
 
   $('planOut').innerHTML = h;
+  bindSecs($('planOut'));
   $('planOut').querySelectorAll('[data-copy]').forEach(btn => btn.onclick = () => {
     const k = btn.dataset.copy, bs = groups.get(k);
     const txt = `طلبية ${supName(k === 'none' ? null : k)} — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}\n` + bs.map(b => `- ${name(b)}: ${f0(b.qty)} ${b.kind === 'oil' ? 'جرام' : 'قطعة'}`).join('\n');
@@ -461,6 +684,7 @@ function renderPlan(R) {
   $('dlJSON').onclick = () => download(`af-decision-${R.at.slice(0, 16)}.json`, JSON.stringify({ params: R.P, snapshot: R.snap, hash: R.hash, decision: R.decision, solver: R.solver, verify: R.ver }, null, 1), 'application/json');
   $('save').onclick = () => saveRun(R);
 }
+
 
 
 // ---------- TODAY: what to do now, in plain words ----------
@@ -481,7 +705,7 @@ async function loadExtras() {
 const RLM = '‏';
 const hm = mins => { const m = Math.round(mins); return m < 60 ? `${m} دقيقة` : `${Math.floor(m / 60)} ساعة${m % 60 ? ' و' + (m % 60) + ' دقيقة' : ''}`; };
 const gq = g => g >= 1000 ? `${f2(g / 1000)} كجم` : `${f0(g)} جم`;
-const copyBtn = (btn, txt) => navigator.clipboard.writeText(txt).then(() => { const o = btn.textContent; btn.textContent = 'اتنسخ ✓'; setTimeout(() => btn.textContent = o, 1500); });
+const copyBtn = (btn, txt) => navigator.clipboard.writeText(txt).then(() => { const o = btn.innerHTML; btn.textContent = 'اتنسخ ✓'; setTimeout(() => btn.innerHTML = o, 1500); });
 // ---------- send the distribution to the workers' screens + follow-up ----------
 // Sending never claims a line: the worker presses "ابدأ" himself, so measured start times stay real.
 function sendItems(A) {
@@ -496,20 +720,20 @@ async function sendWork(A) {
   if (!items.length) return;
   const ws = A.workers.filter(w => w.batches.length);
   if (!confirm(`هتبعت ${items.length} سطر على ${ws.length} عامل:\n${ws.map(w => `• ${w.name}: ${w.batches.length} صنف · ${f0(w.pcs)} قطعة`).join('\n')}\n\nأي توزيع قديم محدش بدأ فيه هيتبدّل بالجديد. تبعت؟`)) return;
-  btn.disabled = true; const o = btn.textContent; btn.textContent = 'بيبعت…'; msg.innerHTML = '';
+  btn.disabled = true; const o = btn.innerHTML; btn.textContent = 'بيبعت…'; msg.innerHTML = '';
   try {
     const { data, error } = await sb.rpc('assign_work', { p_items: items, p_replace: true });
     if (error) throw error;
     const sk = data.skipped || [], by = {};
     sk.forEach(x => (by[x.why] = by[x.why] || []).push(x));
-    msg.innerHTML = `<div class="why" style="margin-top:10px"><b class="ok">✅ اتبعت ${f0(data.assigned)} سطر.</b> ${(data.workers || []).map(w => `${esc(w.name)}: ${f0(w.lines)} سطر · ${f0(w.pcs)} قطعة`).join(' · ')}
+    msg.innerHTML = `<div class="why" style="margin-top:10px"><b class="ok">اتبعت ${f0(data.assigned)} سطر.</b> ${(data.workers || []).map(w => `${esc(w.name)}: ${f0(w.lines)} سطر · ${f0(w.pcs)} قطعة`).join(' · ')}
       ${sk.length ? `<br><span class="warn">اتساب ${sk.length} سطر من غير تغيير:</span> ${Object.keys(by).map(k => `${by[k].length} ${WHY_SKIP[k] || k}${k === 'started' ? ` (${[...new Set(by[k].map(x => x.by).filter(Boolean))].map(esc).join('، ')})` : ''}`).join(' · ')}` : ''}
       ${data.released ? `<br><span class="mut">${f0(data.released)} تكليف قديم اتلغى واتبدّل بالجديد.</span>` : ''}</div>`;
     await loadProgress();
   } catch (e) {
     const m = String(e.message || e);
     msg.innerHTML = `<div class="why bad" style="margin-top:10px">ماتبعتش: ${esc(m.includes('not_allowed') ? 'الإرسال للمالك بس.' : m.includes('bad_worker') ? 'فيه عامل في التوزيع حسابه مش متفعّل. حدّث الداتا وجرّب تاني.' : m.includes('assign_work') || m.includes('schema cache') ? 'خاصية الإرسال لسه ماتفعّلتش في قاعدة البيانات.' : m)}</div>`;
-  } finally { btn.disabled = false; btn.textContent = o; }
+  } finally { btn.disabled = false; btn.innerHTML = o; }
 }
 async function loadProgress() {
   const box = $('wProg'); if (!box) return;
@@ -518,15 +742,17 @@ async function loadProgress() {
   const W = data.workers || [], D = data.declined || [];
   if (!W.length && !D.length) { box.innerHTML = ''; return; }
   const pc = (a, b) => b ? Math.round(a * 100 / b) : 0;
-  box.innerHTML = `<div class="sendbox" style="background:none"><div class="row" style="justify-content:space-between"><h4>📊 متابعة الشغل المتوزّع</h4>
-      <span class="row"><button class="btn sec" id="wProgR">↻ تحديث</button><button class="btn sec" id="wRedo">حدّث الداتا ووزّع الباقي تاني</button></span></div>
+  box.innerHTML = `<div class="prog"><div class="row sbw"><h4>متابعة الشغل المتوزّع</h4><button class="btn sec sm" id="wProgR">${ic('refresh', 15)}تحديث</button></div>
     ${W.map(w => `<div class="prow"><div class="top"><b>${esc(w.name)}</b><span>خلّص <b class="ok">${f0(w.done)}</b> من ${f0(w.lines)} سطر · ${f0(w.done_pcs)} من ${f0(w.pcs)} قطعة</span></div>
       <div class="pbar"><i style="width:${pc(w.done, w.lines)}%"></i><i class="st" style="width:${pc(w.started, w.lines)}%"></i></div>
       <small>${w.started ? `شغّال دلوقتي في ${f0(w.started)} · ` : ''}لسه مابدأش ${f0(Math.max(0, w.lines - w.done - w.started - w.taken_by_other))}${+w.mins_left ? ` · الباقي ≈ ${hm(+w.mins_left)}` : ''}${w.taken_by_other ? ` · <span class="warn">${f0(w.taken_by_other)} أخدهم عامل تاني</span>` : ''}${w.done_by_other ? ` · <span class="warn">${f0(w.done_by_other)} خلّصهم عامل تاني</span>` : ''}</small></div>`).join('')}
-    ${D.length ? `<div class="prow"><b class="warn">↩️ رجعوا من العمال ومحتاجين يتوزّعوا تاني (${D.length})</b><small>${D.map(d => `${esc(d.name)} × ${f0(d.qty)} <bdi dir="ltr">${esc(d.no || '')}</bdi> — ${esc(d.worker)}`).join(' · ')}</small></div>` : ''}
-    <small class="mut" style="display:block;margin-top:6px;font-size:12.5px">الأخضر = خلص · الدهبي = شغّال فيه. "وزّع الباقي تاني" بيحدّث الداتا ويحسب توزيع جديد للي محدش بدأ فيه، وبعدها انت اللي بتدوس "ابعت".</small></div>`;
-  $('wProgR').onclick = loadProgress;
-  $('wRedo').onclick = () => { load(); window.scrollTo(0, 0); };
+    ${D.length ? `<div class="prow"><b class="warn">${ic('undo', 15)} رجعوا من العمال ومحتاجين يتوزّعوا تاني (${D.length})</b><small>${D.map(d => `${esc(d.name)} × ${f0(d.qty)} <bdi dir="ltr">${esc(d.no || '')}</bdi> — ${esc(d.worker)}`).join(' · ')}</small></div>` : ''}
+    <div class="row" style="margin:10px 0 8px"><button class="btn sec" id="wRedo">حدّث الداتا ووزّع الباقي تاني</button></div>
+    <small>الأخضر = خلص · الدهبي = شغّال فيه. "وزّع الباقي تاني" بيحدّث الداتا ويحسب توزيع جديد للي محدش بدأ فيه، وبعدها انت اللي بتدوس "ابعت".</small></div>`;
+  // the screen may have been redrawn while the request was running: bind inside this box, and only if it is still there
+  const pr = box.querySelector('#wProgR'), rd = box.querySelector('#wRedo');
+  if (pr) pr.onclick = loadProgress;
+  if (rd) rd.onclick = () => { load(); window.scrollTo(0, 0); };
 }
 // ---------- plan vs actual: was the distribution followed, and what does the team really produce? ----------
 async function loadPVA() {
@@ -539,18 +765,20 @@ async function loadPVA() {
   for (const p of P) { if (!days.has(p.d)) days.set(p.d, []); days.get(p.d).push(p); }
   const pct = (a, b) => b > 0 ? Math.round(a * 100 / b) : 0;
   const avg = O.length ? O.reduce((s, o) => s + +o.pcs, 0) / O.length : 0;
-  const plansHtml = days.size ? [...days.entries()].map(([d, ws]) => {
-    const pl = ws.reduce((s, w) => s + +w.pcs, 0), same = ws.reduce((s, w) => s + +w.done_same_day, 0), later = ws.reduce((s, w) => s + +w.done_later, 0);
-    return `<details class="wk"><summary><b>${dshort(d)}</b><span class="tag">اتوزّع ${f0(pl)} قطعة</span><span class="tag ${pct(same, pl) >= 80 ? 'ok' : 'warn'}">اتعمل في يومه ${pct(same, pl)}%</span></summary><div class="in">
-      ${ws.map(w => `<div class="it"><span><b>${esc(w.name)}</b>
+  const plansHtml = days.size ? `<div class="stack">${[...days.entries()].map(([d, ws]) => {
+    const pl = ws.reduce((s, w) => s + +w.pcs, 0), same = ws.reduce((s, w) => s + +w.done_same_day, 0);
+    return `<details class="wk"><summary><span class="wn"><b>${dshort(d)}</b><small>اتوزّع ${f0(pl)} قطعة</small></span><span class="tag ${pct(same, pl) >= 80 ? 'ok' : 'warn'}">اتعمل في يومه ${pct(same, pl)}%</span><span class="chev" aria-hidden="true"></span></summary><div class="in">
+      ${ws.map(w => `<div class="it"><div class="ib"><b>${esc(w.name)}</b>
         <small>اتوزّع عليه ${f0(w.pcs)} قطعة (${f0(w.lines)} سطر) · خلّص منهم في نفس اليوم <b>${f0(w.done_same_day)}</b>${+w.done_later ? ` · بعدها ${f0(w.done_later)}` : ''}${+w.still_open ? ` · <span class="warn">لسه ${f0(w.still_open)}</span>` : ''}${+w.done_by_other ? ` · عملهم غيره ${f0(w.done_by_other)}` : ''}${+w.declined ? ` · رجّع ${f0(w.declined)}` : ''}</small>
-        <small>إنتاجه الكلي اليوم ده: ${f0(w.day_output)} قطعة${+w.day_output > +w.done_same_day ? ` (منهم ${f0(w.day_output - w.done_same_day)} من برّه التوزيع)` : ''}</small></span><span class="q">${pct(w.done_same_day, w.pcs)}%</span></div>`).join('')}</div></details>`;
-  }).join('') : '<p class="mut" style="font-size:13.5px">لسه مفيش توزيع اتبعت للعمال في آخر 14 يوم. أول ما تبعت توزيع، هيظهر هنا اتنفذ منه قد إيه.</p>';
-  box.innerHTML = `<div class="card noprint"><div class="step"><span class="no">✓</span><h3>الخطة مقابل الفعلي — آخر 14 يوم</h3></div>
-    <p class="lead">${O.length ? `الفريق خلّص في المتوسط <b>${f0(avg)}</b> قطعة في يوم الشغل (${O.length} يوم؛ أقل يوم ${f0(Math.min(...O.map(o => +o.pcs)))} وأعلى يوم ${f0(Math.max(...O.map(o => +o.pcs)))}).` : 'مفيش إنتاج متسجل في المدة دي.'}</p>
+        <small>إنتاجه الكلي اليوم ده: ${f0(w.day_output)} قطعة${+w.day_output > +w.done_same_day ? ` (منهم ${f0(w.day_output - w.done_same_day)} من برّه التوزيع)` : ''}</small></div><span class="q">${pct(w.done_same_day, w.pcs)}%</span></div>`).join('')}</div></details>`;
+  }).join('')}</div>` : '<p class="sub">لسه مفيش توزيع اتبعت للعمال في آخر 14 يوم. أول ما تبعت توزيع، هيظهر هنا اتنفذ منه قد إيه.</p>';
+  box.innerHTML = sec('pva', ic('chart'), 'الخطة مقابل الفعلي', O.length ? `متوسط ${f0(avg)} قطعة في يوم الشغل` : 'آخر 14 يوم',
+    `<p class="lead">${O.length ? `الفريق خلّص في المتوسط <b>${f0(avg)}</b> قطعة في يوم الشغل (${O.length} يوم؛ أقل يوم ${f0(Math.min(...O.map(o => +o.pcs)))} وأعلى يوم ${f0(Math.max(...O.map(o => +o.pcs)))}).` : 'مفيش إنتاج متسجل في المدة دي.'}</p>
     ${plansHtml}
-    ${O.length ? `<details style="margin-top:8px"><summary>إنتاج كل يوم</summary><div class="tw"><table><tr><th>اليوم</th><th>قطع</th><th>سطور</th><th>عمال</th></tr>${O.slice().reverse().map(o => `<tr><td>${dshort(o.d)}</td><td><b>${f0(o.pcs)}</b></td><td>${f0(o.lines)}</td><td>${f0(o.workers)}</td></tr>`).join('')}</table></div></details>` : ''}
-    <p class="mut" style="font-size:12.5px;margin:8px 0 0">"اتعمل في يومه" = القطع اللي العامل خلّصها في نفس يوم التوزيع من اللي اتوزّع عليه. التوزيع اللي اتلغى أو اتبدّل مش محسوب. لو النسبة قليلة دايماً، يا الطاقة المكتوبة أعلى من الحقيقي يا التوزيع مش بيتّبع.</p></div>`;
+    ${O.length ? `<details class="how"><summary>إنتاج كل يوم</summary><div class="tw"><table><tr><th>اليوم</th><th>قطع</th><th>سطور</th><th>عمال</th></tr>${O.slice().reverse().map(o => `<tr><td>${dshort(o.d)}</td><td><b>${f0(o.pcs)}</b></td><td>${f0(o.lines)}</td><td>${f0(o.workers)}</td></tr>`).join('')}</table></div></details>` : ''}
+    <p class="sub" style="font-size:12.5px">"اتعمل في يومه" = القطع اللي العامل خلّصها في نفس يوم التوزيع من اللي اتوزّع عليه. التوزيع اللي اتلغى أو اتبدّل مش محسوب. لو النسبة قليلة دايماً، يا الطاقة المكتوبة أعلى من الحقيقي يا التوزيع مش بيتّبع.</p>`);
+  box.firstElementChild.classList.add('noprint');
+  bindSecs(box);
 }
 function whyBatch(b, w, A) {
   const mg = b.lines.length > 1 ? `نفس الصنف في ${b.lines.length} أوردر اتجمّع (${f0(b.qty)} قطعة)، فالتجهيز مرة واحدة. ` : '';
@@ -608,71 +836,87 @@ async function runToday() {
     const dlAvg = A.workers.length ? A.teamPerDay / A.workers.length : 0;
     const dlExtra = dlAvg > 0 ? Math.max(0, Math.ceil((DL.needPerDay - DL.teamPerDay) / dlAvg)) : 0;
     const worst = DL.lateOrders && DL.lateOrders.length ? Math.max(...DL.lateOrders.map(o => o.late)) : 0;
-    const dlVerdict = DL.status === 'NO_CAPACITY' ? `<div class="verdict"><span class="ic warn">!</span><div>اختار العمال وطاقتهم تحت عشان أحسب مين يخلص في معاده.</div></div>` :
-      DL.status === 'ON_TIME' ? `<div class="verdict"><span class="ic ok">✓</span><div><b class="ok">كل الأوردرات تخلص في معادها بالفريق ده.</b> آخر أوردر يخلص ${dshort(DL.finishAll)}.${DL.blockedPcs ? ` <b class="warn">بشرط إن الخامات الناقصة (${f0(DL.blockedPcs)} قطعة واقفة عليها) توصل في وقتها.</b>` : ''}</div></div>` :
-      `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش حل يخلّص كل الأوردرات في معادها بالفريق ده.</b>
-        ${DL.lateOrders.length} أوردر من ${DL.orders.length} هيتأخروا، وأسوأهم ${dayN(worst)} شغل بعد معاده. كل الشغل (${f0(DL.total)} قطعة) يخلص ${dshort(DL.finishAll)}.<br>
-        ${DL.overdueOrders.length ? `<b>${DL.overdueOrders.length} أوردر معادهم فات فعلاً</b>، ودول مفيش أي فريق يرجّعهم في معادهم.<br>` : ''}
-        ${DL.needPerDay > DL.teamPerDay ? `عشان اللي لسه معاده ما فاتش يخلص في وقته: محتاج <b>${f0(Math.ceil(DL.needPerDay))} قطعة في اليوم</b> والفريق بيعمل ${f0(DL.teamPerDay)}${dlExtra ? `، يعني حوالي <b>${dlExtra} عامل زيادة</b> بنفس المتوسط` : ''}.` : 'اللي لسه معاده ما فاتش يلحق بالفريق ده.'}
-        ${DL.blockedPcs ? `<br><span class="warn">ده غير إن ${f0(DL.blockedPcs)} قطعة واقفة على خامات ناقصة. المواعيد المتوقعة محسوبة على إن الخامات هتوصل.</span>` : ''}</div></div>`;
-    const dlRow = o => `<tr><td><b>${o.rank < 1e6 ? o.rank + '.' : ''}</b> <b dir="ltr">${esc(o.no)}</b>${o.small && PRIO_BY === 'small' ? ' <span class="pill ok">مسار سريع</span>' : ''}<br><small class="mut">${esc(o.cust || '')}</small><br>
-        ${o.overdue ? `<b class="bad">معاده فات من ${dayN(o.overdue)}</b>` : o.late ? `<b class="warn">هيتأخر ${dayN(o.late)}</b>` : o.late === 0 ? '<b class="ok">في معاده</b>' : ''}</td>
-      <td><input type="date" data-due="${o.inv_id}" value="${o.due}" min="${o.date}" style="max-width:140px;padding:4px 6px">${o.dueManual ? '<br><small class="warn">معاد انت حددته</small>' : o.due > AFOpt.addWorkDays(o.date, AFOpt.DUE_DAYS) ? `<br><small class="mut">معاد واقعي اتحسب وقت التسجيل (قاعدة الـ${AFOpt.DUE_DAYS} أيام كانت ${dshort(AFOpt.addWorkDays(o.date, AFOpt.DUE_DAYS))})</small>` : ''}
-        <br><small class="mut">${o.finish ? (o.blocked ? 'أقرب معاد لو الخامات اتشرت: ' : 'متوقع يخلص ') + dshort(o.finish) : ''}${o.blocked && o.readyDay ? `<br>الجاهز منه (${f0(o.makeable)} قطعة) يخلص ${dshort(AFOpt.addWorkDays(DL.start, o.readyDay - 1))}` : ''}</small></td>
-      <td><b>${f0(o.left)}</b>${o.blocked ? `<br><small class="warn">${f0(o.blocked)} واقفة على خامات</small>` : ''}</td></tr>`;
-    const s0 = `<div class="card"><div class="step"><span class="no">⏱</span><h3>المواعيد — كل أوردر لازم يخلص بعد ${AFOpt.DUE_DAYS} أيام شغل من تاريخه</h3></div>
+    const lateN = DL.lateOrders ? DL.lateOrders.length : 0;
+    const dlVerdict = DL.status === 'NO_CAPACITY' ? vd('warn', 'اختار العمال وطاقتهم الأول', '<p>من "صنّعوا دلوقتي ← الفريق والطاقة"، عشان أحسب مين يخلص في معاده.</p>') :
+      DL.status === 'ON_TIME' ? vd('ok', 'كل الأوردرات تخلص في معادها بالفريق ده', `<p>آخر أوردر يخلص ${dshort(DL.finishAll)}.${DL.blockedPcs ? ` <b class="warn">بشرط إن الخامات الناقصة (${f0(DL.blockedPcs)} قطعة واقفة عليها) توصل في وقتها.</b>` : ''}</p>`) :
+      vd('bad', 'مفيش حل يخلّص كل الأوردرات في معادها بالفريق ده', `<ul>
+        <li><b>${lateN} أوردر من ${DL.orders.length} هيتأخروا</b>، وأسوأهم ${dayN(worst)} شغل بعد معاده. كل الشغل (${f0(DL.total)} قطعة) يخلص ${dshort(DL.finishAll)}.</li>
+        ${DL.overdueOrders.length ? `<li><b>${DL.overdueOrders.length} أوردر معادهم فات فعلاً</b>، ودول مفيش أي فريق يرجّعهم في معادهم.</li>` : ''}
+        <li>${DL.needPerDay > DL.teamPerDay ? `عشان اللي لسه معاده ما فاتش يخلص في وقته: محتاج <b>${f0(Math.ceil(DL.needPerDay))} قطعة في اليوم</b> والفريق بيعمل ${f0(DL.teamPerDay)}${dlExtra ? `، يعني حوالي <b>${dlExtra} عامل زيادة</b> بنفس المتوسط` : ''}.` : 'اللي لسه معاده ما فاتش يلحق بالفريق ده.'}</li>
+        ${DL.blockedPcs ? `<li class="warn">${f0(DL.blockedPcs)} قطعة واقفة على خامات ناقصة. المواعيد المتوقعة محسوبة على إن الخامات هتوصل.</li>` : ''}</ul>`);
+    const dlState = o => o.overdue ? `<span class="pill bad">معاده فات من ${dayN(o.overdue)}</span>` : o.late ? `<span class="pill warn">هيتأخر ${dayN(o.late)}</span>` : o.late === 0 ? '<span class="pill ok">في معاده</span>' : '';
+    const dlRow = o => {
+      const notes = [];
+      if (o.dueManual) notes.push('<span class="warn">معاد انت حددته</span>');
+      else if (o.due > AFOpt.addWorkDays(o.date, AFOpt.DUE_DAYS)) notes.push(`معاد واقعي اتحسب وقت التسجيل (قاعدة الـ${AFOpt.DUE_DAYS} أيام كانت ${dshort(AFOpt.addWorkDays(o.date, AFOpt.DUE_DAYS))})`);
+      if (o.finish) notes.push((o.blocked ? 'أقرب معاد لو الخامات اتشرت: ' : 'متوقع يخلص ') + dshort(o.finish));
+      if (o.blocked && o.readyDay) notes.push(`الجاهز منه (${f0(o.makeable)} قطعة) يخلص ${dshort(AFOpt.addWorkDays(DL.start, o.readyDay - 1))}`);
+      return `<div class="orow">
+        <div class="oh"><span class="rk">${o.rank < 1e6 ? o.rank : '–'}</span><span class="on"><b dir="ltr">${esc(o.no)}</b><small>${esc(o.cust || '')}</small></span>${o.small && PRIO_BY === 'small' ? '<span class="pill">مسار سريع</span>' : ''}${dlState(o)}</div>
+        <div class="om"><label>المعاد<input type="date" data-due="${o.inv_id}" value="${o.due}" min="${o.date}"></label>
+          <span class="oq"><span><b>${f0(o.left)}</b> قطعة باقية</span>${o.blocked ? `<span class="warn">${f0(o.blocked)} واقفة على خامات</span>` : ''}</span></div>
+        ${notes.length ? `<small class="mut">${notes.join(' · ')}</small>` : ''}</div>`;
+    };
+    const DL_SHOW = 5;
+    const s0 = sec('dl', ic('clock'), 'المواعيد',
+      DL.status === 'NO_CAPACITY' ? 'اختار العمال الأول' : DL.status === 'ON_TIME' ? `الـ ${DL.orders.length} أوردر في معادهم` : `${lateN} من ${DL.orders.length} أوردر هيتأخروا`,
+      `<p class="sub">كل أوردر لازم يخلص بعد ${AFOpt.DUE_DAYS} أيام شغل من تاريخه.</p>
       ${dlVerdict}
-      <div class="row noprint" style="margin:10px 0"><label style="margin:0">ترتيب الشغل: <select id="prioBy"><option value="small" ${PRIO_BY === 'small' ? 'selected' : ''}>الصغير أول ثم بالمعاد (المقترح)</option><option value="due" ${PRIO_BY === 'due' ? 'selected' : ''}>بالمعاد بس (الأقرب أول)</option><option value="manual" ${PRIO_BY === 'manual' ? 'selected' : ''}>ترتيبي اليدوي في السيستم</option></select></label>
-        <span class="mut" style="font-size:13px">${PRIO_BY === 'small' ? `الأوردر اللي ${AFOpt.SMALL_ORDER} قطعة أو أقل بيتعمل الأول، والباقي بالمعاد.` : PRIO_BY === 'due' ? 'الترتيب اليدوي بيفصل بس بين الأوردرات اللي معادها واحد.' : 'المعاد بيرتّب بس الأوردرات اللي مالهاش ترتيب يدوي.'}</span></div>
-      <div class="tw"><table><tr><th>الأوردر</th><th>المعاد</th><th>باقي (قطعة)</th></tr>${DL.orders.map(dlRow).join('')}</table></div>
+      <div class="ctl noprint"><label>ترتيب الشغل<select id="prioBy"><option value="small" ${PRIO_BY === 'small' ? 'selected' : ''}>الصغير أول ثم بالمعاد (المقترح)</option><option value="due" ${PRIO_BY === 'due' ? 'selected' : ''}>بالمعاد بس (الأقرب أول)</option><option value="manual" ${PRIO_BY === 'manual' ? 'selected' : ''}>ترتيبي اليدوي في السيستم</option></select></label>
+        <small class="mut">${PRIO_BY === 'small' ? `الأوردر اللي ${AFOpt.SMALL_ORDER} قطعة أو أقل بيتعمل الأول، والباقي بالمعاد.` : PRIO_BY === 'due' ? 'الترتيب اليدوي بيفصل بس بين الأوردرات اللي معادها واحد.' : 'المعاد بيرتّب بس الأوردرات اللي مالهاش ترتيب يدوي.'}</small></div>
+      <div class="olist">${DL.orders.slice(0, DL_SHOW).map(dlRow).join('')}</div>
+      ${DL.orders.length > DL_SHOW ? `<details class="more" data-sec="dl-more" ${isOpen('dl-more')}><summary>باقي الأوردرات (${DL.orders.length - DL_SHOW})</summary><div class="olist">${DL.orders.slice(DL_SHOW).map(dlRow).join('')}</div></details>` : ''}
       <div id="dueMsg"></div>
-      <details class="noprint" style="margin-top:8px"><summary>المواعيد دي اتحسبت إزاي؟</summary><div class="why" style="line-height:1.9">
-        <b>المعاد:</b> تاريخ الفاتورة + ${AFOpt.DUE_DAYS} أيام شغل (الجمعة مش محسوبة). ده معاد تمام التصنيع، وبعده الشحن. تقدر تغيّر معاد أي أوردر من الجدول.<br>
+      <details class="how noprint"><summary>المواعيد دي اتحسبت إزاي؟</summary><div class="why">
+        <b>المعاد:</b> تاريخ الفاتورة + ${AFOpt.DUE_DAYS} أيام شغل (الجمعة مش محسوبة). ده معاد تمام التصنيع، وبعده الشحن. تقدر تغيّر معاد أي أوردر من القايمة.<br>
         <b>الترتيب:</b> "الصغير أول" بيخلّص الأوردرات اللي ${AFOpt.SMALL_ORDER} قطعة أو أقل في الأول (كلهم مع بعض غالباً شغل يوم)، وبعدهم الباقي بالمعاد. ده بيقلل عدد الأوردرات المتأخرة ومتوسط انتظار العملاء، والكبار بيتأخروا حوالي يوم.<br>
         <b>متوقع يخلص:</b> مجموع القطع لحد الأوردر بالترتيب ÷ إنتاج الفريق في اليوم (${f0(DL.teamPerDay)} قطعة) = يوم الشغل اللي يخلص فيه، ابتداءً من ${dshort(DL.start)}. ده <b>أقرب معاد ممكن</b>، ومفترض إن الخامات الناقصة هتتشرى في وقتها. الجزء اللي خاماته موجودة مكتوب معاده لوحده.<br>
         <b>الحكم:</b> لو أي أوردر متوقع يخلص بعد معاده، بيتكتب "مفيش حل" ومعاه مين هيتأخر وبكام يوم.<br>
-        <b>حدود الدقة:</b> إنتاج الفريق متوسط فعلي بالقطع، ومش بيفرّق بين صنف صعب وسهل. ولو الأوردرات الصغيرة بتيجي كتير كل يوم، الكبار ممكن يتأخروا أكتر من المكتوب؛ راقب ده من كارت الخطة مقابل الفعلي.</div></details></div>`;
+        <b>حدود الدقة:</b> إنتاج الفريق متوسط فعلي بالقطع، ومش بيفرّق بين صنف صعب وسهل. ولو الأوردرات الصغيرة بتيجي كتير كل يوم، الكبار ممكن يتأخروا أكتر من المكتوب؛ راقب ده من قسم الخطة مقابل الفعلي.</div></details>`,
+      DL.status === 'ON_TIME' ? 'ok' : DL.status === 'NO_CAPACITY' ? 'warn' : 'bad');
     // --- 1) make now: a plan each worker can actually finish in the chosen number of days
     const dayW = PLAN_DAYS === 1 ? 'يوم واحد' : PLAN_DAYS === 2 ? 'يومين' : `${PLAN_DAYS} أيام`;
     const SRC = { measured: w => `متوسطه الفعلي في ${f0(w.histDays)} يوم شغل`, owner: () => 'رقم انت كتبته', estimate: () => 'تقدير: مالوش إنتاج متسجل كفاية، فأخد وسط العمال', unknown: () => 'مفيش بيانات — اكتب رقم' };
-    const wk = A.workers.filter(w => w.batches.length).map((w, i) => `<details class="wk" ${i === 0 ? 'open' : ''}>
-      <summary><b>${esc(w.name)}</b><span class="tag">${w.batches.length} صنف</span><span class="tag ${w.over ? 'bad' : ''}">${f0(w.pcs)} من ${f0(w.cap)} قطعة</span>
-        <button class="btn sec noprint" data-wcopy="${w.id}">نسخ للواتساب</button></summary>
+    const wk = A.workers.filter(w => w.batches.length).map(w => `<details class="wk">
+      <summary><span class="wn"><b>${esc(w.name)}</b><small class="${w.over ? 'bad' : ''}">${w.batches.length} صنف · ${f0(w.pcs)} من ${f0(w.cap)} قطعة</small></span>
+        <button class="btn sec sm noprint" data-wcopy="${w.id}">${ic('copy', 14)}واتساب</button><span class="chev" aria-hidden="true"></span>
+        <span class="capbar ${w.over ? 'over' : ''}"><i style="width:${Math.min(100, Math.round(100 * w.pcs / (w.cap || 1)))}%"></i></span></summary>
       <div class="in">
-        <div class="why" style="font-size:13px;margin:0 0 8px">طاقته: <b>${f0(w.perDay)} قطعة في اليوم</b> (${SRC[w.src](w)}) × ${dayW} = <b>${f0(w.cap)}</b>.${w.over ? ` <b class="bad">معاه ${f0(w.pcs)} لأنه بدأ فيهم فعلاً.</b>` : ''}${A.timed ? ` وقت الشغل الصافي التقريبي ≈ ${hm(w.mins)}.` : ''}</div>
-        ${w.batches.map((b, k) => `<div class="it"><span>${k + 1}. ${esc(b.name)}${b.grams != null ? ` · <b>تركيز ${f1(b.grams)} جم</b>` : ' · <b class="bad">مستني تركيز</b>'}${b.held ? ' <span class="pill ok">بدأ فيه</span>' : ''}${b.otherConc ? '<br><span class="pill warn">⚠️ نفس الصنف موجود بتركيز تاني — متخلطهمش</span>' : ''}
-        <small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small>
-        <small style="color:var(--ink);opacity:.8">ليه هنا؟ ${whyBatch(b, w, A)}</small>
-        ${A.timed ? `<small>وقته ≈ ${f0(b.mins)} دقيقة (تجهيز ${f0(T.setup)} + تعبئة ${f0(b.qty * T.perPc)})</small>` : ''}</span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
+        <p class="sub">طاقته: <b>${f0(w.perDay)} قطعة في اليوم</b> (${SRC[w.src](w)}) × ${dayW} = <b>${f0(w.cap)}</b>.${w.over ? ` <b class="bad">معاه ${f0(w.pcs)} لأنه بدأ فيهم فعلاً.</b>` : ''}${A.timed ? ` وقت الشغل الصافي التقريبي ≈ ${hm(w.mins)}.` : ''}</p>
+        ${w.batches.map((b, k) => `<div class="it"><span class="ix">${k + 1}</span><div class="ib"><b>${esc(b.name)}</b>
+          <span class="pl">${b.grams != null ? `<span class="pill">تركيز ${f1(b.grams)} جم</span>` : '<span class="pill bad">مستني تركيز</span>'}${b.held ? '<span class="pill ok">بدأ فيه</span>' : ''}${b.otherConc ? `<span class="pill warn wrap">${ic('alert', 13)}نفس الصنف موجود بتركيز تاني — متخلطهمش</span>` : ''}</span>
+          <small dir="auto">${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')}</small>
+          <details class="mini"><summary>ليه هنا؟</summary><small style="color:#D2CABB">${whyBatch(b, w, A)}${A.timed ? `<br>وقته ≈ ${f0(b.mins)} دقيقة (تجهيز ${f0(T.setup)} + تعبئة ${f0(b.qty * T.perPc)})` : ''}</small></details></div><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>`).join('');
     const idle = A.workers.filter(w => !w.batches.length).map(w => esc(w.name));
-    const capRows = RATES.map(w => `<tr><td>${esc(w.name)}</td><td><input data-capov="${w.id}" inputmode="numeric" value="${CAP_OV[w.id] ?? ''}" placeholder="${w.perDay ?? '—'}" style="max-width:90px"></td><td class="mut" style="font-size:12.5px">${SRC[CAP_OV[w.id] != null && CAP_OV[w.id] !== '' ? 'owner' : w.src](Object.assign({ histDays: w.days }, w))}</td></tr>`).join('');
+    const capRows = RATES.map(w => `<div class="caprow"><span><b>${esc(w.name)}</b><small>${SRC[CAP_OV[w.id] != null && CAP_OV[w.id] !== '' ? 'owner' : w.src](Object.assign({ histDays: w.days }, w))}</small></span><input data-capov="${w.id}" inputmode="numeric" value="${CAP_OV[w.id] ?? ''}" placeholder="${w.perDay ?? '—'}" aria-label="قطع ${esc(w.name)} في اليوم"></div>`).join('');
     // verdict: what fits, what does not, and a plain "no solution" when the target cannot be met
     const needPerDay = A.total / A.days, avgW = A.workers.length ? A.teamPerDay / A.workers.length : 0;
     const extraW = avgW > 0 ? Math.ceil((needPerDay - A.teamPerDay) / avgW) : 0;
     const verdict = A.status === 'NO_WORKERS' ? '' :
-      A.status === 'NO_RATE' ? `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش خطة.</b> ${A.errors.map(esc).join('، ')} مالهمش إنتاج متسجل، ومش هخمّن رقم. اكتب طاقتهم اليومية في الجدول فوق.</div></div>` :
-      A.status !== 'OK' ? `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش خطة: ${esc(STATE_AR[A.status] || A.status)}.</b> ${A.errors.slice(0, 2).map(esc).join('، ')}</div></div>` :
-      `<div class="verdict"><span class="ic ${A.deferredPcs ? 'warn' : 'ok'}">${A.deferredPcs ? '!' : '✓'}</span><div>
-        <b>خطة ${dayW}: ${f0(A.assigned)} قطعة من ${f0(A.total)} المتاحة.</b> طاقة الفريق ${f0(A.teamPerDay)} قطعة في اليوم × ${dayW}.<br>
-        ${A.deferredPcs ? `<b class="warn">${f0(A.deferredPcs)} قطعة مش هتلحق في المدة دي</b> (${A.deferred.length} صنف، أولويتهم أقل). كل المتاح محتاج حوالي <b>${f1(A.daysForAll)} يوم</b> بالفريق ده.<br>
-          <b class="bad">عشان كل المتاح يخلص في ${dayW}: مفيش حل بالفريق ده.</b> محتاج ${f0(Math.ceil(needPerDay))} قطعة في اليوم والفريق بيعمل ${f0(A.teamPerDay)}${extraW > 0 ? `، يعني حوالي <b>${extraW} عامل زيادة</b> بنفس المتوسط، أو تمدّ المدة لـ ${Math.ceil(A.daysForAll)} أيام` : ''}.`
-          : `<b class="ok">كل المتاح يخلص في المدة دي</b>، وفاضل طاقة ${f0(Math.max(0, A.teamPerDay * A.days - A.assigned))} قطعة. لو اشتريت الخامات الناقصة (الخطوة 2) تقدر تشغّلهم فيها.`}<br>
-        <span class="mut" style="font-size:13px">${A.choice.proven ? 'اختيار الأصناف هو الأمثل ومثبت رياضياً' : 'اختيار جيد لكن مش مثبت إنه الأمثل'} (فرقه عن أقصى حد نظري ${f2(A.choice.gap * 100)}%) · ${A.ok ? 'المراجعة المستقلة سليمة ✓' : '<b class="bad">المراجعة المستقلة فشلت ✕</b>'}</span></div></div>`;
-    const defer = A.deferred.length ? `<details class="noprint"><summary>مش في خطة المدة دي: ${A.deferred.length} صنف · ${f0(A.deferredPcs)} قطعة</summary><div class="in">
-        ${A.deferred.slice(0, 200).map(b => `<div class="it"><span>${esc(b.name)}${b.grams != null ? ` · تركيز ${f1(b.grams)} جم` : ''}<small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')} · ${b.why.type === 'toobig' ? `<span class="warn">أكبر من طاقة أي عامل في ${dayW} — زوّد الأيام</span>` : b.rank < 1e6 ? `أولوية أوردره #${b.rank}، واللي دخل الخطة أولويته أعلى أو حجمه مناسب للمساحة` : 'أوردره مالوش ترتيب أولوية'}</small></span><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>` : '';
+      A.status === 'NO_RATE' ? vd('bad', 'مفيش خطة', `<p>${A.errors.map(esc).join('، ')} مالهمش إنتاج متسجل، ومش هخمّن رقم. اكتب طاقتهم اليومية في "الفريق والطاقة".</p>`) :
+      A.status !== 'OK' ? vd('bad', `مفيش خطة: ${esc(STATE_AR[A.status] || A.status)}`, `<p>${A.errors.slice(0, 2).map(esc).join('، ')}</p>`) :
+      vd(A.deferredPcs ? 'warn' : 'ok', `خطة ${dayW}: ${f0(A.assigned)} قطعة من ${f0(A.total)} المتاحة`, `<ul>
+        <li>طاقة الفريق ${f0(A.teamPerDay)} قطعة في اليوم × ${dayW}.</li>
+        ${A.deferredPcs ? `<li><b class="warn">${f0(A.deferredPcs)} قطعة مش هتلحق في المدة دي</b> (${A.deferred.length} صنف، أولويتهم أقل). كل المتاح محتاج حوالي <b>${f1(A.daysForAll)} يوم</b> بالفريق ده.</li>
+          <li><b class="bad">عشان كل المتاح يخلص في ${dayW}: مفيش حل بالفريق ده.</b> محتاج ${f0(Math.ceil(needPerDay))} قطعة في اليوم والفريق بيعمل ${f0(A.teamPerDay)}${extraW > 0 ? `، يعني حوالي <b>${extraW} عامل زيادة</b> بنفس المتوسط، أو تمدّ المدة لـ ${Math.ceil(A.daysForAll)} أيام` : ''}.</li>`
+          : `<li><b class="ok">كل المتاح يخلص في المدة دي</b>، وفاضل طاقة ${f0(Math.max(0, A.teamPerDay * A.days - A.assigned))} قطعة. لو اشتريت الخامات الناقصة (الخطوة 2) تقدر تشغّلهم فيها.</li>`}</ul>
+        <span class="fine">${A.choice.proven ? 'اختيار الأصناف هو الأمثل ومثبت رياضياً' : 'اختيار جيد لكن مش مثبت إنه الأمثل'} (فرقه عن أقصى حد نظري ${f2(A.choice.gap * 100)}%) · ${A.ok ? 'المراجعة المستقلة سليمة' : '<b class="bad">المراجعة المستقلة فشلت</b>'}</span>`);
+    const defer = A.deferred.length ? `<details class="more noprint" data-sec="defer" ${isOpen('defer')}><summary>مش في خطة المدة دي: ${A.deferred.length} صنف · ${f0(A.deferredPcs)} قطعة</summary><div>
+        ${A.deferred.slice(0, 200).map(b => `<div class="it"><div class="ib"><b>${esc(b.name)}</b>${b.grams != null ? `<span class="pl"><span class="pill">تركيز ${f1(b.grams)} جم</span></span>` : ''}<small>${b.lines.map(l => esc(l.no) + ' × ' + f0(l.qty)).join(' · ')} · ${b.why.type === 'toobig' ? `<span class="warn">أكبر من طاقة أي عامل في ${dayW} — زوّد الأيام</span>` : b.rank < 1e6 ? `أولوية أوردره #${b.rank}، واللي دخل الخطة أولويته أعلى أو حجمه مناسب للمساحة` : 'أوردره مالوش ترتيب أولوية'}</small></div><span class="q">${f0(b.qty)}</span></div>`).join('')}</div></details>` : '';
     // --- goal: deadlines vs profit-with-deadlines, side by side
-    const W = SNAPM.mustWindow, dW = PLAN_DAYS === 1 ? 'يوم واحد' : PLAN_DAYS === 2 ? 'يومين' : `${PLAN_DAYS} أيام`;
+    const W = SNAPM.mustWindow, dW = dayW;
     const cell = (v, good) => `<td class="${good ? 'ok' : ''}"><b>${v}</b></td>`;
     const diff = PRp.profit - PRd.profit;
     const unkNames = [...new Set(SNAPM.lines.filter(l => l.cost == null || l.cost === '').map(l => l.name))];
     const goalVerdict = Ad.status !== 'OK' || Ap.status !== 'OK' ? '' :
-      PRp.mustLeft > 0 ? `<div class="verdict"><span class="ic bad">✕</span><div><b class="bad">مفيش خطة تلحق كل المواعيد في ${dW}.</b> ${f0(PRp.mustLeft)} قطعة معادها في المدة دي مش هتلحق حتى لو اشتغلنا عليها الأول (${PRp.mustLeftOrders.map(esc).join('، ')}). زوّد عمال أو أيام، أو اسمح بتأخير.${Math.abs(diff) >= 1 ? `<br>بين الخطتين: ${diff > 0 ? `<b>خطة الربح بتكسب ${f0(diff)} ج زيادة</b>` : `خطة المواعيد بتكسب ${f0(-diff)} ج زيادة`}، والمتأخر ${PRp.mustLeft <= PRd.mustLeft ? 'مش أكتر' : `أكتر بـ ${f0(PRp.mustLeft - PRd.mustLeft)} قطعة`} — لأن الأولوية في الاتنين للأكثر تأخيراً، والربح بيفصل بس بين اللي في نفس درجة التأخير.` : ''}</div></div>` :
-      Math.abs(diff) < 1 ? `<div class="verdict"><span class="ic ok">✓</span><div>الخطتين بيكسبوا نفس الربح، فخطة المواعيد كفاية.</div></div>` :
-      diff > 0 ? `<div class="verdict"><span class="ic ok">✓</span><div><b>خطة الربح بتكسب ${f0(diff)} ج زيادة</b> في ${dW}، ومن غير ما أي أوردر معاده في المدة دي يتأخر${SLACK ? ` أكتر من ${dayN(SLACK)}` : ''}.</div></div>` :
-      `<div class="verdict"><span class="ic warn">!</span><div>خطة المواعيد بتكسب أكتر هنا (${f0(-diff)} ج)، غالباً لأنها بتعمل أصناف تكلفتها مش مسجلة وخطة الربح بتتجنبها.</div></div>`;
-    const sG = `<div class="card"><div class="step"><span class="no">₤</span><h3>الهدف: مواعيد ولا ربح؟</h3></div>
-      <div class="row noprint" style="margin:0 0 10px"><label style="margin:0">اشتغل على <select id="goal"><option value="due" ${GOAL === 'due' ? 'selected' : ''}>المواعيد (الأقرب أول)</option><option value="profit" ${GOAL === 'profit' ? 'selected' : ''}>أعلى ربح بشرط المواعيد</option></select></label>
-        <label style="margin:0">أسمح بتأخير <select id="slack">${[0, 1, 2, 3].map(n => `<option value="${n}" ${SLACK === n ? 'selected' : ''}>${n ? dayN(n) : 'ولا يوم'}</option>`).join('')}</select></label></div>
+      PRp.mustLeft > 0 ? vd('bad', `مفيش خطة تلحق كل المواعيد في ${dW}`, `<ul><li>${f0(PRp.mustLeft)} قطعة معادها في المدة دي مش هتلحق حتى لو اشتغلنا عليها الأول (<span dir="ltr">${PRp.mustLeftOrders.map(esc).join('، ')}</span>).</li><li>زوّد عمال أو أيام، أو اسمح بتأخير.</li>${Math.abs(diff) >= 1 ? `<li>بين الخطتين: ${diff > 0 ? `<b>خطة الربح بتكسب ${f0(diff)} ج زيادة</b>` : `خطة المواعيد بتكسب ${f0(-diff)} ج زيادة`}، والمتأخر ${PRp.mustLeft <= PRd.mustLeft ? 'مش أكتر' : `أكتر بـ ${f0(PRp.mustLeft - PRd.mustLeft)} قطعة`} — لأن الأولوية في الاتنين للأكثر تأخيراً، والربح بيفصل بس بين اللي في نفس درجة التأخير.</li>` : ''}</ul>`) :
+      Math.abs(diff) < 1 ? vd('ok', 'الخطتين بيكسبوا نفس الربح', '<p>خطة المواعيد كفاية.</p>') :
+      diff > 0 ? vd('ok', `خطة الربح بتكسب ${f0(diff)} ج زيادة في ${dW}`, `<p>ومن غير ما أي أوردر معاده في المدة دي يتأخر${SLACK ? ` أكتر من ${dayN(SLACK)}` : ''}.</p>`) :
+      vd('warn', `خطة المواعيد بتكسب أكتر هنا (${f0(-diff)} ج)`, '<p>غالباً لأنها بتعمل أصناف تكلفتها مش مسجلة وخطة الربح بتتجنبها.</p>');
+    const sG = sec('goal', ic('target'), 'الهدف: مواعيد ولا ربح؟',
+      (GOAL === 'profit' ? 'شغّال على أعلى ربح بشرط المواعيد' : 'شغّال على المواعيد') + (Ad.status === 'OK' && Ap.status === 'OK' && diff >= 1 ? ` · خطة الربح تزيد ${f0(diff)} ج` : ''),
+      `<div class="ctl noprint"><label>اشتغل على<select id="goal"><option value="due" ${GOAL === 'due' ? 'selected' : ''}>المواعيد (الأقرب أول)</option><option value="profit" ${GOAL === 'profit' ? 'selected' : ''}>أعلى ربح بشرط المواعيد</option></select></label>
+        <label>أسمح بتأخير<select id="slack">${[0, 1, 2, 3].map(n => `<option value="${n}" ${SLACK === n ? 'selected' : ''}>${n ? dayN(n) : 'ولا يوم'}</option>`).join('')}</select></label></div>
       <div class="tw"><table><tr><th>خطة ${dW}</th><th>المواعيد</th><th>ربح بشرط المواعيد</th></tr>
         <tr><td>قطع</td>${cell(f0(PRd.pcs))}${cell(f0(PRp.pcs))}</tr>
         <tr><td>ربح معروف</td>${cell(f0(PRd.profit) + ' ج', PRd.profit > PRp.profit)}${cell(f0(PRp.profit) + ' ج', PRp.profit > PRd.profit)}</tr>
@@ -680,44 +924,44 @@ async function runToday() {
         <tr><td>قطع بتتباع بخسارة</td>${cell(PRd.lossPcs ? `${f0(PRd.lossPcs)} (${f0(PRd.loss)} ج)` : '0')}${cell(PRp.lossPcs ? `${f0(PRp.lossPcs)} (${f0(PRp.loss)} ج)` : '0')}</tr>
         <tr><td>معادها في المدة ومش داخلة</td>${cell(f0(PRd.mustLeft), PRd.mustLeft === 0)}${cell(f0(PRp.mustLeft), PRp.mustLeft === 0)}</tr></table></div>
       ${goalVerdict}
-      ${unkNames.length ? `<p class="warn" style="font-size:13px;margin:8px 0 0">⚠️ ${unkNames.length} صنف تكلفته مش مسجلة، فربحه بيتحسب صفر ومش بيتقدّم في خطة الربح: ${unkNames.slice(0, 12).map(esc).join('، ')}${unkNames.length > 12 ? '…' : ''}. دخّل تكاليفهم ودوس "أعد حساب التكاليف" في السيستم.</p>` : ''}
-      <details class="noprint" style="margin-top:8px"><summary>الخطتين بيختاروا إزاي؟</summary><div class="why" style="line-height:1.9">
+      ${unkNames.length ? `<p class="warn" style="font-size:13px;line-height:1.7">${ic('alert', 14)} ${unkNames.length} صنف تكلفته مش مسجلة، فربحه بيتحسب صفر ومش بيتقدّم في خطة الربح: ${unkNames.slice(0, 12).map(esc).join('، ')}${unkNames.length > 12 ? '…' : ''}. دخّل تكاليفهم ودوس "أعد حساب التكاليف" في السيستم.</p>` : ''}
+      <details class="how noprint"><summary>الخطتين بيختاروا إزاي؟</summary><div class="why">
         <b>المواعيد:</b> الخامات والطاقة بتروح للأوردر الأقرب معاداً الأول، من غير ما يبص للربح.<br>
         <b>ربح بشرط المواعيد:</b> أي أوردر معاده (+ التأخير المسموح) بيقع في المدة دي (من ${dshort(W.start)} لـ ${dshort(W.end)}) أو فات <b>لازم يدخل</b>. الطاقة والخامات اللي فاضلة بتروح للأصناف الأعلى ربح في القطعة.<br>
         <b>الربح:</b> السعر الصافي (بعد نصيب الصفحة) − تكلفة القطعة المسجلة في السيستم. الصنف اللي تكلفته مش مسجلة ربحه بيتحسب صفر، فمش بيتقدّم إلا لو معاده لازم. الصنف اللي بيخسر مش بيدخل إلا لو معاده لازم.<br>
         <b>المعادلة:</b> نفس المعادلة المثبتة، والمراجعة المستقلة بتعيد حساب القيمة بنفس القواعد.<br>
-        <b>حدود:</b> الربح هنا ربح الخامات (من غير مرتبات ومصاريف)، والطاقة بالقطع مش بالساعة، فمش بيفرّق بين صنف سريع وصنف بطيء. ده هيتحسن بعد مراجعة أوقات كل نوع صنف.</div></details></div>`;
+        <b>حدود:</b> الربح هنا ربح الخامات (من غير مرتبات ومصاريف)، والطاقة بالقطع مش بالساعة، فمش بيفرّق بين صنف سريع وصنف بطيء. ده هيتحسن بعد مراجعة أوقات كل نوع صنف.</div></details>`);
     // --- bottleneck materials: what is holding back the most work
     const BN = AFOpt.bottlenecks(SNAP, base, new Set(R0d.p.filled.map(l => l.id)));
     const bnTop = BN.list.slice(0, 8);
-    const sB = BN.list.length ? `<div class="card"><div class="step"><span class="no">⛓</span><h3>الخامات الخانقة — إيه اللي موقّف أكتر شغل؟</h3></div>
-      <p class="lead"><b>${f0(BN.blockedPcs)}</b> قطعة واقفة على <b>${BN.list.length}</b> خامة ناقصة (${BN.list.filter(r => r.kind === 'empty').length} فارغ · ${BN.list.filter(r => r.kind === 'oil').length} زيت). دول أكتر ${bnTop.length} بيفكّوا شغل لو اتشروا:</p>
-      <div class="tw"><table><tr><th>الخامة</th><th>تشتري</th><th>بيفك لوحده</th></tr>
-        ${bnTop.map(r => `<tr><td><b>${esc(r.kind === 'empty' ? 'فارغ ' + r.name : r.name)}</b><br><small class="mut" dir="ltr">${r.orders.map(esc).join('، ')}</small></td>
-          <td>${r.kind === 'oil' ? gq(r.buyQty) : f0(r.buyQty) + ' قطعة'}<br><small class="${r.cost == null ? 'warn' : 'mut'}">${r.cost == null ? 'مالوش سعر مسجل' : f0(r.cost) + ' ج'}</small></td>
-          <td><b>${f0(r.alonePcs)}</b> قطعة${r.blockedPcs > r.alonePcs ? `<br><small class="mut">+${f0(r.blockedPcs - r.alonePcs)} محتاجة خامة تانية كمان</small>` : ''}${r.pcsPer1000 != null && r.alonePcs ? `<br><small class="mut">${f1(r.pcsPer1000)} قطعة لكل 1000 ج</small>` : ''}</td></tr>`).join('')}</table></div>
-      <details class="noprint" style="margin-top:8px"><summary>ده اتحسب إزاي؟</summary><div class="why" style="line-height:1.9">
+    const sB = BN.list.length ? sec('bn', ic('link'), 'الخامات الخانقة', `${f0(BN.blockedPcs)} قطعة واقفة على ${BN.list.length} خامة ناقصة`,
+      `<p class="sub">${BN.list.filter(r => r.kind === 'empty').length} فارغ و${BN.list.filter(r => r.kind === 'oil').length} زيت ناقصين. دول أكتر ${bnTop.length} بيفكّوا شغل لو اتشروا:</p>
+      <div>${bnTop.map(r => `<div class="bn"><div class="nm"><b>${esc(r.kind === 'empty' ? 'فارغ ' + r.name : r.name)}</b><small dir="ltr">${r.orders.map(esc).join('، ')}</small></div>
+          <div class="fr"><b>${f0(r.alonePcs)}</b><small>قطعة بيفكها لوحده</small></div>
+          <div class="ft">اشتري <b>${r.kind === 'oil' ? gq(r.buyQty) : f0(r.buyQty) + ' قطعة'}</b> · ${r.cost == null ? '<span class="warn">مالوش سعر مسجل</span>' : f0(r.cost) + ' ج'}${r.pcsPer1000 != null && r.alonePcs ? ` · ${f1(r.pcsPer1000)} قطعة لكل 1000 ج` : ''}${r.blockedPcs > r.alonePcs ? ` · +${f0(r.blockedPcs - r.alonePcs)} محتاجة خامة تانية كمان` : ''}</div></div>`).join('')}</div>
+      <details class="how noprint"><summary>ده اتحسب إزاي؟</summary><div class="why">
         <b>الخامة الناقصة:</b> المطلوب منها لكل الأوردرات المفتوحة أكبر من الموجود (الرصيد السالب بيتحسب صفر).<br>
         <b>بيفك لوحده:</b> القطع اللي واقفة ومش ناقصها غير الخامة دي، يعني لو اشتريتها تتعمل على طول. القطع اللي ناقصها خامة تانية كمان مكتوبة لوحدها.<br>
         <b>تشتري:</b> النقص مقرّب لوحدة الشراء × آخر سعر مسجل. الخامة اللي مالهاش سعر مكتوب جنبها كده ومش بنخمّن سعرها.<br>
-        <b>الترتيب:</b> الأكتر قطع بتتفك أول. ده ترتيب لكل خامة لوحدها؛ خطة الشراء الكاملة في الخطوة 2 بتحسبهم مع بعض.</div></details></div>` : '';
+        <b>الترتيب:</b> الأكتر قطع بتتفك أول. ده ترتيب لكل خامة لوحدها؛ خطة الشراء الكاملة في الخطوة 2 بتحسبهم مع بعض.</div></details>`, 'warn') : '';
     const canSend = A.status === 'OK' && A.ok && A.assigned > 0;
-    const s1 = nowPcs ? `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي — الخامات موجودة</h3></div>
-      <p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف خاماتهم موجودة من غير أي شراء.${saved > 0 ? ` جمّعت نفس الصنف من كل الأوردرات، فالتجهيز هيتعمل ${B.length} مرة بدل ${nowLines}.` : ''}</p>
-      <div class="chips noprint">${EXTRA.makers.map(m => `<label><input type="checkbox" data-w="${m.id}" ${W_SEL.has(m.id) ? 'checked' : ''}>${esc(m.name)}</label>`).join('') || '<span class="mut">مفيش مصنّعين مسجلين.</span>'}</div>
-      ${workers.length ? `<div class="sendbox noprint" style="margin:8px 0"><div class="row"><label style="margin:0">الخطة لكام يوم؟ <input id="tDays" type="number" min="1" max="14" value="${PLAN_DAYS}" style="max-width:80px"></label><span class="mut" style="font-size:13px">كل عامل بياخد قد اللي بيقدر يخلّصه فعلاً في المدة دي، مش أكتر.</span></div>
-        <div class="tw" style="margin-top:8px"><table><tr><th>العامل</th><th>بيعمل كام قطعة في اليوم؟</th><th>الرقم جاي منين</th></tr>${capRows}</table></div>
-        <small class="mut">سيب الخانة فاضية عشان أستخدم متوسطه الفعلي من السيستم (آخر 14 يوم)، أو اكتب رقمك.</small></div>` : ''}
+    const busyW = A.workers.filter(w => w.batches.length).length;
+    const s1 = nowPcs ? sec('make', '1', 'صنّعوا دلوقتي', A.status === 'OK' ? `${f0(A.assigned)} قطعة في خطة ${dayW}` : `${f0(nowPcs)} قطعة خاماتهم موجودة`,
+      `<p class="lead"><b>${f0(nowPcs)}</b> قطعة في <b>${B.length}</b> صنف خاماتهم موجودة من غير أي شراء.${saved > 0 ? ` <span class="mut">نفس الصنف اتجمّع من كل الأوردرات، فالتجهيز ${B.length} مرة بدل ${nowLines}.</span>` : ''}</p>
+      <details class="set noprint" data-sec="team" ${isOpen('team', !workers.length)}><summary>${ic('team')}الفريق والطاقة<span class="mut">${workers.length ? `${workers.length} عامل · خطة ${dayW}` : 'محدش متختار'}</span><span class="chev" aria-hidden="true"></span></summary><div class="in">
+        <div class="chips">${EXTRA.makers.map(m => `<label><input type="checkbox" data-w="${m.id}" ${W_SEL.has(m.id) ? 'checked' : ''}>${esc(m.name)}</label>`).join('') || '<span class="mut">مفيش مصنّعين مسجلين.</span>'}</div>
+        ${workers.length ? `<label class="days">الخطة لكام يوم؟<input id="tDays" type="number" min="1" max="14" value="${PLAN_DAYS}"></label>
+        <div><p class="sub" style="margin-bottom:4px">كل عامل بيعمل كام قطعة في اليوم؟ سيب الخانة فاضية عشان أستخدم متوسطه الفعلي (آخر 14 يوم)، أو اكتب رقمك. كل عامل بياخد قد اللي بيقدر يخلّصه فعلاً، مش أكتر.</p>${capRows}</div>` : ''}</div></details>
       ${verdict}
-      ${workers.length ? wk : '<p class="warn">اختار المصنّعين اللي شغالين النهارده عشان أوزّع عليهم.</p>'}
-      ${idle.length && A.status === 'OK' ? `<p class="mut" style="font-size:13px">من غير شغل في الخطة دي: ${idle.join('، ')}.</p>` : ''}
+      ${workers.length ? `<div class="stack">${wk}</div>` : '<p class="warn">اختار المصنّعين اللي شغالين النهارده من "الفريق والطاقة" عشان أوزّع عليهم.</p>'}
+      ${idle.length && A.status === 'OK' ? `<p class="sub">من غير شغل في الخطة دي: ${idle.join('، ')}.</p>` : ''}
       ${defer}
-      ${workers.length && canSend ? `<div class="sendbox noprint"><h4>📤 ابعت التوزيع لشاشات العمال</h4>
-        <p>كل عامل هيلاقي أصنافه في قسم <b>"شغلك النهارده"</b> فوق في شاشته، مترتبة، وهيجيله إشعار. العامل هو اللي بيدوس "ابدأ" بنفسه عشان وقت الشغل يتسجل صح. اللي حد بدأ فيه فعلاً بيفضل معاه.</p>
-        <div class="row"><button class="btn" id="wSend">📤 ابعت للعمال (${A.workers.filter(w => w.batches.length).length} عامل · ${f0(A.assigned)} قطعة)</button><button class="btn sec" id="wAll">نسخ توزيع الكل للواتساب</button></div>
-        <div id="wSendMsg"></div></div>
-        <div id="wProg" class="noprint"></div>` : '<div id="wProg" class="noprint"></div>'}
-      <details class="noprint" style="margin-top:10px"><summary>الخطة دي اتحسبت إزاي؟</summary><div class="why" style="line-height:1.9">
+      ${workers.length && canSend ? `<div class="sendbox noprint"><h4>ابعت التوزيع لشاشات العمال</h4>
+        <p>كل عامل هيلاقي أصنافه مترتبة في قسم "شغلك النهارده" في شاشته، وهيجيله إشعار. العامل هو اللي بيدوس "ابدأ" بنفسه عشان وقت الشغل يتسجل صح، واللي حد بدأ فيه بيفضل معاه.</p>
+        <div class="row"><button class="btn big" id="wSend">${ic('send')}ابعت لـ ${busyW} عامل · ${f0(A.assigned)} قطعة</button><button class="btn sec" id="wAll">${ic('copy', 15)}نسخ توزيع الكل للواتساب</button></div>
+        <div id="wSendMsg"></div></div>` : ''}
+      <div id="wProg" class="noprint"></div>
+      <details class="how noprint"><summary>الخطة دي اتحسبت إزاي؟</summary><div class="why">
         <b>1) إيه اللي ممكن يتعمل؟</b> الأصناف اللي <b>الزيت والفارغ بتوعها كاملين دلوقتي</b> (${f0(nowPcs)} قطعة). اللي ناقصها خامات مش بتدخل قبل الشراء. ده محسوب بمعادلة مثبتة ومتراجعة.<br>
         <b>2) التجميع:</b> نفس الصنف بنفس التركيز من كل الأوردرات بقى صنف واحد. التركيز المختلف صنف لوحده.<br>
         <b>3) طاقة كل عامل:</b> متوسط القطع اللي خلّصها فعلاً في اليوم (آخر 14 يوم من السيستم) × عدد أيام الخطة. تقدر تكتب رقمك بدل المتوسط.<br>
@@ -725,43 +969,46 @@ async function runToday() {
         <b>5) مين ياخد إيه؟</b> الأصناف المختارة بتتوزع من الأكبر للأصغر، وكل صنف بيروح للعامل اللي <b>فاضل له أكبر نسبة من طاقته</b>. جوه كل عامل مترتبة بأولوية الأوردر.<br>
         <b>6) لو مفيش حل؟</b> لو المتاح أكبر من طاقة الفريق في المدة، بيتكتب صراحة "مفيش حل" ومحتاج كام عامل أو كام يوم. ولو عامل مالوش بيانات ومكتبتش رقمه، مفيش خطة.<br>
         <b>حدود الدقة:</b> الطاقة بالقطع، فمش بتفرّق بين صنف صعب وصنف سهل، ولا بتحسب شطارة عامل في نوع معين. ${A.timed ? `الوقت المكتوب تقدير ضعيف (R² = ${f2(+EXTRA.timing.r2 || 0)}) ومش بيتبني عليه التوزيع.` : ''}
-        ${A.checks ? `<br><b>المراجعة المستقلة:</b> ${A.checks.map(c => `${c.ok ? '✓' : '✕'} ${esc(c.name)} (${esc(c.detail)})`).join(' · ')}` : ''}</div></details></div>`
-      : `<div class="card"><div class="step"><span class="no">1</span><h3>صنّعوا دلوقتي</h3></div><p class="lead">مفيش سطر كامل ينفع يتعمل بالمخزون الحالي. لازم شراء الأول.</p></div>`;
+        ${A.checks ? `<br><b>المراجعة المستقلة:</b> ${A.checks.map(c => `${c.ok ? '✓' : '✕'} ${esc(c.name)} (${esc(c.detail)})`).join(' · ')}` : ''}</div></details>`,
+      A.status === 'OK' && !A.deferredPcs ? 'ok' : '')
+      : sec('make', '1', 'صنّعوا دلوقتي', 'مفيش حاجة تتعمل قبل الشراء', '<p class="lead">مفيش سطر كامل ينفع يتعمل بالمخزون الحالي. لازم شراء الأول.</p><div id="wProg" class="noprint"></div>', 'warn');
     // --- 2) buy
     const groups = new Map();
     for (const b of RB.p.buys) { const k = b.sup || 'none'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(b); }
     const nm = b => b.kind === 'oil' ? (RB.m.oilById.get(b.id) || {}).name : (RB.m.empById.get(b.id) || {}).name;
     const supBlocks = [...groups.entries()].sort((a, b) => b[1].reduce((s, x) => s + x.cost, 0) - a[1].reduce((s, x) => s + x.cost, 0)).map(([k, bs]) => {
       const tot = bs.reduce((s, x) => s + x.cost, 0);
-      return `<details class="wk"><summary><b>${esc(supName(k === 'none' ? null : k))}</b><span class="tag">${bs.length} صنف</span><span class="tag">${f0(tot)} ج</span>
-        <button class="btn sec noprint" data-scopy="${k}">نسخ للواتساب</button></summary>
-        <div class="in">${bs.sort((a, b) => b.cost - a.cost).map((b, i) => `<div class="it"><span>${i + 1}. ${esc(nm(b) || '')}<small>${b.kind === 'oil' ? f2(b.ppg * 1000) + ' ج/كجم' : f0(b.ppg) + ' ج للقطعة'}</small></span><span class="q">${b.kind === 'oil' ? gq(b.qty) : f0(b.qty) + ' قطعة'}</span></div>`).join('')}</div></details>`; }).join('');
+      return `<details class="wk"><summary><span class="wn"><b>${esc(supName(k === 'none' ? null : k))}</b><small>${bs.length} صنف · ${f0(tot)} ج</small></span>
+        <button class="btn sec sm noprint" data-scopy="${k}">${ic('copy', 14)}واتساب</button><span class="chev" aria-hidden="true"></span></summary>
+        <div class="in">${bs.sort((a, b) => b.cost - a.cost).map((b, i) => `<div class="it"><span class="ix">${i + 1}</span><div class="ib"><b>${esc(nm(b) || '')}</b><small>${b.kind === 'oil' ? f2(b.ppg * 1000) + ' ج/كجم' : f0(b.ppg) + ' ج للقطعة'} · ${f0(b.cost)} ج</small></div><span class="q">${b.kind === 'oil' ? gq(b.qty) : f0(b.qty) + ' <small>قطعة</small>'}</span></div>`).join('')}</div></details>`; }).join('');
     const waiting = allPcs - nowPcs;
-    const s2 = `<div class="card"><div class="step"><span class="no">2</span><h3>اشتري</h3></div>
-      <p class="lead">${waiting > 0 ? `<b>${f0(waiting)}</b> قطعة مستنية خامات.` : 'كل الأوردرات خاماتها موجودة.'}</p>
-      <div class="row noprint" style="margin:8px 0"><label style="flex:1;min-width:170px">معاك كام للشراء؟ (فاضي = من غير حد)<input id="tBudget" inputmode="decimal" placeholder="مثال 50000" value="${esc(keepBudget)}"></label>
-        <button class="btn" id="tGo" style="margin-top:20px">احسب</button></div>
-      ${RB.p.buys.length ? `<p class="lead">اشتري بـ <b>${f0(RB.p.buyCost)} ج</b>، وده هيخلّي <b>${f0(buyPcs)}</b> قطعة كمان تتصنّع${bud < 1e11 && buyPcs < waiting ? `، وهيفضل ${f0(waiting - buyPcs)} قطعة مستنية` : ''}.</p>${supBlocks}`
-        : (waiting > 0 ? '<p class="warn">بالميزانية دي مفيش شراء يكمّل سطر كامل.</p>' : '')}
-      <p class="mut" style="font-size:12.5px;margin-bottom:0">الأسعار = آخر سعر مسجل في فواتير الموردين، والكميات بوحدة شراء كل زيت. الاختيار محسوب عشان يخلّص أكبر قيمة من الأوردرات بأولويتها.</p></div>`;
+    const s2 = sec('buy', '2', 'اشتري', RB.p.buys.length ? `بـ ${f0(RB.p.buyCost)} ج تفك ${f0(buyPcs)} قطعة كمان` : waiting > 0 ? 'مفيش شراء يكمّل سطر كامل بالميزانية دي' : 'كل الأوردرات خاماتها موجودة',
+      `<div class="row noprint" style="align-items:flex-end"><label style="flex:1;min-width:170px">معاك كام للشراء؟<input id="tBudget" inputmode="decimal" placeholder="فاضي = من غير حد" value="${esc(keepBudget)}"></label>
+        <button class="btn" id="tGo">احسب</button></div>
+      ${RB.p.buys.length ? `<p class="lead">${waiting > 0 ? `<b>${f0(waiting)}</b> قطعة مستنية خامات. ` : ''}اشتري بـ <b>${f0(RB.p.buyCost)} ج</b>، وده هيخلّي <b>${f0(buyPcs)}</b> قطعة كمان تتصنّع${bud < 1e11 && buyPcs < waiting ? `، وهيفضل ${f0(waiting - buyPcs)} قطعة مستنية` : ''}.</p><div class="stack">${supBlocks}</div>`
+        : (waiting > 0 ? `<p class="lead"><b>${f0(waiting)}</b> قطعة مستنية خامات.</p><p class="warn">بالميزانية دي مفيش شراء يكمّل سطر كامل.</p>` : '<p class="lead">كل الأوردرات خاماتها موجودة.</p>')}
+      <p class="sub" style="font-size:12.5px">الأسعار = آخر سعر مسجل في فواتير الموردين، والكميات بوحدة شراء كل زيت. الاختيار محسوب عشان يخلّص أكبر قيمة من الأوردرات بأولويتها.</p>`);
     // --- 3) needs you
     const todo = [];
     const noP = RB.m.noPrice.map(id => (RB.m.oilById.get(id) || {}).name).filter(Boolean);
-    if (noP.length) todo.push(['💰', `<b>${noP.length} زيت من غير سعر</b>، فمش هيدخلوا في أي خطة شراء: ${noP.map(esc).join('، ')}. دخّل سعرهم من "تفاصيل الخطة ← وحدة الشراء لكل زيت".`]);
+    if (noP.length) todo.push(['coin', `<b>${noP.length} زيت من غير سعر</b>، فمش هيدخلوا في أي خطة شراء: ${noP.map(esc).join('، ')}. دخّل سعرهم من "تفاصيل الخطة ← وحدة الشراء لكل زيت".`]);
     const noC = RB.m.noCost.map(id => (RB.m.empById.get(id) || {}).name).filter(Boolean);
-    if (noC.length) todo.push(['🍶', `<b>${noC.length} فارغ من غير تكلفة</b>، فمش هيتشروا: ${noC.slice(0, 8).map(esc).join('، ')}${noC.length > 8 ? '…' : ''}.`]);
+    if (noC.length) todo.push(['bottle', `<b>${noC.length} فارغ من غير تكلفة</b>، فمش هيتشروا: ${noC.slice(0, 8).map(esc).join('، ')}${noC.length > 8 ? '…' : ''}.`]);
     const neg = RB.m.warn.filter(w => w.includes('سالب')).length;
-    if (neg) todo.push(['📋', `<b>${neg} صنف رصيده بالسالب</b> واتحسب صفر. اعمل جرد عشان الخطة ماتقترحش شراء حاجة موجودة.`]);
+    if (neg) todo.push(['clip', `<b>${neg} صنف رصيده بالسالب</b> واتحسب صفر. اعمل جرد عشان الخطة ماتقترحش شراء حاجة موجودة.`]);
     const noG = RB.m.warn.filter(w => w.includes('من غير جرامات'));
-    if (noG.length) todo.push(['⚗️', `<b>${noG.length} سطر من غير تركيز</b>، واتحسبوا من غير زيت: ${noG.slice(0, 3).map(w => esc(w.split(' — ')[0])).join('، ')}${noG.length > 3 ? '…' : ''}.`]);
+    if (noG.length) todo.push(['flask', `<b>${noG.length} سطر من غير تركيز</b>، واتحسبوا من غير زيت: ${noG.slice(0, 3).map(w => esc(w.split(' — ')[0])).join('، ')}${noG.length > 3 ? '…' : ''}.`]);
     const stuck = allPcs - RB.p.filled.reduce((s, l) => s + l.qty, 0);
-    if (bud >= 1e11 && stuck > 0) todo.push(['⛔', `<b>${f0(stuck)} قطعة مش هتتعمل حتى لو اشتريت كل حاجة</b>، بسبب الأسعار والتكاليف الناقصة اللي فوق.`]);
-    const s3 = `<div class="card"><div class="step"><span class="no">3</span><h3>محتاج منك</h3></div>
-      ${todo.length ? todo.map(t => `<div class="todo"><span class="ic">${t[0]}</span><span>${t[1]}</span></div>`).join('') : '<p class="ok" style="margin:0">مفيش حاجة ناقصة. البيانات كاملة ✓</p>'}</div>`;
-    out.innerHTML = `<div class="card"><p class="lead">عندك <b>${invN}</b> أوردر مفتوح فيهم <b>${f0(allPcs)}</b> قطعة: <b class="ok">${f0(nowPcs)}</b> ينفع يتعملوا دلوقتي، و<b class="warn">${f0(waiting)}</b> مستنيين خامات.</p></div>
+    if (bud >= 1e11 && stuck > 0) todo.push(['ban', `<b>${f0(stuck)} قطعة مش هتتعمل حتى لو اشتريت كل حاجة</b>، بسبب الأسعار والتكاليف الناقصة اللي فوق.`]);
+    const s3 = sec('todo', '3', 'محتاج منك', todo.length ? `${todo.length === 1 ? 'حاجة واحدة ناقصة' : todo.length === 2 ? 'حاجتين ناقصين' : todo.length + ' حاجات ناقصة'} في البيانات` : 'البيانات كاملة',
+      todo.length ? `<div>${todo.map(t => `<div class="todo"><span class="ic">${ic(t[0], 17)}</span><span>${t[1]}</span></div>`).join('')}</div>` : '<p class="ok">مفيش حاجة ناقصة. البيانات كاملة.</p>', todo.length ? 'warn' : 'ok');
+    out.innerHTML = `<section class="ov"><div class="ovh"><b>${invN}</b> أوردر مفتوح فيهم <b>${f0(allPcs)}</b> قطعة</div>
+        <div class="ovn"><span><b class="ok">${f0(nowPcs)}</b><small>ينفع يتعملوا دلوقتي</small></span><span><b class="warn">${f0(waiting)}</b><small>مستنيين خامات</small></span></div>
+        <div class="split" aria-hidden="true"><i class="a" style="flex:${nowPcs || 0}"></i><i class="b" style="flex:${waiting || 0}"></i></div></section>
       ${s0}${sG}${s1}${sB}${s2}${s3}
       <div id="pvaBox"></div>
-      <p class="mut noprint" style="font-size:13px;text-align:center">عايز تشوف المعادلات والتحقق وتحفظ القرار؟ افتح <a href="#" id="toPlan">تفاصيل الخطة</a>.</p>`;
+      <p class="sub noprint" style="text-align:center;margin-top:16px">عايز تشوف المعادلات والتحقق وتحفظ القرار؟ افتح <a href="#" id="toPlan">تفاصيل الخطة</a>.</p>`;
+    bindSecs(out);
     out.querySelectorAll('[data-w]').forEach(c => c.onchange = () => { c.checked ? W_SEL.add(c.dataset.w) : W_SEL.delete(c.dataset.w); runToday(); });
     out.querySelectorAll('[data-wcopy]').forEach(b => b.onclick = e => { e.preventDefault(); copyBtn(b, workerText(A.workers.find(w => w.id === b.dataset.wcopy), A.timed)); });
     if ($('wAll')) $('wAll').onclick = () => copyBtn($('wAll'), `${RLM}*توزيع الشغل — ${new Date().toLocaleDateString('ar-EG-u-nu-latn')}*\n\n` + A.workers.filter(w => w.batches.length).map(w => workerText(w, A.timed)).join('\n\n'));
@@ -787,6 +1034,7 @@ async function runToday() {
   } catch (e) { out.innerHTML = `<div class="card bad">${esc(e.message || e)}</div>`; }
 }
 
+
 // ---------- save / history / re-run ----------
 async function saveRun(R) {
   $('save').disabled = true; $('saveMsg').textContent = 'بيحفظ…';
@@ -798,30 +1046,34 @@ async function saveRun(R) {
   $('saveMsg').textContent = error ? 'ماتحفظش: ' + error.message : 'اتحفظ ✓';
   $('save').disabled = false; if (!error) loadRuns();
 }
-const ST_AR = { draft: ['لسه متراجعش', 'mut'], verified: ['متحقق منه في القاعدة', 'ok'], failed: ['فشل التحقق', 'bad'], approved: ['معتمد', 'ok'], rejected: ['مرفوض', 'bad'] };
+const ST_AR = { draft: ['لسه متراجعش', ''], verified: ['متحقق منه في القاعدة', 'ok'], failed: ['فشل التحقق', 'bad'], approved: ['معتمد', 'ok'], rejected: ['مرفوض', 'bad'] };
 let HAS_FLOW = true; // false until the verify/approve migration is applied
 async function loadRuns() {
   let { data, error } = await sb.from('decision_runs').select('id,created_at,title,snap_hash,result,solver,status,db_check,decided_at').order('created_at', { ascending: false }).limit(30);
   if (error) { HAS_FLOW = false; ({ data, error } = await sb.from('decision_runs').select('id,created_at,title,snap_hash,result,solver').order('created_at', { ascending: false }).limit(30)); }
   else HAS_FLOW = true;
   if (error) { $('runsOut').textContent = 'خطأ: ' + error.message; return; }
-  if (!data.length) { $('runsOut').innerHTML = 'لسه مفيش قرارات محفوظة.'; return; }
+  if (!data.length) { $('runsOut').innerHTML = 'لسه مفيش قرارات محفوظة. احسب خطة من "تفاصيل الخطة" ودوس "احفظ القرار في السجل".'; return; }
+  const pillOf = r => { if (!HAS_FLOW) return ''; const st = r.status || 'draft'; return `<span class="pill ${ST_AR[st][1]}">${ST_AR[st][0]}</span>`; };
   const flow = r => {
     if (!HAS_FLOW) return '';
     const st = r.status || 'draft';
     const fails = (r.db_check?.checks || []).filter(c => !c.ok).map(c => esc(c.name) + ': ' + esc(c.detail || '')).join('<br>');
-    return `<div style="margin-top:4px"><span class="pill ${ST_AR[st][1]}">${ST_AR[st][0]}</span>${r.decided_at ? ` <span class="mut" style="font-size:12px">${esc(dt(r.decided_at))}</span>` : ''}</div>
-      ${st === 'failed' && fails ? `<div class="why bad" style="font-size:12.5px">${fails}</div>` : ''}
-      ${st === 'draft' || st === 'failed' ? `<button class="btn sec" data-vfy="${r.id}">تحقق في القاعدة</button>` : ''}
-      ${st === 'verified' ? `<button class="btn" data-dec="${r.id}" data-ok="1" style="padding:7px 12px">اعتمد</button>` : ''}
-      ${st === 'draft' || st === 'failed' || st === 'verified' ? `<button class="btn sec" data-dec="${r.id}" data-ok="0">ارفض</button>` : ''}`;
+    return `${st === 'failed' && fails ? `<div class="why bad" style="margin:0">${fails}</div>` : ''}
+      ${st === 'draft' || st === 'failed' ? `<button class="btn sec sm" data-vfy="${r.id}">تحقق في القاعدة</button>` : ''}
+      ${st === 'verified' ? `<button class="btn sm" data-dec="${r.id}" data-ok="1">اعتمد</button>` : ''}
+      ${st === 'draft' || st === 'failed' || st === 'verified' ? `<button class="btn sec sm" data-dec="${r.id}" data-ok="0">ارفض</button>` : ''}`;
   };
   $('runsOut').innerHTML = (HAS_FLOW ? '' : '<p class="msg warn">التحقق داخل القاعدة والاعتماد لسه مش مفعّلين (محتاجين تعديل في القاعدة يتوافق عليه).</p>') +
-    `<div class="scroll"><table><tr><th>التاريخ</th><th>المدخلات</th><th class="n">قطع</th><th class="n">شراء</th><th>الحالة</th><th></th></tr>
-    ${data.map(r => `<tr><td>${esc(dt(r.created_at))}</td><td style="font-size:13px">${esc(r.title)}</td><td class="n">${f0(r.result.pcs)}</td><td class="n">${f0(r.result.buyCost)}</td>
-      <td>${r.solver?.status === 'optimal' ? '<span class="ok">أمثل</span>' : '<span class="warn">غير مثبت</span>'} ${r.result.verified ? '<span class="ok">✓</span>' : '<span class="bad">✗</span>'}${flow(r)}</td>
-      <td><button class="btn sec" data-rerun="${r.id}">إعادة الحساب</button></td></tr><tr class="hide" id="rr-${r.id}"><td colspan="6"></td></tr>`).join('')}</table></div>
-    <p class="mut" style="font-size:12.5px">الاعتماد بيسجّل قرارك بس. مفيش شراء ولا تعديل مخزون بيتنفذ لوحده.</p>`;
+    data.map(r => `<div class="run"><div class="rh"><b style="color:var(--ink)">${esc(dt(r.created_at))}</b>${pillOf(r)}</div>
+      <p class="rt">${esc(r.title)}</p>
+      <div class="rn"><span><b>${f0(r.result.pcs)}</b> قطعة</span><span><b>${f0(r.result.buyCost)}</b> ج شراء</span>
+        <span>${r.solver?.status === 'optimal' ? '<span class="ok">أمثل</span>' : '<span class="warn">غير مثبت</span>'} ${r.result.verified ? `<span class="ok">${ic('check', 14)}</span>` : `<span class="bad">${ic('x', 14)}</span>`}</span>
+        ${r.decided_at ? `<span>${esc(dt(r.decided_at))}</span>` : ''}</div>
+      <div class="row">${flow(r)}<button class="btn sec sm" data-rerun="${r.id}">إعادة الحساب</button></div>
+      <div class="hide" id="rr-${r.id}"><div></div></div></div>`).join('') +
+    `<p class="sub" style="font-size:12.5px;margin-top:6px">الاعتماد بيسجّل قرارك بس. مفيش شراء ولا تعديل مخزون بيتنفذ لوحده.</p>`;
+  $('runsOut').className = '';
   $('runsOut').querySelectorAll('[data-rerun]').forEach(b => b.onclick = () => rerun(b.dataset.rerun, b));
   const ERR_AR = { not_verified: 'لازم يتحقق منه الأول', already_decided: 'القرار ده اتاخد فيه قرار قبل كده', not_allowed: 'للمالك بس', run_incomplete: 'القرار المحفوظ ناقص' };
   const call = async (b, fn, args) => { b.disabled = true; const { error } = await sb.rpc(fn, args);
@@ -871,12 +1123,12 @@ function renderCompare() {
   const keys = [...new Set([...A.keys(), ...B.keys()])];
   const diffs = keys.map(key => ({ x: A.get(key), y: B.get(key) })).filter(d => !d.x || !d.y || d.x.qty !== d.y.qty);
   const invD = b.invDone.map(i => { const o = a.invDone.find(j => j.inv_id === i.inv_id) || { pcsFilled: 0 }; return { no: i.no, d: i.pcsFilled - o.pcsFilled }; }).filter(x => x.d);
-  $('cmpOut').innerHTML = `<p style="font-size:13.5px"><b>السيناريو:</b> ${esc(describeParams(LAST.P))}</p>
+  $('cmpOut').innerHTML = `<p style="font-size:13.5px;margin-bottom:8px"><b>السيناريو:</b> ${esc(describeParams(LAST.P))}</p>
     <div class="scroll"><table><tr><th></th><th class="n">الأساس</th><th class="n">السيناريو</th><th class="n">الفرق</th></tr>
     ${row('قطع هتتعبّى', pc(a), pc(b))}${row('إيراد صافي', a.revenue, b.revenue)}${row('تكلفة الشراء', a.buyCost, b.buyCost, '', -1)}
     ${row('سطور متعبّية', a.filled.length, b.filled.length)}</table></div>
     ${invD.length ? `<p style="margin-bottom:4px"><b>الفواتير اللي اتأثرت:</b></p><p>${invD.map(i => `${esc(i.no)} <span class="${i.d > 0 ? 'ok' : 'bad'}">${i.d > 0 ? '+' : ''}${f0(i.d)} قطعة</span>`).join(' · ')}</p>` : ''}
-    ${diffs.length ? `<details><summary>${diffs.length} تغيير في قايمة الشراء</summary><table><tr><th>الصنف</th><th>المورد</th><th class="n">الأساس</th><th class="n">السيناريو</th></tr>
+    ${diffs.length ? `<details class="how"><summary>${diffs.length} تغيير في قايمة الشراء</summary><table><tr><th>الصنف</th><th>المورد</th><th class="n">الأساس</th><th class="n">السيناريو</th></tr>
       ${diffs.map(d => { const z = d.x || d.y; return `<tr><td>${esc(nm(d.x ? BASE : LAST, z))}</td><td>${esc(supName(z.sup))}</td><td class="n">${f0(d.x?.qty || 0)}</td><td class="n">${f0(d.y?.qty || 0)}</td></tr>`; }).join('')}</table></details>` : '<p class="mut">قايمة الشراء زي ما هي.</p>'}
     <p class="mut" style="font-size:12.5px">الاتنين: ${BASE.solver.status === 'optimal' ? 'أمثل' : 'غير مثبت'} / ${LAST.solver.status === 'optimal' ? 'أمثل' : 'غير مثبت'}. الفحص المستقل: ${BASE.ver.ok ? '✓' : '✗'} / ${LAST.ver.ok ? '✓' : '✗'}.</p>`;
 }
@@ -925,9 +1177,9 @@ function runSim() {
   const PT = rows.reduce((a, x) => { const q = part(x); a.base += q.base; a.fut += q.fut; a.up += q.up; return a; }, { base: 0, fut: 0, up: 0 });
   const cur = { H, mult, svc, n: rows.length, risky: risky.length, totG, tot };
   const diff = SIM_PREV && (SIM_PREV.H !== H || SIM_PREV.mult !== mult || SIM_PREV.svc !== svc)
-    ? `<div class="msg" style="margin:8px 0">التغيير عن المرة اللي فاتت (${SIM_PREV.H} يوم · طلب ${SIM_PREV.mult >= 1 ? '+' : ''}${Math.round((SIM_PREV.mult - 1) * 100)}% · أمان ${Math.round(SIM_PREV.svc * 100)}%):
+    ? `<div class="note" style="margin:8px 0">التغيير عن المرة اللي فاتت (${SIM_PREV.H} يوم · طلب ${SIM_PREV.mult >= 1 ? '+' : ''}${Math.round((SIM_PREV.mult - 1) * 100)}% · أمان ${Math.round(SIM_PREV.svc * 100)}%):
         زيوت هتخلص من الاستهلاك ${SIM_PREV.risky} ← <b>${risky.length}</b> · الكمية المقترحة ${amt(SIM_PREV.totG)} ← <b>${amt(totG)}</b> · التكلفة ${f0(SIM_PREV.tot)} ← <b>${f0(tot)} ج</b></div>` : '';
-  const item = x => `<details><summary><span style="color:var(--ink)">${esc(x.name)}</span> <span class="mut">Z${x.cnt ?? '-'}</span> — ${x.free < 0 ? `<b class="bad">ناقص ${amt(-x.free)} للأوردرات</b>` : `<b class="${x.pOut >= .5 ? 'bad' : x.pOut >= .2 ? 'warn' : 'ok'}">${Math.round(x.pOut * 100)}%</b> يخلص`} · اطلب <b style="color:var(--ink)">${amt(rnd(x))}</b></summary>
+  const item = x => `<details class="li"><summary><span class="bl"><span>${esc(x.name)} <span class="mut" dir="ltr">Z${x.cnt ?? '-'}</span></span><small>${x.free < 0 ? `<b class="bad">ناقص ${amt(-x.free)} للأوردرات</b>` : `احتمال يخلص <b class="${x.pOut >= .5 ? 'bad' : x.pOut >= .2 ? 'warn' : 'ok'}">${Math.round(x.pOut * 100)}%</b>`}</small></span><span class="bq">اطلب ${amt(rnd(x))}</span></summary>
       <div class="why">الرصيد ${f0(x.stock)} − الطلبات المفتوحة ${f0(x.need)} = حر <b class="${x.free < 0 ? 'bad' : ''}">${f0(x.free)} جم</b><br>
       اتستخدم في ${x.activeDays} يوم من ${r.nDays}، بمتوسط ${f0(x.avgDay)} جم/يوم وأعلى يوم ${f0(x.maxDay)} جم<br>
       استهلاك ${H} أيام: النص ${f0(x.p50)} جم، وفي ${Math.round(svc * 100)}% من الحالات ≤ ${f0(x.q)} جم<br>
@@ -943,10 +1195,10 @@ function runSim() {
       • ${amt(PT.base)} ناقصين فعلاً للأوردرات المفتوحة<br>
       • ${amt(PT.fut)} زيادة عشان أوردرات جديدة متوقعة في ${H} أيام، بأمان ${Math.round(svc * 100)}% (يعني تكفي حتى في الأسابيع التقيلة، مش المتوسط)<br>
       • ${amt(PT.up)} تقريب لفوق لوحدة شراء كل زيت<br>
-      <span class="mut">عايز تشتري للأوردرات المفتوحة بس؟ استخدم "اعمل إيه النهارده ← اشتري". وعشان تقلل الزيادة هنا: قلل عدد الأيام أو مستوى الأمان.</span></div>
+      <span class="mut">عايز تشتري للأوردرات المفتوحة بس؟ استخدم "النهارده ← اشتري". وعشان تقلل الزيادة هنا: قلل عدد الأيام أو مستوى الأمان.</span></div>
     ${diff}
     ${r.nDays < 30 ? `<p class="warn" style="font-size:13px">التاريخ المتاح ${r.nDays} يوم بس، والدقة هتزيد مع الوقت.</p>` : ''}
-    <details><summary>إزاي اتحسب؟ (المعادلة والداتا)</summary><div class="math">الداتا: استهلاك كل زيت يوم بيوم في آخر ${r.nDays} يوم، من السطور اللي اتعبّت فعلاً (الكمية × الجرامات الفعلية).
+    <details class="how"><summary>إزاي اتحسب؟ (المعادلة والداتا)</summary><div class="math">الداتا: استهلاك كل زيت يوم بيوم في آخر ${r.nDays} يوم، من السطور اللي اتعبّت فعلاً (الكمية × الجرامات الفعلية).
 الحر = الرصيد − احتياج الطلبات المفتوحة
 سيناريو واحد = مجموع ${H} يوم، كل يوم مسحوب عشوائياً من الأيام الحقيقية × ${f2(mult)}
 بنكرر ده 2000 مرة (بذرة عشوائية ثابتة، فنفس الإعدادات بتطلّع نفس النتيجة بالظبط)
@@ -980,6 +1232,10 @@ function renderWork() {
 وقت الإنجاز = القطع المفتوحة ÷ طاقة الفريق</div>
       <p class="mut" style="font-size:13px">الساعات محسوبة من لحظة ما العامل يمسك السطر لحد ما يخلّصه، فممكن يكون فيها وقت انتظار. عشان كده "قطعة/يوم" أدق من "قطعة/ساعة".</p></div>`;
 }
+// printing shows every collapsed section, then puts them back as they were
+let PRINT_OPENED = [];
+addEventListener('beforeprint', () => { PRINT_OPENED = [...document.querySelectorAll('main section:not(.hide) details:not([open])')]; PRINT_OPENED.forEach(d => { d.open = true; }); });
+addEventListener('afterprint', () => { PRINT_OPENED.forEach(d => { d.open = false; }); PRINT_OPENED = []; });
 boot();
 </script>
 </body>
