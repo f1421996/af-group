@@ -243,6 +243,17 @@ button.ms{cursor:pointer}button.ms:hover{border-color:var(--accent)}
 .wrow>span:first-child{flex:1;min-width:0}.wq{font-weight:700;white-space:nowrap}
 .wbtn{border:1px solid var(--accent);background:var(--accent-soft);color:var(--accent);border-radius:10px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer;min-width:58px}
 .wbtn.done{border-color:#22c55e;background:var(--ok-soft);color:var(--ok);font-size:18px}
+.obox{background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden}.obox.open{border-color:var(--accent)}
+.ohead,.orow{display:flex;align-items:center;gap:10px;width:100%;background:none;border:0;color:var(--ink);font:inherit;text-align:start;cursor:pointer;padding:12px 14px}
+.ohead .ocar{flex:none;font-size:13px;font-weight:700;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:6px 12px;white-space:nowrap}
+.oin{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}.oin b{font-size:16px;font-weight:800;overflow-wrap:anywhere}.oin small{color:var(--muted);font-size:12.5px}.ohead .oin b small{font-weight:400}
+.oleft{flex:none;text-align:center;line-height:1.15}.oleft b{display:block;font-size:20px;font-weight:800}.oleft small{font-size:11px;color:var(--muted)}
+.olist{border-top:1px solid var(--line);max-height:60vh;overflow-y:auto}.orow{border-bottom:1px solid var(--line);padding:11px 14px}.orow:last-child{border-bottom:0}
+.orow.on{background:var(--accent-soft)}.orow.on .oin b{color:var(--accent)}
+.ork{flex:none;width:34px;height:34px;border-radius:50%;background:var(--surface2);color:var(--accent);font-weight:800;display:grid;place-items:center;font-size:14px}.orow.on .ork{background:var(--accent);color:var(--accent-ink)}
+.opb{display:block;height:4px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:3px}.opb i{display:block;height:100%;background:var(--ok,#22c55e)}
+.ometa{color:var(--ink)!important;opacity:.85}
+.oback{display:block;width:100%;background:none;border:0;border-top:1px solid var(--line);color:var(--muted);font:inherit;font-size:14px;padding:9px;cursor:pointer;text-decoration:underline}
 .wchips{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin:0 -2px}.wchips::-webkit-scrollbar{display:none}
 .wchips button{flex:none;position:relative;overflow:hidden;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:999px;padding:9px 14px;font:inherit;font-size:14px;cursor:pointer;white-space:nowrap}
 .wchips button small{color:var(--muted)}.wchips button b{margin-inline-start:4px;color:var(--accent)}
@@ -3453,13 +3464,22 @@ function planBox(pendAll,isSh){
    <div class="pbar"><i style="width:${Math.round(doneA.length*100/tot)}%"></i></div>
    <div class="pmeta"><span>خلصت <b class="num">${doneA.length}</b> من <b class="num">${tot}</b></span>${left.length?`<span>باقي <b class="num">${left.length}</b> صنف · <b class="num">${leftP}</b> قطعة${leftM?` · ≈ <b class="num">${pMin(leftM)}</b>`:''}</span>`:''}</div>
    ${G.length?show.map(row).join('')+(G.length>6?`<div class="pmore"><button class="lnk" data-x="wkPlanAll">${wkPlanAll?'اعرض أقل':`اعرض الباقي (${G.length-6} صنف)`}</button></div>`:''):`<div class="pnote i" style="margin-bottom:8px">🎉 خلصت كل اللي متوزّع عليك. لو فاضي كمّل من "عايز يتعمل" تحت.</div>`}</div>`}
-let wkQ='',wkOil=null,wkSec='',wkOrd=(()=>{try{return localStorage.getItem('af-wkord')||''}catch(e){return ''}})();
+let wkPick=false;let wkQ='',wkOil=null,wkSec='',wkOrd=(()=>{try{return localStorage.getItem('af-wkord')||''}catch(e){return ''}})();
 function vWork(){
   const pendAll=wkRank((S.queue||[]).filter(x=>!x.done).sort((a,b)=>a.date.localeCompare(b.date)||String(a.no).localeCompare(String(b.no))));const me=ME.name;const td=today();
   if(wkOrd&&!pendAll.some(i=>i.id===wkOrd))wkOrd='';
   const pend=wkOrd?pendAll.filter(i=>i.id===wkOrd):pendAll;
   const left=i=>i.lines.filter(l=>!isCk(l)).reduce((a,l)=>a+l.qty,0);
-  const chips=(rankOn()?`<div class="panel" style="padding:10px 12px;margin:0 0 8px;border-inline-start:4px solid var(--accent)"><b>🎯 اشتغل بالترتيب</b> <span class="sub">ابدأ بأوردر #1، ولما يخلص كمّل في #2…</span></div>`:'')+(pendAll.length>1?`<div class="wchips"><button class="${wkOrd?'':'on'}" data-x="wkOrd" data-id="">كل الأوردرات <b>${pendAll.reduce((a,i)=>a+left(i),0)}</b></button>${pendAll.map(i=>{const g=invPct(i);return `<button class="${wkOrd===i.id?'on':''}" data-x="wkOrd" data-id="${i.id}">${(S.ranks||{})[i.id]?`<b style="color:var(--accent)">#${S.ranks[i.id]}</b> `:''}${esc(i.cust||i.no)} <small dir="ltr">${esc(i.no)}</small> <b>${left(i)}</b>${g.pct?`<i style="--p:${g.pct}%"></i>`:''}</button>`}).join('')}</div>`:'');
+  // order picker: one stable bar + a vertical list (replaces the sideways-scrolling chips)
+  const shL=l=>role!=='owner'&&!!(S.short||{})[l.lid]&&ovrOf(l.lid)?.st!=='approved';
+  const oRow=i=>{const g=invPct(i),rk=(S.ranks||{})[i.id],op=i.lines.filter(l=>!isCk(l));const mine=op.filter(l=>l.cl_me).length,asg=op.filter(l=>{const a=asgOf(l.lid);return a&&ME&&a.worker===ME.id}).length,sh=op.filter(shL).length;
+    const meta=[mine?`🔧 معاك ${mine} صنف`:'',asg?`📋 من شغلك النهارده ${asg}`:'',sh?`⛔ ناقص خامة ${sh}`:''].filter(Boolean).join(' · ');
+    return `<button class="orow ${i.id===wkOrd?'on':''}" data-x="wkOrd" data-id="${i.id}"><span class="ork num">${rk?'#'+rk:'•'}</span><span class="oin"><b>${esc(i.cust||i.no)}</b><small dir="ltr">${esc(i.no)}</small><span class="opb"><i style="width:${g.pct}%"></i></span>${meta?`<small class="ometa">${meta}</small>`:''}</span><span class="oleft"><b class="num">${left(i)}</b><small>قطعة باقية</small></span></button>`};
+  const cur=wkOrd?pendAll.find(i=>i.id===wkOrd):null,allLeft=pendAll.reduce((a,i)=>a+left(i),0);
+  const chips=pendAll.length>1?`<div class="obox ${wkPick?'open':''}">
+    <button class="ohead" data-x="wkPick" aria-expanded="${wkPick}"><span class="oin">${cur?`<small>شغّال على أوردر واحد</small><b>${(S.ranks||{})[cur.id]?`<span class="num" style="color:var(--accent)">#${S.ranks[cur.id]}</span> `:''}${esc(cur.cust||cur.no)} <small dir="ltr">${esc(cur.no)}</small></b>`:`<small>${rankOn()?'🎯 ابدأ بأوردر #1 وكمّل بالترتيب':'بتشوف شغل'}</small><b>كل الأوردرات <small>${pendAll.length} أوردر</small></b>`}</span><span class="oleft"><b class="num">${cur?left(cur):allLeft}</b><small>قطعة باقية</small></span><span class="ocar">${wkPick?'✕ اقفل':'اختار أوردر ▾'}</span></button>
+    ${wkPick?`<div class="olist"><button class="orow ${wkOrd?'':'on'}" data-x="wkOrd" data-id=""><span class="ork">∑</span><span class="oin"><b>كل الأوردرات</b><small>اشتغل من أي أوردر${rankOn()?' بالترتيب':''}</small></span><span class="oleft"><b class="num">${allLeft}</b><small>قطعة باقية</small></span></button>${pendAll.map(oRow).join('')}</div>`:cur?`<button class="oback" data-x="wkOrd" data-id="">↩ رجّعني لكل الأوردرات</button>`:''}
+  </div>`:(rankOn()?`<div class="panel" style="padding:10px 12px;margin:0 0 8px;border-inline-start:4px solid var(--accent)"><b>🎯 اشتغل بالترتيب</b> <span class="sub">ابدأ بأوردر #1، ولما يخلص كمّل في #2…</span></div>`:'');
   const myToday=(S.queue||[]).flatMap(i=>i.lines.map(l=>({...l,cust:i.cust}))).filter(l=>isCk(l)&&l.ck_by===me&&l.ck_at&&ld(new Date(l.ck_at))===td);
   const B={};pend.forEach(i=>i.lines.forEach(l=>{if(isCk(l))return;const b=(B[l.pid]??={pid:l.pid,name:l.name,oil:l.oil,free:[],mine:[],other:[],noG:[]});
     const x={...l,cust:i.cust,no:i.no};const st=lineSt(l);if(l.g==null&&!l.oil&&!l.oid)(b.ready??=[]).push(x);else if(l.g==null)b.noG.push(x);else if(st==='mine')b.mine.push(x);else if(st==='free')b.free.push(x);else b.other.push(x)}));
@@ -4021,7 +4041,8 @@ document.addEventListener('click',async e=>{
     if(b.dataset.arm!=='1'){b.dataset.arm='1';b.textContent=`متأكد؟ ${ls.length} صنف`;return}
     const ok=await act(()=>q(sb.from('product_costs').upsert(ls.map(p=>({product_id:p.id,cost:+v})))));if(!ok)return;ls.forEach(p=>p.cost=+v);await loadAll();render();toast(`اتحط سعر الفارغ ${fmt(+v)} على ${ls.length} صنف`);return}
   if(x==='wkOil'){wkOil=wkOil===id?null:id;soft();setTimeout(()=>{const i=document.querySelector(`[data-wka="${id}"]`);if(i)i.focus()},50);return}
-  if(x==='wkOrd'){wkOrd=id||'';try{localStorage.setItem('af-wkord',wkOrd)}catch(e){};soft();window.scrollTo(0,0);setTimeout(()=>{const c=document.querySelector('.wchips .on');if(c)c.scrollIntoView({inline:'center',block:'nearest'})},30);return}
+  if(x==='wkPick'){wkPick=!wkPick;soft();return}
+  if(x==='wkOrd'){wkOrd=id||'';wkPick=false;try{localStorage.setItem('af-wkord',wkOrd)}catch(e){};soft();window.scrollTo(0,0);return}
   if(x==='vipSug'){const l=D.lines[+id];if(l){l.price=+b.dataset.v;l.auto=false;soft()}return}
   if(x==='pfx'){const i=+id;pfOpen=pfOpen===i?null:i;soft();return}
   if(x==='pfSetP'){const l=D.lines[+id];l.price=+b.dataset.v;l.auto=false;soft();return}
