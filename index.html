@@ -638,6 +638,10 @@ button.chip{cursor:pointer;font:inherit;font-size:13px}
 .avq{display:grid;grid-template-columns:repeat(3,minmax(70px,1fr));gap:6px;text-align:center}
 .avq>div{display:flex;flex-direction:column;padding:4px 6px;border-radius:8px}.avq small{font-size:11px;color:var(--muted)}.avq b{font-size:15px;white-space:nowrap}
 .avq .avm{background:var(--surface2)}.avr.ok .avm b,.avm.ok b{color:var(--ok)}.avr.warn .avm b,.avm.warn b{color:var(--warn)}.avr.bad .avm b,.avm.bad b{color:var(--bad)}.avr.out{opacity:.6}
+.mwarn{margin:10px 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--bad) 12%,transparent);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent);font-size:14px;line-height:1.5}.mwarn small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
+.cnf{display:flex;gap:6px;margin-top:10px}.cnf button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:inherit;font:inherit;font-weight:700;cursor:pointer}.cnf button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
+.cnp{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:8px}.cnp i{display:block;height:100%;background:var(--ok)}
+.avr.out:has(.avin){opacity:1}.avneg{color:var(--bad);font-weight:700;font-size:12.5px}.avr.cdone{background:color-mix(in srgb,var(--ok) 9%,transparent)}
 .avin{display:flex;flex-direction:column;gap:2px;font-size:11px;color:var(--muted)}.avin input{width:110px;font-size:16px}
 @media(max-width:600px){.avr{grid-template-columns:1fr;gap:6px}.avn .sub{max-width:80vw}.avq{grid-template-columns:repeat(3,1fr)}.avin{flex-direction:row;align-items:center;gap:8px}.avin input{flex:1;width:auto}}
 .stl{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:8px}
@@ -1586,6 +1590,7 @@ function vNew(){
   const bad=D.lines.filter(l=>!l.pid).length, noPrice=D.lines.filter(l=>l.pid&&!(+l.price>0)).length;
   const why=invWhy();const _w=!D.cust.name.trim()?'اكتب اسم العميل':!D.lines.length?'ضيف صنف واحد على الأقل':bad?`فيه ${bad} صنف مش متسجل: اختار الصح أو سجّله صنف جديد`:noPrice?'فيه صنف من غير سعر':'';
   const pc=S.customers.filter(x=>x.page===D.page);
+  const MS=draftShort();
   const rowFor=(l,i)=>{
     const p=l.pid&&prod(l.pid);const ap=p?autoPrice(l.pid):null;const uc=p?unitCostOf(l.pid,lineG(l)):null;
     let tag='';
@@ -1594,7 +1599,10 @@ function vNew(){
     else if(l.how==='alias'&&l.raw) tag=`<span class="chip ok" title="السيستم اتعلم الاسم ده قبل كده">🧠 "${esc(l.raw)}"</span>`;
     if(p&&isFirstVip(c,l.pid)){const sp=vipSug(c,l.pid);tag+=`<span class="chip warn">🆕 أول مرة للعميل</span>${sp&&sp!==+l.price?`<button class="btn sm" data-x="vipSug" data-id="${i}" data-v="${sp}">سعره المقترح ${fmt(sp)}</button>`:''}`}
     if(p){ if(!l.auto&&+l.price!==ap.price) tag+=`<span class="chip">سعر مكتوب يدوي · سعره ${fmt(ap.price)}</span>`; else if(ap.cls) tag+=`<span class="chip ${ap.cls}">${ap.src}</span>`;
-      if(can('stock')&&p.track&&l.qty>p.stock) tag+=`<span class="chip bad">المخزن ${p.stock}</span>`; else if(can('stock')&&p.track) tag+=`<span class="chip">فوارغ ${fmt(p.stock)}</span>`; }
+      const ms=MS&&MS.L[i];
+      if(ms&&(ms.e||ms.o)) tag+=(ms.e?`<span class="chip bad">⛔ ناقص ${fmt(ms.e)} فارغة</span>`:'')+(ms.o?`<span class="chip bad">⛔ ناقص ${shGk(ms.o)} زيت</span>`:'');
+      else if(ms&&ms.full) tag+=`<span class="chip ok">✅ خامته موجودة</span>`;
+      else if(can('stock')&&p.track) tag+=`<span class="chip">فوارغ ${fmt(Math.max(0,p.stock))}</span>`; }
     const sug=!p||l.how==='fuzzy'?`<div class="row sugg">${l.sugg.length?`<span class="sub">تقصد:</span>${l.sugg.map(id=>`<button class="btn sm" data-sug="${i}:${id}">${esc(prod(id).name)}</button>`).join('')}`:''}${!p&&role==='owner'?`<button class="btn sm pri" data-newp="${i}">+ سجّله صنف جديد</button>`:''}</div>`:'';
     return `<tr class="${!p?'needfix':''}"><td class="pcell"><input class="cellin" list="plist" value="${esc(p?p.name:l.raw)}" data-ln="${i}" aria-label="الصنف"><div class="row" style="gap:5px;margin-top:4px">${tag}</div>${sug}</td>
       <td data-l="الكمية"><div class="qstep"><button type="button" data-qs="${i}:1" aria-label="زوّد">+</button><input type="number" min="1" inputmode="numeric" value="${l.qty}" data-lq="${i}" aria-label="الكمية" class="qin"><button type="button" data-qs="${i}:-1" aria-label="قلّل" ${l.qty<=1?'disabled':''}>−</button></div></td>
@@ -1636,6 +1644,7 @@ function vNew(){
       <div class="field af"><label for="pPrice">السعر</label><input type="number" id="pPrice" min="0" placeholder="تلقائي" class="qin"></div>
       <button class="btn pri" id="addLine">إضافة</button>
     </div>
+    ${MS&&MS.n?`<div class="mwarn" role="status"><b>⚠️ ${MS.n} صنف من ${D.lines.length} خامته ناقصة</b> · ${fmt(MS.pcs)} قطعة مش هتتعمل دلوقت<small>الفاتورة هتتحفظ عادي. الأصناف دي هتستنى لحد ما الخامة تتشترى، فبلّغ العميل إن التسليم ممكن يتأخر.</small></div>`:''}
     ${D.lines.length?`<div class="tbl lines"><table><thead><tr><th>الصنف</th><th style="width:120px">الكمية</th><th style="width:104px">السعر</th>${canG()?'<th style="width:96px">جرام/قطعة</th>':''}<th class="n" style="width:90px">الإجمالي</th><th style="width:44px"></th></tr></thead><tbody>
       ${D.lines.map(rowFor).join('')}
     </tbody></table></div>`:`<p class="hint iempty">اكتب جزء من اسم الصنف، اختاره بالأسهم أو الماوس، و Enter يضيفه ويرجعك للبحث تاني. السعر بيتحط لوحده.</p>`}
@@ -1662,6 +1671,24 @@ function vNew(){
     </div>
   </div></div>`;
 }
+/* Advisory only: which draft lines cannot be made from what is free right now. Never blocks saving.
+   Free empties = product stock (already net of open orders). Free oil = on the shelf − reserved for open orders.
+   While editing, the invoice's own old lines are added back so it is not counted against itself. */
+function draftShort(){
+  if(!D||!D.lines.length||!can('stock'))return null;
+  const hasOil=(S.materials||[]).some(m=>m.kind==='oil');
+  const ek=pid=>{const p=prod(pid);return p?(p.stock_of||p.id):pid};
+  const fe={},fo={},po=hasOil?pendOil():{};
+  const old=D.editId?S.invoices.find(x=>x.id===D.editId):null;
+  const be={},bo={};if(old)old.lines.forEach(l=>{if(!l.pid)return;const k=ek(l.pid);be[k]=(be[k]||0)+l.qty;const r=rcp(l.pid),g=l.ga??l.grams;if(r&&r.oil&&g!=null)bo[r.oil]=(bo[r.oil]||0)+l.qty*g});
+  const L=[];let n=0,pcs=0;
+  D.lines.forEach((l,i)=>{const p=l.pid&&prod(l.pid);const o={e:0,o:0,full:false};L[i]=o;if(!p)return;const q=+l.qty||0;let cant=0,ce=false,co=false;
+    if(p.track){const k=ek(p.id);if(fe[k]==null)fe[k]=Math.max(0,(prod(k)||p).stock+(be[k]||0));const use=Math.min(q,fe[k]);o.e=q-use;fe[k]-=use;cant=o.e;ce=true}
+    const r=rcp(p.id),g=lineG(l);
+    if(hasOil&&r&&r.oil&&g>0){const m=S.materials.find(x=>x.id===r.oil);if(m){if(fo[m.id]==null)fo[m.id]=Math.max(0,Math.max(0,m.stock)-(po[m.id]||0)+(bo[m.id]||0));const need=q*g,use=Math.min(need,fo[m.id]);o.o=Math.round((need-use)*10)/10;fo[m.id]-=use;if(o.o>0)cant=Math.max(cant,Math.min(q,Math.ceil(o.o/g)));co=true}}
+    o.full=ce&&co;if(o.e||o.o){n++;pcs+=cant}});
+  return {L,n,pcs};
+}
 const invPays=id=>S.payments.filter(p=>p.invId===id&&!p.void);
 function editPaidBox(total){
   total=r2(total);const cur=r2(invPays(D.editId).reduce((a,p)=>a+p.amount,0));const v=D.paid==null?cur:D.paid;const due=r2(total-v);
@@ -1683,7 +1710,7 @@ function drawAC(){
   const box=$('#acList');if(!box)return;const q=$('#pSearch').value;
   acItems=q.trim()?searchProducts(q):[];if(acI>=acItems.length)acI=0;
   if(!q.trim()){box.hidden=true;$('#pPrice').placeholder='تلقائي';return}
-  box.innerHTML=acItems.length?acItems.map((p,i)=>{const ap=autoPrice(p.id);return `<button type="button" class="acitem ${i===acI?'on':''}" data-ac="${p.id}" role="option" aria-selected="${i===acI}"><span><b>${esc(p.name)}</b><small>${esc(p.brand)}${p.track&&can('stock')?` · المخزن ${p.stock}`:''}</small></span><span class="acp"><b class="num">${fmt(ap.price)}</b><small>${ap.src}</small></span></button>`}).join('')
+  box.innerHTML=acItems.length?acItems.map((p,i)=>{const ap=autoPrice(p.id);return `<button type="button" class="acitem ${i===acI?'on':''}" data-ac="${p.id}" role="option" aria-selected="${i===acI}"><span><b>${esc(p.name)}</b><small>${esc(p.brand)}${p.track&&can('stock')?(p.stock>0?` · فوارغ ${fmt(p.stock)}`:' · <span style="color:var(--bad)">⛔ فوارغه خلصانة</span>'):''}</small></span><span class="acp"><b class="num">${fmt(ap.price)}</b><small>${ap.src}</small></span></button>`}).join('')
     :`<div class="acnone">مفيش صنف بالاسم ده. اضغط Enter وتقدر تسجّله صنف جديد.</div>`;
   box.hidden=false;
   $('#pPrice').placeholder=acItems[acI]?fmt(autoPrice(acItems[acI].id).price):'تلقائي';
@@ -2031,7 +2058,7 @@ function vStock(){
      ${cnt?`<div class="stin"><label>فوارغ فعلي<input type="number" min="0" inputmode="numeric" data-cnt="${p.id}" value="${c.e??''}" placeholder="${p.stock}"></label><label>زيت فعلي (جم)<input type="number" min="0" step="0.1" inputmode="decimal" data-ocnt="${p.id}" value="${c.o??''}" placeholder="${m?fmtG(m.stock):'—'}"></label></div>`:''}</div>`}).join('')||'<div class="panel empty">مفيش أصناف هنا 👌</div>'}</div>${more}`;
 }
 /* ---------- v56: المتاح (simple stock) ---------- */
-let stK='oil',avF='have',avOpen=null,cntZero=false;
+let stK='oil',avF='have',avOpen=null,cntZero=false,cntF='all';
 const cntCode=(k,n)=>n==null?'':(k==='oil'?'Z':'F')+n;
 function useMaps(){
   const from=ld(new Date(Date.now()-30*864e5)),o={},e={};
@@ -2054,7 +2081,9 @@ const avQ=(x,v)=>x.k==='oil'?kgS(v):fmt(v);
 const AVF={have:['عندي منه',x=>x.have>0],short:['🔴 ناقص للأوردرات',x=>x.av<0],warn:['🟡 قرب يخلص',x=>x.st==='warn'],out:['خلص',x=>x.have<=0&&x.res<=0],all:['الكل',()=>true]};
 function avView(head,cnt){
   if(cnt&&stK==='rdy')stK='oil';const R=avRows(),L0=R[stK]||R.oil;if(cnt)avF='all';if(!AVF[avF])avF='have';
-  const L=L0.filter(AVF[avF][1]).filter(x=>!qS||norm(x.name).includes(norm(qS))||norm(x.sub).includes(norm(qS))||cntCode(x.k,x.no).toLowerCase()===qS.trim().toLowerCase()||String(x.no)===qS.trim())
+  const NEG=R.oil.concat(R.emp).filter(x=>x.raw<0),cKey=x=>(x.k==='oil'?'o:':'e:')+x.id,cHas=x=>{const v=(CNT[cKey(x)]||{}).v;return v!=null&&v!==''};
+  if(cnt&&cntF==='neg'&&!NEG.length)cntF='all';
+  const L=L0.filter(cnt&&cntF==='neg'?x=>x.raw<0:AVF[avF][1]).filter(x=>!qS||norm(x.name).includes(norm(qS))||norm(x.sub).includes(norm(qS))||cntCode(x.k,x.no).toLowerCase()===qS.trim().toLowerCase()||String(x.no)===qS.trim())
     .sort(cnt?(a,b)=>(a.no||1e9)-(b.no||1e9):avF==='short'?(a,b)=>a.av-b.av:(a,b)=>b.u-a.u||a.name.localeCompare(b.name,'ar'));
   const shown=L.slice(0,cnt?Math.max(stLim,120):stLim);
   const tabs=`<div class="seg avk" role="tablist"><button class="${stK==='oil'?'on':''}" data-avk="oil">🧪 زيوت <b>${R.oil.filter(x=>x.have>0).length}</b></button><button class="${stK==='emp'?'on':''}" data-avk="emp">🍶 فوارغ <b>${R.emp.filter(x=>x.have>0).length}</b></button><button class="${stK==='rdy'?'on':''}" data-avk="rdy">🧴 جاهز <b>${(S.ready||[]).filter(x=>x.qty>0).length}</b></button></div>`;
@@ -2064,10 +2093,12 @@ function avView(head,cnt){
   const more=L.length>shown.length?`<button class="btn" data-x="stMore" style="width:100%;margin-top:8px">عرض ${Math.min(40,L.length-shown.length)} كمان (فاضل ${L.length-shown.length})</button>`:'';
   const dot={ok:'🟢',warn:'🟡',bad:'🔴',out:'⚪'};
   const cntBox=cnt?`<div class="panel" style="border-inline-start:4px solid var(--accent)"><b>📋 وضع الجرد</b><p class="hint" style="margin:4px 0 8px">اكتب الموجود على الرف: الزيت بالجرام صافي (من غير الإزازة)، والفوارغ بالعدد. اللي محجوز للأوردرات السيستم بيحسبه لوحده. تقدر تنقل من الورقة بسرعة: كل سطر <b dir="ltr">Z12 450</b> أو <b dir="ltr">F33 20</b>.</p>
-    <textarea id="cntPaste" rows="3" placeholder="Z12 450&#10;F33 20" dir="ltr" style="width:100%"></textarea><div class="row" style="justify-content:space-between;margin-top:6px"><button class="btn sm" data-x="cntPaste">نقل الأرقام ↓</button><span class="sub" id="cntInfo">${Object.values(CNT).filter(v=>v.v!=null&&v.v!=='').length} صنف مكتوب</span></div>
-    <label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" id="cntZero" ${cntZero?'checked':''}> <span>أي زيت أو فارغ <b>ما اتكتبش</b> يبقى رصيده صفر (جرد كامل)</span></label></div>`:'';
+    ${cntF==='neg'?'':`<textarea id="cntPaste" rows="3" placeholder="Z12 450&#10;F33 20" dir="ltr" style="width:100%"></textarea>`}<div class="row" style="justify-content:space-between;margin-top:6px">${cntF==='neg'?'<span></span>':'<button class="btn sm" data-x="cntPaste">نقل الأرقام ↓</button>'}<span class="sub" id="cntInfo">${Object.values(CNT).filter(v=>v.v!=null&&v.v!=='').length} صنف مكتوب</span></div>
+    ${cntF==='neg'?'':`<label class="row" style="gap:6px;margin-top:8px"><input type="checkbox" id="cntZero" ${cntZero?'checked':''}> <span>أي زيت أو فارغ <b>ما اتكتبش</b> يبقى رصيده صفر (جرد كامل)</span></label>`}
+    ${NEG.length?`<div class="cnf"><button class="${cntF==='neg'?'on':''}" data-x="cntF" data-id="neg">🔴 اللي بالسالب بس (${NEG.length})</button><button class="${cntF==='all'?'on':''}" data-x="cntF" data-id="all">كل الأصناف</button></div>
+    ${cntF==='neg'?`<p class="hint" style="margin:8px 0 0">دول ${NEG.length} صنف السيستم شايف رصيدهم أقل من صفر (${R.oil.filter(x=>x.raw<0).length} زيت · ${R.emp.filter(x=>x.raw<0).length} فارغ). عدّ الموجود فعلاً على الرف واكتبه، ولو مفيش اكتب 0. اتكتب <b>${NEG.filter(cHas).length}</b> من <b>${NEG.length}</b>.</p><div class="cnp"><i style="width:${Math.round(NEG.filter(cHas).length/NEG.length*100)}%"></i></div>`:''}`:''}</div>`:'';
   const rows=shown.map(x=>{const key=(x.k==='oil'?'o:':'e:')+x.id,c=CNT[key]||{};
-    return `<div class="avr ${x.st}" ${cnt?'':`data-x="avOpen" data-id="${x.k}:${x.id}"`}><div class="avn"><span class="avc">${cntCode(x.k,x.no)}</span><div><b>${dot[x.st]} ${esc(x.name.replace(/^زيت /,''))}</b>${x.sub?`<div class="sub">${esc(x.sub)}</div>`:''}</div></div>
+    return `<div class="avr ${x.st}${cnt&&cHas(x)?' cdone':''}" ${cnt?'':`data-x="avOpen" data-id="${x.k}:${x.id}"`}><div class="avn"><span class="avc">${cntCode(x.k,x.no)}</span><div><b>${cnt&&cHas(x)?'✅':dot[x.st]} ${esc(x.name.replace(/^زيت /,''))}</b>${cnt&&x.raw<0?`<div class="avneg">السيستم شايف ${avQ(x,x.raw)}${x.res?` · محجوز للأوردرات ${avQ(x,x.res)}`:''}</div>`:x.sub?`<div class="sub">${esc(x.sub)}</div>`:''}</div></div>
      ${cnt?`<label class="avin"><small>${x.k==='oil'?'جرام':'عدد'}</small><input type="number" min="0" step="${x.k==='oil'?'0.1':'1'}" inputmode="decimal" data-cnt="${key}" value="${c.v??''}" placeholder="${x.have>0?fmtG(x.have):'0'}"></label>`
      :`<div class="avq"><div><small>عندي</small><b>${x.have>0?avQ(x,x.have):'—'}</b></div><div><small>محجوز</small><b>${x.res?avQ(x,x.res):'—'}</b></div><div class="avm"><small>المتاح</small><b>${x.av<0?'ناقص '+avQ(x,-x.av):avQ(x,x.av)}</b></div></div>`}</div>`}).join('');
   return head+tabs+cntBox+bar+`<div class="avl">${rows||'<div class="panel empty">مفيش أصناف هنا 👌</div>'}</div>${more}`;
@@ -2584,7 +2615,7 @@ document.addEventListener('input',e=>{
   if(t.id==='cntZero'){cntZero=t.checked;return}
   if(t.id==='rfN'||t.id==='rfG'||t.id==='rfQ'){if(t.id==='rfN'&&!S.products.some(x=>x.name===t.value.trim()))return;const pos=t.selectionStart;rfSync();rfModal();const n=$('#'+t.id);if(n){n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}}return}
   if(t.dataset.cs){const k=t.dataset.cs,v=+t.value;if(!(v>=0)||t.value==='')return;(S.cset??={...CS()})[k]=v;clearTimeout(t._cs);t._cs=setTimeout(()=>act(()=>q(sb.from('cost_settings').update({v}).eq('k',k)),'اتحفظ').then(()=>soft()),600);return}
-  if(t.dataset.cnt){(CNT[t.dataset.cnt]??={}).v=t.value===''?null:t.value;const ci=$('#cntInfo');if(ci)ci.textContent=Object.values(CNT).filter(v=>v.v!=null&&v.v!=='').length+' صنف مكتوب';return}
+  if(t.dataset.cnt){(CNT[t.dataset.cnt]??={}).v=t.value===''?null:t.value;t.closest('.avr')?.classList.toggle('cdone',t.value!=='');const ci=$('#cntInfo');if(ci)ci.textContent=Object.values(CNT).filter(v=>v.v!=null&&v.v!=='').length+' صنف مكتوب';return}
   if(t.dataset.ocnt){(CNT[t.dataset.ocnt]??={}).o=t.value===''?null:t.value;return}
   if(t.id==='qpO'){const k=$('#qpK');if(k)k.textContent=t.value!==''?'الكيلو = '+fmt(+t.value*1000)+' ج':'';return}
   if(t.id==='rcS'){const pos=t.selectionStart;mQ=t.value;render();const n=$('#rcS');n.focus();try{n.setSelectionRange(pos,pos)}catch(_){}return}
@@ -3107,7 +3138,8 @@ document.addEventListener('click',async e=>{
   if(x==='remind'){const c=cust(id);if(!c?.phone){toast('العميل مالوش رقم');return}waOpen(c.phone,`أهلاً ${c.name} 🌸\nنجهزلك أوردر الأسبوع ده من ${PG[c.page].name}؟ ابعتلنا الأصناف والكميات ونجهزهولك على طول.`);return}
   if(x==='owedWA'){const c=cust(id),bal=custBal(c);if(!c?.phone){toast('العميل مالوش رقم');return}waOpen(c.phone,`أهلاً ${c.name} 🌸\nحبينا نفكّرك إن الرصيد المستحق عند حضرتك ${fmt(bal)} ج. شكراً 🙏`);return}
   if(x==='supCopy'||x==='supWA'){const t=supplierText(reorderList());if(x==='supWA'){window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');return}try{await navigator.clipboard.writeText(t);toast('اتنسخت الطلبية')}catch(_){toast('مقدرتش أنسخ. انسخها يدوي')}return}
-  if(x==='countOn'){countMode=true;CNT={};stV='stock';stF='all';stLim=40;return render()}
+  if(x==='countOn'){countMode=true;CNT={};stV='stock';stF='all';stLim=40;cntF=avRows().oil.concat(avRows().emp).some(r=>r.raw<0)?'neg':'all';cntZero=false;return render()}
+  if(x==='cntF'){cntF=id==='neg'?'neg':'all';if(cntF==='neg')cntZero=false;stLim=40;return render()}
   if(x==='stGo'){const [v,f]=id.split(':');countMode=false;stV=v;stF=f||'act';if(v==='stock'&&AVF[f])avF=f;stLim=40;qS='';return tab==='stock'?render():go('stock')}
   if(x==='stMore'){stLim+=40;return render()}
   if(x==='qpOn'){qpOn=true;qpSkip=new Set();render();setTimeout(()=>{const n=$('#qpE:not([disabled])')||$('#qpO');if(n)n.focus()},60);return}
