@@ -1,0 +1,5 @@
+-- Assistant tools for price tiers and the reorder point (applied 2026-11-25). Additive: three new functions.
+--   tier_price_of(product, page, tier)  internal helper, not callable by clients; same rule as tier_pricelist
+--   ag_tier_prices(q, page)             owner/billing/page: list price + the 5 tier prices of the matching products
+--   ag_reorder(supplier)                owner/stock: reorder-point summary per supplier, built from plan_status(), no prices
+-- Full definitions live in the database (pg_get_functiondef); the assistant source is supabase/functions/agent/index.ts.

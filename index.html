@@ -4741,6 +4741,7 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
 #agBox .agh small{color:var(--muted,#A49C8D);font-size:12px}
 #agBox .agh button{border:1px solid var(--line,#2D2A25);background:transparent;color:var(--ink,#F1ECE2);border-radius:8px;padding:5px 9px;cursor:pointer}
 #agLog{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+#agLog .m.old{opacity:.72}#agLog .agsep{align-self:center;font-size:11.5px;color:var(--muted);border-top:1px dashed var(--line);padding-top:6px;margin:2px 0;width:100%;text-align:center}
 #agLog .m{max-width:90%;padding:9px 12px;border-radius:14px;line-height:1.7;white-space:pre-wrap;word-break:break-word;font-size:14px}
 #agLog .u{align-self:flex-start;background:var(--accent,#C9A45C);color:#1b1204;border-bottom-right-radius:4px}
 #agLog .a{align-self:flex-end;background:var(--bg,#131210);border:1px solid var(--line,#2D2A25);border-bottom-left-radius:4px}
@@ -4780,16 +4781,28 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
   const fab=el('agFab'),box=el('agBox'),log=el('agLog'),inp=el('agIn');
   const CHIPS={
     maker:['خطة شغلي النهارده، أبدأ بإيه؟','إنتاجي النهارده','إنتاجي الأسبوع ده','آخر أصناف عملتها'],
-    stock:['خطة شغلي النهارده، أبدأ بإيه؟','إنتاجي الأسبوع ده','الأوردرات المفتوحة','سوفاج فاضل منه كام؟'],
-    page:['أوردراتي المفتوحة','سعر سوفاج لعميل…','العميل … بياخد إيه عادة؟','الفاتورة … وصلت لفين؟'],
+    stock:['خطة شغلي النهارده، أبدأ بإيه؟','أطلب إيه النهارده؟','إنتاجي الأسبوع ده','الأوردرات المفتوحة','سوفاج فاضل منه كام؟'],
+    page:['أوردراتي المفتوحة','سعر سوفاج لو العميل هياخد 300 قطعة','سعر سوفاج لعميل…','العميل … بياخد إيه عادة؟','الفاتورة … وصلت لفين؟'],
     billing:['الأوردرات المفتوحة','سعر صنف لعميل…','الفاتورة … وصلت لفين؟'],
-    owner:['قايمة الشراء','إنتاج الفريق الأسبوع ده','خطة الشغل النهارده','افتكر إن …','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
+    owner:['أطلب إيه النهارده؟','سعر سوفاج لو العميل هياخد 300 قطعة','قايمة الشراء','إنتاج الفريق الأسبوع ده','خطة الشغل النهارده','افتكر إن …','ناقص إيه في EB-247؟','سعر ليبر انتس لفدوي']
   };
   const fmtA=t=>esc(t).replace(/\*\*(.+?)\*\*/g,'<b>$1</b>').replace(/(https:\/\/wa\.me\/[^\s<]+)/g,u=>`<a href="${u.replace(/&amp;/g,'&')}" target="_blank" rel="noopener" class="wa">📲 ابعت على واتساب</a>`);
   function add(cls,html){const d=document.createElement('div');d.className='m '+cls;d.innerHTML=html;log.appendChild(d);log.scrollTop=log.scrollHeight;return d}
   function cnt(r){if(!r)return;el('agCnt').textContent=r.owner?'':(r.limit!=null?`${r.used_today}/${r.limit} النهارده`:'')}
   function chips(){const c=el('agChips');const L=CHIPS[ME&&ME.role]||CHIPS.stock;c.innerHTML=L.map(x=>`<button type="button">${esc(x)}</button>`).join('');
     c.querySelectorAll('button').forEach(b=>b.onclick=()=>{const t=b.textContent;if(t.includes('…')){inp.value=t.replace('…','').trim()+' ';inp.focus()}else ask(t)})}
+  const cutKey=()=>'ag-cut-'+(ME&&ME.id||'');
+  // Restore the last conversation from the usage log (own rows only, RLS). Fails silently: the chat still works without it.
+  async function loadHist(){if(AG.histLoaded||!ME)return;AG.histLoaded=true;
+    try{let cut=new Date(Date.now()-3*864e5).toISOString();try{const c=localStorage.getItem(cutKey());if(c&&c>cut)cut=c}catch(e){}
+      const {data,error}=await sb.from('agent_usage').select('id,q,a,created_at').eq('user_id',ME.id).eq('ok',true).gt('created_at',cut).order('created_at',{ascending:false}).limit(10);
+      if(error||!data||!data.length||AG.hist.length)return;const L=data.slice().reverse(),first=log.firstChild,frag=document.createDocumentFragment();
+      const mk=(cls,html)=>{const d=document.createElement('div');d.className='m '+cls;d.innerHTML=html;frag.appendChild(d)};
+      L.forEach(x=>{mk('u old',esc(x.q||''));mk('a old',fmtA(x.a||''))});
+      const sep=document.createElement('div');sep.className='agsep';sep.textContent='⬆ محادثتك السابقة · '+new Date(L[L.length-1].created_at).toLocaleString('ar-EG-u-nu-latn',{day:'numeric',month:'numeric',hour:'numeric',minute:'2-digit'});frag.appendChild(sep);
+      log.insertBefore(frag,first);
+      L.slice(-3).forEach(x=>AG.hist.push({role:'user',content:String(x.q||'')},{role:'assistant',content:String(x.a||'').slice(0,1500)}));
+      log.scrollTop=log.scrollHeight}catch(e){}}
   function reset(){AG.hist=[];log.innerHTML='';add('a',`أهلاً ${esc(ME&&ME.name||'')} 👋\nاسألني عن المخزون، الزيوت، الفواتير، تركيز وسعر صنف لعميل، أو إنتاجك.`);chips()}
   async function ask(q){
     q=(q||'').trim();if(!q||AG.busy)return;AG.busy=true;inp.value='';
@@ -4843,18 +4856,18 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
   }
   async function checkBrief(){try{const {data}=await sb.rpc('ag_my_brief',{p_seen:false});if(!data)return;AG.brief=data;if(!data.seen)fab.classList.add('dot');if(location.hash==='#brief'){openBox();history.replaceState(null,'',location.pathname)}}catch(e){}}
   function showBrief(){if(!AG.brief||AG.briefShown)return;AG.briefShown=true;const d=add('a brief',fmtA(AG.brief.body));fab.classList.remove('dot');sb.rpc('ag_my_brief',{p_seen:true}).then(()=>{},()=>{});AG.hist.push({role:'user',content:'رسالة الصبح'},{role:'assistant',content:AG.brief.body});return d}
-  function openBox(){box.hidden=false;if(!log.children.length)reset();showBrief();setTimeout(()=>inp.focus(),50)}
+  function openBox(){box.hidden=false;if(!log.children.length){reset();loadHist()}showBrief();setTimeout(()=>inp.focus(),50)}
   fab.onclick=openBox;
   try{navigator.serviceWorker&&navigator.serviceWorker.addEventListener('message',e=>{if(e.data&&e.data.type==='push-open'&&String(e.data.url||'').includes('#brief')){if(!AG.brief)checkBrief().then(openBox);else openBox()}})}catch(e){}
   el('agX').onclick=()=>{box.hidden=true};
-  el('agNew').onclick=reset;
+  el('agNew').onclick=()=>{try{localStorage.setItem(cutKey(),new Date().toISOString())}catch(e){};AG.histLoaded=true;reset()};
   el('agUseBtn').onclick=usage;
   el('agForm').onsubmit=e=>{e.preventDefault();ask(inp.value)};
   inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();ask(inp.value)}});
   const t=setInterval(()=>{
     const app=document.getElementById('app');
     if(typeof ME!=='undefined'&&ME&&app&&!app.hidden){if(fab.hidden&&!AG.briefChecked){AG.briefChecked=true;checkBrief()}fab.hidden=false;el('agUseBtn').hidden=ME.role!=='owner'}
-    else{fab.hidden=true;box.hidden=true;if(typeof ME==='undefined'||!ME){AG.hist=[];log.innerHTML='';AG.brief=null;AG.briefShown=false;AG.briefChecked=false;fab.classList.remove('dot')}}
+    else{fab.hidden=true;box.hidden=true;if(typeof ME==='undefined'||!ME){AG.hist=[];AG.histLoaded=false;log.innerHTML='';AG.brief=null;AG.briefShown=false;AG.briefChecked=false;fab.classList.remove('dot')}}
   },1000);
 })();
 </script>
