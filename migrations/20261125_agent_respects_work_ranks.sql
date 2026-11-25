@@ -1,0 +1,4 @@
+-- Applied 2026-11-25: workers (stock/maker) see only invoices the owner ranked, in the assistant too
+-- (ag_work_plan_base, ag_open_orders). Same rule as the worker screen: once any open invoice has a rank,
+-- unranked ones stay hidden from workers until the owner ticks them in the work-order panel (tab الإنتاج).
+-- Implemented as an idempotent textual patch of the two existing functions; see the database for full bodies.
