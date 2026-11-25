@@ -1,0 +1,5 @@
+-- Staff can ask the assistant to pass a short message to the owner (applied 2026-11-25). Additive.
+--   owner_notes table (RLS on, no policies)
+--   ag_tell_owner(body)      any signed-in non-owner: stores the note (max 500 chars, 5 a day) and notifies the owner
+--   owner_notes_list()       owner only: unread notes
+--   owner_note_read(id|null) owner only: mark one or all as read

@@ -430,7 +430,8 @@ tr.pfrow td{background:var(--surface2);font-size:13.5px;padding:8px 12px!importa
 .wcard.sh{padding:12px 14px;gap:8px}.wcard.sh .wnm b{font-size:17px}
 .ovr{background:var(--warn-soft);border:1px solid var(--warn);border-radius:14px;padding:8px 12px;margin:0 0 12px}.ovh{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:2px 0 6px;color:var(--warn)}
 .ovrow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line)}.ovrow>div{flex:1;min-width:0}.ovrow small{display:block;color:var(--muted)}.ovd{font-size:12.5px;color:var(--bad)}.wbtn.no{border-color:var(--bad);background:var(--bad-soft);color:var(--bad);font-size:18px}
-.tmb{background:var(--warn-soft);border:1px solid var(--warn);border-radius:14px;padding:10px 12px;margin:0 0 12px;display:flex;flex-direction:column;gap:8px}.tmb .h{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--warn);font-weight:700;font-size:14px}.tmb .h small{font-weight:400}.tmb .b{white-space:pre-wrap;font-size:16px;line-height:1.6;color:var(--ink)}.tmb .a{display:flex;gap:8px}.tmb .a .go{padding:11px;font-size:16px}.tmb .a .go.done{flex:1}.tmb .a .go.iss{flex:0 0 38%;font-size:14px;white-space:nowrap;background:var(--surface2);color:var(--ink);border:1px solid var(--line)}.tmb textarea{width:100%;min-height:60px;font:inherit;font-size:15px}
+.tmb{background:var(--warn-soft);border:1px solid var(--warn);border-radius:14px;padding:10px 12px;margin:0 0 12px;display:flex;flex-direction:column;gap:8px}.tmb .h{display:flex;justify-content:space-between;align-items:center;gap:8px;color:var(--warn);font-weight:700;font-size:14px}.tmb .h small{font-weight:400}.onote{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding-top:8px;border-top:1px solid color-mix(in srgb,var(--warn) 35%,transparent)}.onote small{color:var(--muted);font-size:12px}.onote .go{flex:none}
+.tmb .b{white-space:pre-wrap;font-size:16px;line-height:1.6;color:var(--ink)}.tmb .a{display:flex;gap:8px}.tmb .a .go{padding:11px;font-size:16px}.tmb .a .go.done{flex:1}.tmb .a .go.iss{flex:0 0 38%;font-size:14px;white-space:nowrap;background:var(--surface2);color:var(--ink);border:1px solid var(--line)}.tmb textarea{width:100%;min-height:60px;font:inherit;font-size:15px}
 .tmc{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 8px}.tmc button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:999px;padding:7px 14px;font:inherit;font-size:14px;cursor:pointer}.tmc button.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 .tml{border-top:1px solid var(--line);padding:10px 0;display:flex;flex-direction:column;gap:4px}.tml .t{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}.tml .t>div{white-space:pre-wrap;flex:1;min-width:0}.tml .st{font-size:12.5px;padding:2px 8px;border-radius:8px;white-space:nowrap;background:var(--ok-soft);color:var(--ok)}.tml .st.w{background:var(--warn-soft);color:var(--warn)}.tml small{color:var(--muted)}.tml .rp{color:var(--warn);font-size:13.5px}
 .wbtns{display:flex;gap:6px}.wpart{background:var(--surface2);border-radius:12px;padding:10px;margin:8px 0;display:flex;flex-direction:column;gap:6px}.wpart input{width:110px}.wgo2{display:flex;gap:8px}.wgo2 .go.done{flex:1}.wgo2 .go.start{flex:0 0 32%;font-size:15px}
@@ -2503,7 +2504,7 @@ function render(){{const g=document.getElementById('gsBtn');if(g)g.hidden=!ME||M
   const an=$('#appname');if(an){const MP=myPage();an.innerHTML=MP?`<i><span style="background:var(--p-${MP})"></span></i>${esc(PG[MP].name)}`:`<i>${PAGES.map(p=>`<span style="background:var(--p-${p.id})"></span>`).join('')}</i>AF Group`}
   $('#who').textContent=ME?ME.name:'';pvBtnSync();
   const v={home:vHome,new:vNew,invoices:vInvoices,orders:()=>quotesPanel()+vOrders(),fulfill:vFulfill,customers:vCustomers,products:vProducts,stock:vStock,collect:vCollect,follow:vFollow,ads:vAds,sup:()=>vSup()+supCmp(),prod:vProd,assets:vAssets,work:vWork,deliver:vDeliver,mats:vMats,make:vMake,team:vTeam,reports:vReports,cash:vCash,users:vUsers,earn:vEarn,short:()=>mopenPanel()+vShort(),plan:vPlan}[tab];
-  $('#main').innerHTML=ovrBar()+msgBar()+v();
+  $('#main').innerHTML=ovrBar()+msgBar()+noteBar()+v();
   if(keep){const el=document.querySelector('#main '+keep)||(keep.startsWith('#')?document.querySelector(keep):null);if(el&&!el.closest('#modal')){if(keepVal){el.value=keepVal.v;try{el.setSelectionRange(keepVal.s,keepVal.s)}catch(_){}}el.focus({preventScroll:true});if(el.id==='pSearch'&&el.value.trim())drawAC()}}
 }
 document.addEventListener('click',async e=>{
@@ -2946,6 +2947,7 @@ document.addEventListener('change',e=>{const t=e.target;if(!t||!t.dataset)return
   if(t.dataset.plon!=null&&PL.po){PL.po.lines[+t.dataset.plon].on=t.checked;plPoDraw();return}
   if(t.id==='plSup'){PL.sup=t.value;PL.lim=40;render();return}});
 document.addEventListener('click',async e=>{const b=e.target.closest('[data-x^="pl"]');if(!b)return;const x=b.dataset.x,id=b.dataset.id;
+  if(x==='plNote'){const r=await act(()=>q(sb.rpc('owner_note_read',{p_id:id?+id:null})));if(r===false)return;S.onotes=id?(S.onotes||[]).filter(n=>String(n.id)!==String(id)):[];render();return}
   if(x==='plTier'){await tierApply();return}
   if(x==='plTierSave'){await tierSave();return}
   if(x==='plRef'){PL.data=null;PL.err=null;render();return}
@@ -3600,7 +3602,9 @@ let wkMode='orders';
 async function loadShort(){try{const [a,b]=await Promise.all([q(sb.rpc('short_lines')),q(sb.rpc('list_overrides'))]);S.short=a||{};S.ovr=b||[]}catch(e){S.short=S.short||{};S.ovr=S.ovr||[]}}
 const ovrOf=lid=>(S.ovr||[]).find(o=>o.lid===lid);
 let tmAud='work',tmIss=null;const AUDN={work:'العمال والمخزن',page:'الصفحات',all:'الكل'};
-async function loadMsgs(){try{if(!ME)return;if(ME.role==='owner'){S.tmsg=(await q(sb.rpc('team_msgs_status')))||[]}else{S.msgs=(await q(sb.rpc('my_team_msgs')))||[]}}catch(e){}}
+async function loadMsgs(){try{if(!ME)return;if(ME.role==='owner'){S.tmsg=(await q(sb.rpc('team_msgs_status')))||[];try{S.onotes=(await q(sb.rpc('owner_notes_list')))||[]}catch(e){S.onotes=S.onotes||[]}}else{S.msgs=(await q(sb.rpc('my_team_msgs')))||[]}}catch(e){}}
+function noteBar(){if(!ME||ME.role!=='owner')return '';const L=Array.isArray(S.onotes)?S.onotes:[];if(!L.length)return '';const RN={page:'صفحة',billing:'حسابات',stock:'مخزن',maker:'تصنيع'};
+  return `<div class="tmb" role="status"><div class="h"><span>📨 رسايل من الفريق عن طريق المساعد (${L.length})</span>${L.length>1?'<button class="btn sm" data-x="plNote" data-id="">✓ قريت الكل</button>':''}</div>${L.slice(0,6).map(n=>`<div class="onote"><div><b>${esc(n.name||'موظف')}</b> <small>${RN[n.role]||''} · ${tAgo(n.at)}</small><div class="b">${esc(n.body)}</div></div><button class="go done" data-x="plNote" data-id="${n.id}">✓ قريت</button></div>`).join('')}${L.length>6?`<small class="sub">و${L.length-6} كمان</small>`:''}</div>`}
 function msgBar(){if(!ME||ME.role==='owner'||!(S.msgs||[]).length)return '';const m=S.msgs[0],n=S.msgs.length;
   return `<div class="tmb" role="alert"><div class="h"><span>📣 رسالة من ${esc(m.from||'فارس')}${n>1?` <small>(1 من ${n})</small>`:''}</span><small>${tAgo(m.at)}</small></div><div class="b">${esc(m.body)}</div>
   ${tmIss===m.id?`<textarea id="tmR" dir="rtl" placeholder="اكتب المشكلة في سطر…"></textarea><div class="a"><button class="go done" data-x="tmSend" data-id="${m.id}">ابعت الرد</button><button class="go iss" data-x="tmIssX">إلغاء</button></div>`
