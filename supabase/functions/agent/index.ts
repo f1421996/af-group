@@ -2,6 +2,7 @@
 // v91: + tier_prices (quantity tiers) and reorder_list (reorder point) tools.
 // v92: page accounts get Sonnet for full-list and suggestion questions (own daily cap).
 // v93: + tell_owner (staff can pass a short message to the owner).
+// v94: + draft_invoice_new (invoice draft for a customer who is not in the system yet).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const MODEL = "claude-haiku-5-5";
@@ -80,6 +81,15 @@ const TOOLS: Tool[] = [
       customer_said: { type: "string", description: "what the user ORIGINALLY typed for the customer, if it differs from customer" } },
       required: ["customer", "items"] },
     args: (i) => ({ p_customer: String(i.customer ?? ""), p_items: Array.isArray(i.items) ? i.items : [], p_customer_said: i.customer_said ?? null }) },
+  { name: "draft_invoice_new", rpc: "ag_draft_invoice_new", roles: ["owner", "billing", "page"],
+    description: "Prepare an invoice DRAFT for a NEW customer who is not in the system yet. Nothing is saved: the customer and the invoice are created only when the user presses the save button. Use ONLY after draft_invoice showed the customer does not exist AND the user confirmed this is a new customer. customer = the name; phone and address are optional. items as in draft_invoice (price = a number if the user gave one, or omit for the normal price). page (ol/eb/mg/rd/dn) is needed for owner/billing only; a page user always uses their own page. If the result is customer_exists, tell the user the name that was found and ask.",
+    input_schema: { type: "object", properties: {
+      customer: { type: "string" }, phone: { type: "string" }, address: { type: "string" }, page: { type: "string" },
+      items: { type: "array", items: { type: "object", properties: {
+        product: { type: "string" }, qty: { type: "number" }, price: { description: "number, or omit" },
+        said: { type: "string", description: "what the user ORIGINALLY typed for this product, if you replaced it with a name the user picked" } }, required: ["product", "qty"] } } },
+      required: ["customer", "items"] },
+    args: (i) => ({ p_name: String(i.customer ?? ""), p_phone: String(i.phone ?? ""), p_addr: String(i.address ?? ""), p_items: Array.isArray(i.items) ? i.items : [], p_page: i.page ?? null }) },
   { name: "purchase_list", rpc: "ag_purchase_list", roles: ["owner", "billing", "stock", "maker"],
     description: "Shopping list of missing empties/oils for open orders, grouped by supplier (last supplier bought from), with a ready WhatsApp message and link per supplier.",
     input_schema: { type: "object", properties: {} }, args: () => ({}) },
@@ -147,7 +157,7 @@ function systemPrompt(q: any, rules: string[] = []) {
 - «آخر سعر خد بيه» = last_sold.price. لو never_bought = true قول إنه ماخدش الصنف ده قبل كده، واعرض price_now ومصدره.
 - لو طلب يعمل فاتورة: استخدم draft_invoice. لو رجعت issues أو choose أو did_you_mean، اسأل عنهم كلهم ومتقولش إن فيه مسودة. لو رجعت draft_ready: اعرض العميل وكل صنف (الاسم + F، الكمية، السعر ومصدره) والإجمالي، وقوله: «راجعها ودوس ✅ سجّل الفاتورة تحت». إنت عمرك ما بتسجل بنفسك، وممنوع تقول «اتسجلت».
 - لو المستخدم مالوش أداة draft_invoice (عامل/مخزن) وطلب فاتورة: قوله إن الفواتير بتتعمل من حساب الصفحة أو الإدارة.
-- العميل لازم يكون موجود في السيستم. لو عميل جديد، قوله يعمله من «فاتورة جديدة» أول مرة.
+- عميل جديد مش في السيستم: لو draft_invoice رجعت «مفيش عميل بالاسم ده»، اعرض الأسماء القريبة لو فيه واسأل المستخدم: ده عميل جديد؟ لو أكد إنه جديد، اسأله عن رقم تليفونه (ولو مش معاه كمّل من غيره) واستخدم draft_invoice_new. ممنوع تستخدمها من غير ما المستخدم يأكد إنه عميل جديد. لو رجعت customer_exists قوله الاسم اللي لقيته واسأله هو نفسه ولا لأ. لو رجعت draft_ready اعرض المسودة زي العادي وقول إن العميل جديد وهيتسجل مع الفاتورة لما يدوس «سجّل الفاتورة».
 - ماتصحّحش ردودك القديمة إلا لو أداة رجعت رقم مختلف فعلاً.
 - لو المستخدم اختار صنف أو عميل بعد ما سألته، ابعت الاسم اللي اختاره في product/customer، واللي كان كاتبه في الأول في said/customer_said، عشان السيستم يتعلّمه.
 - «قايمة الشراء / محتاجين نشتري إيه / النواقص»: استخدم purchase_list. اعرض كل مورد وعدد أصنافه وأهم 5 أصناف، وحط رابط الواتساب زي ما هو لو موجود. «مورد مش متسجل» قول إن الأصناف دي محتاجة يتحدد موردها.
@@ -267,9 +277,9 @@ Deno.serve(async (req) => {
         const t = tools.find((x) => x.name === c.name);
         toolNames.push(c.name);
         let out: unknown = t ? await rpc(t.rpc, t.args(c.input ?? {}), jwt, apikey) : { error: "unknown tool" };
-        if (c.name === "draft_invoice" && (out as any)?.status === "draft_ready") {
+        if ((c.name === "draft_invoice" || c.name === "draft_invoice_new") && (out as any)?.status === "draft_ready") {
           const d: any = out;
-          drafts.push({ id: d.draft_id, customer: d.customer, page: d.page, total: d.total,
+          drafts.push({ id: d.draft_id, customer: d.customer, page: d.page, total: d.total, isNew: !!d.new_customer, phone: d.phone ?? null,
             lines: (d.lines ?? []).map((l: any) => ({ name: l.name, F: l.F, qty: l.qty, price: l.price, src: l.price_src, g: l.g })) });
         }
         if (c.name === "tier_prices" && Array.isArray((out as any)?.tiers)) {
