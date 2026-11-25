@@ -1,0 +1,3 @@
+-- Applied 2026-11-25: a team message can target one person (aud = 'u:<profile id>').
+-- team_msgs_aud_check widened; my_team_msgs() and team_msgs_status() also match aud = 'u:'||user id.
+-- Existing audiences (work/page/all) behave exactly as before.

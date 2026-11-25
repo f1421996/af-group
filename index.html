@@ -3617,7 +3617,7 @@ function teamMsgPanel(){const L=S.tmsg||[];
   <textarea id="tmBody" dir="rtl" rows="3" style="width:100%" placeholder="مثلاً: ابدأوا بأوردر EB-242 الأول"></textarea>
   <div class="row" style="justify-content:space-between;margin-top:6px"><span class="sub">بتفضل فوق شاشتهم لحد ما يدوسوا "قريت"</span><button class="btn pri" data-x="tmPost">📨 ابعت</button></div>
   ${L.length?`<div style="margin-top:10px">${L.map(m=>{const rd=m.reads||[],pd=m.pend||[],tot=rd.length+pd.length,rep=rd.filter(r=>r.reply);return `<div class="tml"><div class="t"><div><b>${esc(m.body)}</b></div><span class="st ${pd.length?'w':''}">قرا ${rd.length} من ${tot}</span></div>
-   <small>${AUDN[m.aud]||''} · ${tAgo(m.at)}${rd.filter(r=>!r.reply).length?` · ✓ ${rd.filter(r=>!r.reply).map(r=>esc(r.n)).join('، ')}`:''}</small>
+   <small>${AUDN[m.aud]||(String(m.aud).startsWith('u:')?'لشخص واحد':'')} · ${tAgo(m.at)}${rd.filter(r=>!r.reply).length?` · ✓ ${rd.filter(r=>!r.reply).map(r=>esc(r.n)).join('، ')}`:''}</small>
    ${rep.map(r=>`<div class="rp">💬 <b>${esc(r.n)}</b>: ${esc(r.reply)}</div>`).join('')}
    <div class="row" style="justify-content:space-between">${pd.length?`<small>⏳ لسه: ${pd.map(esc).join('، ')}</small>`:'<small>✅ الكل قرا</small>'}<button class="lnk" data-x="tmArc" data-id="${m.id}">إخفاء</button></div></div>`}).join('')}</div>`:''}</div>`}
 function shTxt(sh){const P=l=>S.short[l.lid]||{},E=sh.filter(l=>P(l).e),O=sh.filter(l=>P(l).o),p=[];
