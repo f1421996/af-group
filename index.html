@@ -1111,7 +1111,7 @@ async function loadAll(){
   try{
     const r=ME.role;
     const [pages,prods,prices,costs,stock,custs,cprices,invs,lines,lcosts,aliases,purch,pays,rets,rlines,exps,links,ords,queue,canc,purAll,moves,rec,mats,mcosts,rcps,rcosts,concs,cmps,audit,profs,mlog,mpur,dreps,lows,fups,sups,smoves,sinv,sinvl,fas,saliases,cclose]=await Promise.all([
-      all('pages','*'),all('products','id,code,brand,name,track,hidden,cnt_no,size_ml,stock_of,family',x=>x.order('code')),all('product_prices','product_id,page_id,price'),
+      all('pages','*'),all('products','id,code,brand,name,track,hidden,cnt_no,size_ml,stock_of,family,in_pricelist',x=>x.order('code')),all('product_prices','product_id,page_id,price'),
       r==='owner'?all('product_costs','product_id,cost'):[],
       ['owner','billing','stock'].includes(r)?all('product_stock','product_id,qty'):[],
       r!=='stock'?all('customers','*',x=>x.is('deleted_at',null)):[],
@@ -1153,7 +1153,7 @@ async function loadAll(){
       r==='owner'?all('sup_aliases','key,product_id,material_id').catch(()=>[]):[],
       r==='owner'?all('cash_closings','*',x=>x.order('created_at',{ascending:false})).catch(()=>[]):[]]);
     const pr={},co={},st={};prices.forEach(x=>{(pr[x.product_id]??={})[x.page_id]=+x.price});costs.forEach(x=>co[x.product_id]=x.cost==null?null:+x.cost);stock.forEach(x=>st[x.product_id]=+x.qty);
-    S.allProducts=prods.map(p=>({id:p.id,code:p.code,cnt_no:p.cnt_no,size_ml:p.size_ml==null?null:+p.size_ml,brand:p.brand,fam:p.family||null,name:p.name,track:p.track,hidden:!!p.hidden,stock_of:p.stock_of||null,prices:{ol:null,eb:null,mg:null,rd:null,dn:null,...(pr[p.id]||{})},cost:co[p.id]??null,stock:st[p.id]??0}));
+    S.allProducts=prods.map(p=>({id:p.id,code:p.code,cnt_no:p.cnt_no,size_ml:p.size_ml==null?null:+p.size_ml,brand:p.brand,fam:p.family||null,name:p.name,track:p.track,hidden:!!p.hidden,inPl:p.in_pricelist!==false,stock_of:p.stock_of||null,prices:{ol:null,eb:null,mg:null,rd:null,dn:null,...(pr[p.id]||{})},cost:co[p.id]??null,stock:st[p.id]??0}));
     {const pm={};S.allProducts.forEach(p=>pm[p.id]=p);S.allProducts.forEach(p=>{if(p.stock_of&&pm[p.stock_of])p.stock=pm[p.stock_of].stock});}
     S.products=S.allProducts.filter(p=>!p.hidden);
     const sp={};cprices.forEach(x=>{(sp[x.customer_id]??={})[x.product_id]=+x.price});
@@ -1967,8 +1967,8 @@ function vProducts(){
   ${ed?`<div class="addbar" style="margin:0"><div class="field" style="flex:2 1 200px"><label for="npN">صنف جديد</label><input type="text" id="npN" placeholder="اسم الصنف"></div><div class="field" style="flex:1 1 140px"><label for="npB">الماركة</label><input type="text" id="npB" list="blist" placeholder="اختياري"><datalist id="blist">${brands.map(b=>`<option value="${esc(b)}"></option>`).join('')}</datalist></div><div class="field" style="flex:0 0 120px"><label for="npP">سعر أوت ليت</label><input type="number" id="npP" min="0"></div><button class="btn pri" id="npAdd" style="align-self:flex-end">إضافة</button></div>`:''}
   ${ed&&(S.allProducts||[]).some(p=>p.hidden)?`<div class="row"><button class="btn sm ghost" data-x="hidTog">${showHid?'إخفاء':'عرض'} الأصناف المخفية (${S.allProducts.filter(p=>p.hidden).length})</button></div>`:''}
   ${showHid&&ed?`<div class="panel"><h3 style="margin:0 0 8px">الأصناف المخفية</h3>${S.allProducts.filter(p=>p.hidden).map(p=>`<div class="row" style="justify-content:space-between;padding:4px 0"><span>${esc(p.name)} <span class="sub">${esc(p.brand)}</span></span><button class="btn sm" data-x="pRestore" data-id="${p.id}">رجّعه</button></div>`).join('')}</div>`:''}
-  <div class="tbl scroll"><table><thead><tr><th>الكود</th><th>الصنف</th>${PAGES.map(p=>`<th><span class="pg" style="--pc:var(--p-${p.id})">${p.short}</span></th>`).join('')}${can('cost')?'<th>التكلفة</th>':''}<th class="n">المخزن</th>${ed?'<th title="لو مش متعلّم، الصنف بيتباع بالطلب ومش بيتخصم من المخزن">متتبع</th>':''}</tr></thead><tbody>
-  ${l.map(p=>`<tr><td class="sub num">${p.code}</td><td><b>${esc(p.name)}</b>${ed?` <button class="btn sm ghost" data-x="pEdit" data-id="${p.id}" title="تعديل اسم الصنف" aria-label="تعديل اسم الصنف">✎</button>`:''}<div class="sub">${esc(p.brand)}</div></td>${PAGES.map(pg=>`<td>${cell(p,pg.id)}</td>`).join('')}${can('cost')?`<td><input type="number" data-pc="${p.id}" value="${p.cost??''}" placeholder="ناقصة" style="${p.cost==null?'border-color:var(--warn)':''}"></td>`:''}<td class="n">${p.track?p.stock:'<span class="sub">بالطلب</span>'}</td>${ed?`<td><input type="checkbox" data-trk="${p.id}" ${p.track?'checked':''} aria-label="متتبع في المخزن"></td>`:''}</tr>`).join('')}
+  <div class="tbl scroll"><table><thead><tr><th>الكود</th><th>الصنف</th>${PAGES.map(p=>`<th><span class="pg" style="--pc:var(--p-${p.id})">${p.short}</span></th>`).join('')}${can('cost')?'<th>التكلفة</th>':''}<th class="n">المخزن</th>${ed?'<th title="لو مش متعلّم، الصنف بيتباع بالطلب ومش بيتخصم من المخزن">متتبع</th><th title="لو مش متعلّم، الصنف مش بيتطبع في قايمة الأسعار اللي بتتبعت للعملاء. بيفضل شغال عادي في الفواتير والمخزن">في القايمة</th>':''}</tr></thead><tbody>
+  ${l.map(p=>`<tr><td class="sub num">${p.code}</td><td><b>${esc(p.name)}</b>${ed?` <button class="btn sm ghost" data-x="pEdit" data-id="${p.id}" title="تعديل اسم الصنف" aria-label="تعديل اسم الصنف">✎</button>`:''}<div class="sub">${esc(p.brand)}</div></td>${PAGES.map(pg=>`<td>${cell(p,pg.id)}</td>`).join('')}${can('cost')?`<td><input type="number" data-pc="${p.id}" value="${p.cost??''}" placeholder="ناقصة" style="${p.cost==null?'border-color:var(--warn)':''}"></td>`:''}<td class="n">${p.track?p.stock:'<span class="sub">بالطلب</span>'}</td>${ed?`<td><input type="checkbox" data-trk="${p.id}" ${p.track?'checked':''} aria-label="متتبع في المخزن"></td><td><input type="checkbox" data-ipl="${p.id}" ${p.inPl!==false?'checked':''} aria-label="يظهر في قايمة الأسعار"></td>`:''}</tr>`).join('')}
   </tbody></table></div>`;
 }
 
@@ -2606,6 +2606,7 @@ document.addEventListener('change',e=>{
   if(t.id==='cty'){readCust();return drawCust()}
   if(d.pp){const [id,k]=d.pp.split(':');const p=prod(id);if(t.value===''&&k==='ol'){t.value=p.prices.ol??'';return}
     const v=t.value===''?null:+t.value;act(()=>v==null?q(sb.from('product_prices').delete().eq('product_id',id).eq('page_id',k)):q(sb.from('product_prices').upsert({product_id:id,page_id:k,price:v})),'اتحفظ السعر').then(ok=>{if(ok)p.prices[k]=v});return}
+  if(d.ipl){const p=prod(d.ipl),v=t.checked;act(()=>q(sb.from('products').update({in_pricelist:v}).eq('id',p.id)),v?'الصنف هيظهر في قايمة الأسعار':'الصنف اتشال من قايمة الأسعار').then(ok=>{if(ok){p.inPl=v}else t.checked=!v});return}
   if(d.trk){const p=prod(d.trk),v=t.checked;act(()=>q(sb.from('products').update({track:v}).eq('id',p.id)),v?'الصنف بيتخصم من المخزن':'الصنف بقى بالطلب ومش بيتخصم').then(ok=>{if(ok){p.track=v;soft()}else t.checked=!v});return}
   if(d.pc){const p=prod(d.pc),v=t.value===''?null:+t.value;act(()=>q(sb.from('product_costs').upsert({product_id:p.id,cost:v})),'اتحفظت التكلفة').then(ok=>{if(ok){p.cost=v;t.style.borderColor=v==null?'var(--warn)':'';if(role==='owner')loadAll().then(soft)}});return}
 });
@@ -3104,7 +3105,7 @@ function plFlow(groups,cols,RH,GH,capFirst,capRest,contTitle){
 const plRoman=n=>['','I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII'][n]||n;
 const arNum=n=>String(n).replace(/\d/g,d=>'٠١٢٣٤٥٦٧٨٩'[d]);
 function plItems(page){
-  return S.products.map(p=>({n:p.name,b:(p.brand||'').trim()||'متنوع',pr:p.prices[page]??p.prices.ol})).filter(x=>x.pr!=null);
+  return S.products.filter(p=>p.inPl!==false).map(p=>({n:p.name,b:(p.brand||'').trim()||'متنوع',pr:p.prices[page]??p.prices.ol})).filter(x=>x.pr!=null);
 }
 const byBrand=(L,sortItems)=>{const m=new Map();L.forEach(x=>{if(!m.has(x.b))m.set(x.b,[]);m.get(x.b).push(x)});return [...m.entries()].map(([b,l])=>({b,l:sortItems?l.sort(sortItems):l}))};
 const arCmp=(a,b)=>a.n.localeCompare(b.n,'ar');
