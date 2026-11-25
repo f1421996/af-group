@@ -1,6 +1,7 @@
 // AF Group assistant (v91) — Haiku 5.5 for lookups, Sonnet 5.5 for plans/advice (daily cap), daily limit + monthly $ cap.
 // v91: + tier_prices (quantity tiers) and reorder_list (reorder point) tools.
 // v92: page accounts get Sonnet for full-list and suggestion questions (own daily cap).
+// v93: + tell_owner (staff can pass a short message to the owner).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const MODEL = "claude-haiku-5-5";
@@ -86,6 +87,10 @@ const TOOLS: Tool[] = [
     description: "What to ORDER NOW by reorder point: how many oils/empties are at or below their reorder point, and per supplier the items to order with suggested quantity and days of cover left, plus orders already on the way. Pass supplier (a name) to get that supplier's full list. Different from purchase_list, which only covers what OPEN ORDERS are short of.",
     input_schema: { type: "object", properties: { supplier: { type: "string" } } },
     args: (i) => ({ p_supplier: i.supplier ?? null }) },
+  { name: "tell_owner", rpc: "ag_tell_owner", roles: ["billing", "stock", "maker", "page"],
+    description: "Pass a short message from the CURRENT user to فارس (the owner). He gets a notification and sees it in his inbox on the home screen. Use ONLY when the user explicitly asks you to tell, inform or send something to فارس (بلّغ فارس / قول لفارس / ابعتله). Send the user's own words, lightly cleaned, max 500 characters. Never invent or add content. Limit: 5 a day per user.",
+    input_schema: { type: "object", properties: { message: { type: "string" } }, required: ["message"] },
+    args: (i) => ({ p_body: String(i.message ?? "") }) },
   { name: "remember_rule", rpc: "ag_add_rule", roles: ["owner"],
     description: "OWNER ONLY: save a standing rule/fact the assistant must follow for everyone from now on (when the owner says افتكر/احفظ/خلي بالك). Save it as one short clear Arabic sentence.",
     input_schema: { type: "object", properties: { rule: { type: "string" } }, required: ["rule"] },
@@ -147,6 +152,7 @@ function systemPrompt(q: any, rules: string[] = []) {
 - لو المستخدم اختار صنف أو عميل بعد ما سألته، ابعت الاسم اللي اختاره في product/customer، واللي كان كاتبه في الأول في said/customer_said، عشان السيستم يتعلّمه.
 - «قايمة الشراء / محتاجين نشتري إيه / النواقص»: استخدم purchase_list. اعرض كل مورد وعدد أصنافه وأهم 5 أصناف، وحط رابط الواتساب زي ما هو لو موجود. «مورد مش متسجل» قول إن الأصناف دي محتاجة يتحدد موردها.
 - «أطلب إيه النهارده / إيه قرب يخلص / نقطة إعادة الطلب / طلبية مورد كذا»: استخدم reorder_list (مش purchase_list). قول عدد اللي لازم يتطلب النهارده واللي قرّب، وبعدين كل مورد بعدد أصنافه وأهم الأصناف بالكمية المقترحة ويكفي كام يوم. لو سأل عن مورد بعينه ابعت supplier واعرض قايمته كلها. لو negative_balance_items أكبر من صفر نبّه إن الكميات تقريبية لحد الجرد. قوله إن تعديل الكميات وتسجيل الطلبية من تاب «التخطيط».
+- «بلّغ فارس / قول لفارس / ابعتله رسالة»: استخدم tell_owner بكلام المستخدم نفسه من غير زيادة ولا تجميل. لو مش واضح عايز يقول إيه، اسأله الأول. لو sent = true قوله «وصّلت رسالتك لفارس» واكتبله النص اللي اتبعت. لو sent = false قوله السبب اللي في why. ماتبعتش حاجة لفارس من نفسك من غير ما المستخدم يطلب.
 - الأدمن لو قال «افتكر/احفظ/خلي بالك إن…»: استخدم remember_rule، وأكّدله القاعدة اللي اتحفظت.
 - الأرقام دايمًا بالإنجليزي (0-9)، مش ٠-٩.
 - الرد: سطور قصيرة، أرقام واضحة، من غير مقدمات. لو المستخدم طلب قايمة كاملة، اعرضها كاملة ومتقطعهاش.${R}`;
