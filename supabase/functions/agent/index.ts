@@ -1,10 +1,14 @@
 // AF Group assistant (v91) — Haiku 5.5 for lookups, Sonnet 5.5 for plans/advice (daily cap), daily limit + monthly $ cap.
 // v91: + tier_prices (quantity tiers) and reorder_list (reorder point) tools.
+// v92: page accounts get Sonnet for full-list and suggestion questions (own daily cap).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const MODEL = "claude-haiku-5-5";
 const MODEL_S = "claude-sonnet-5-5";
 const ADVICE = /(اقترح|اقتراح|خط[ةه]|ابد[أا]|أبد[أا]|ازاي|إزاي|تكنيك|طريق[ةه]|حلل|تحليل|نصيح|افكار|أفكار|فكر[ةه]|ازود|أزود|احسن|أحسن|انظم|أنظم|ترتيب|رتب|أسرع|اسرع|اخلص|أخلص)/;
+// Full-list questions ("everything the customer never bought") need a model that will print the whole list.
+const LISTQ = /(كل ال[اأ]صناف|القايم[ةه] (كلها|كامل[ةه])|كامل[ةه]|ماخد|مخد|مش بياخد|ماجرب|مجرب|ما اشتر)/;
+const PAGE_SONNET_DAILY = 5;
 const MAX_ROUNDS = 5;
 const SB_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -216,7 +220,10 @@ Deno.serve(async (req) => {
     name: t.name, description: t.description, input_schema: t.input_schema,
     ...(idx === tools.length - 1 ? { cache_control: { type: "ephemeral" } } : {}),
   }));
-  const useS = ADVICE.test(q) && (isOwner || Number(quota.sonnet_today ?? 0) < Number(quota.sonnet_daily ?? 0));
+  const isList = LISTQ.test(q) && ["owner", "billing", "page"].includes(quota.role);
+  const sCap = Math.max(Number(quota.sonnet_daily ?? 0), quota.role === "page" ? PAGE_SONNET_DAILY : 0);
+  const useS = (ADVICE.test(q) || isList) && (isOwner || Number(quota.sonnet_today ?? 0) < sCap);
+  const listMode = useS && isList && !ADVICE.test(q);
   const model = useS ? MODEL_S : MODEL;
   const messages: any[] = [...hist, { role: "user", content: q }];
   const used = { in: 0, out: 0, cr: 0, cw: 0 };
@@ -232,7 +239,8 @@ Deno.serve(async (req) => {
         method: "POST",
         headers: { "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },
         body: JSON.stringify({
-          model, max_tokens: useS ? 5000 : 4000,
+          model, max_tokens: useS ? (listMode ? 8000 : 5000) : 4000,
+          ...(listMode ? { output_config: { effort: "medium" } } : {}),
           system: [{ type: "text", text: systemPrompt(quota, rules), cache_control: { type: "ephemeral" } }],
           tools: apiTools, messages,
         }),
