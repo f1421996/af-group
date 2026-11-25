@@ -638,6 +638,17 @@ button.chip{cursor:pointer;font:inherit;font-size:13px}
 .avq{display:grid;grid-template-columns:repeat(3,minmax(70px,1fr));gap:6px;text-align:center}
 .avq>div{display:flex;flex-direction:column;padding:4px 6px;border-radius:8px}.avq small{font-size:11px;color:var(--muted)}.avq b{font-size:15px;white-space:nowrap}
 .avq .avm{background:var(--surface2)}.avr.ok .avm b,.avm.ok b{color:var(--ok)}.avr.warn .avm b,.avm.warn b{color:var(--warn)}.avr.bad .avm b,.avm.bad b{color:var(--bad)}.avr.out{opacity:.6}
+.pll{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+.plr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;text-align:start;width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--surface);color:inherit;font:inherit;cursor:pointer;border-inline-start:4px solid var(--line)}
+.plr.red{border-inline-start-color:var(--bad)}.plr.yellow{border-inline-start-color:var(--warn)}.plr.green{border-inline-start-color:var(--ok)}
+.pln{min-width:0;display:flex;flex-direction:column;gap:2px}.pln b{overflow-wrap:anywhere}
+.plq{display:grid;grid-template-columns:repeat(4,minmax(64px,auto));gap:6px;text-align:center}.plq>div{display:flex;flex-direction:column;gap:1px;padding:5px 7px;border-radius:8px}.plq small{font-size:11px;color:var(--muted)}.plq b{font-size:13.5px;white-space:nowrap}
+.plq .plm{background:var(--surface2)}.plr.red .plm b{color:var(--bad)}.plr.yellow .plm b{color:var(--warn)}
+.plsup{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px}.plsup .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-height:52px;text-align:start}.plsup small{color:var(--muted);font-weight:400;font-size:12px}
+.plo{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)}.plo:first-of-type{border-top:0}
+.plx{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--line)}.plx>b{white-space:nowrap}
+.plpl{display:flex;flex-direction:column;max-height:52vh;overflow:auto}.plpr{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line)}.plpr.off{opacity:.45}.plpr .qin{width:86px!important;min-width:0;flex:none}.plpr label{cursor:pointer}.plpr label>span{overflow-wrap:anywhere}
+@media(max-width:600px){.plr{grid-template-columns:1fr}.plq{grid-template-columns:repeat(4,1fr)}.plo{flex-direction:column;align-items:stretch}}
 .mwarn{margin:10px 0;padding:10px 12px;border-radius:10px;background:color-mix(in srgb,var(--bad) 12%,transparent);border:1px solid color-mix(in srgb,var(--bad) 45%,transparent);font-size:14px;line-height:1.5}.mwarn small{display:block;color:var(--muted);font-size:12.5px;margin-top:2px}
 .cnf{display:flex;gap:6px;margin-top:10px}.cnf button{flex:1;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--surface2);color:inherit;font:inherit;font-weight:700;cursor:pointer}.cnf button.on{border-color:var(--accent);background:var(--accent-soft);color:var(--accent)}
 .cnp{height:8px;border-radius:99px;background:var(--surface2);overflow:hidden;margin-top:8px}.cnp i{display:block;height:100%;background:var(--ok)}
@@ -1207,10 +1218,10 @@ const CAN={owner:{cost:true,profit:true,invoice:true,customers:true,prices:true,
 const myPage=()=>role.startsWith('page:')?role.slice(5):null;
 const can=k=>CAN[myPage()?'page':role][k];
 const myPageLabel=()=>myPage()?'متابعة التجهيز':'التجهيز';
-const TABS=[['home','الرئيسية',()=>true],['new','فاتورة جديدة',()=>can('invoice')],['invoices','الفواتير',()=>can('invoice')],['orders','الطلبات',()=>can('invoice')],['fulfill',myPageLabel,()=>can('stock')||!!myPage()],['make','🧪 تصنيع اليوم',()=>['owner','stock'].includes(role)],['prod','📈 الإنتاج',()=>role==='owner'],['collect','💰 التحصيل',()=>can('customers')],['follow','🔁 عملاء غابوا',()=>can('customers'),1],['customers','العملاء',()=>can('customers')],['products','الأصناف والأسعار',()=>!myPage()],['stock','المخزن (فوارغ + زيت)',()=>can('stock')],['short','🧾 النواقص',()=>['owner','billing'].includes(role)],['cash','الخزنة',()=>role==='owner'],['sup','🚚 الموردين',()=>role==='owner'],['reports','التقارير',()=>role==='owner'],['team','الفريق والحركات',()=>role==='owner'],['earn','💰 أرباحي',()=>!!myPage()||role==='owner']];
+const TABS=[['home','الرئيسية',()=>true],['new','فاتورة جديدة',()=>can('invoice')],['invoices','الفواتير',()=>can('invoice')],['orders','الطلبات',()=>can('invoice')],['fulfill',myPageLabel,()=>can('stock')||!!myPage()],['make','🧪 تصنيع اليوم',()=>['owner','stock'].includes(role)],['prod','📈 الإنتاج',()=>role==='owner'],['collect','💰 التحصيل',()=>can('customers')],['follow','🔁 عملاء غابوا',()=>can('customers'),1],['customers','العملاء',()=>can('customers')],['products','الأصناف والأسعار',()=>!myPage()],['stock','المخزن (فوارغ + زيت)',()=>can('stock')],['short','🧾 النواقص',()=>['owner','billing'].includes(role)],['plan','📊 التخطيط',()=>role==='owner'],['cash','الخزنة',()=>role==='owner'],['sup','🚚 الموردين',()=>role==='owner'],['reports','التقارير',()=>role==='owner'],['team','الفريق والحركات',()=>role==='owner'],['earn','💰 أرباحي',()=>!!myPage()||role==='owner']];
 let tab='home';
 function nav(){
-  const t=role==='maker'?[['work','🧪 شغلي',()=>true]]:role==='stock'?[['work','🧪 شغلي',()=>true],['deliver','📦 التسليم',()=>true],['stock','🏬 المخزن',()=>true],['short','🧾 النواقص',()=>true]]:TABS.filter(x=>x[2]());
+  const t=role==='maker'?[['work','🧪 شغلي',()=>true]]:role==='stock'?[['work','🧪 شغلي',()=>true],['deliver','📦 التسليم',()=>true],['stock','🏬 المخزن',()=>true],['short','🧾 النواقص',()=>true],['plan','📊 التخطيط',()=>true]]:TABS.filter(x=>x[2]());
   if(!t.find(x=>x[0]===tab)) tab=t[0][0];
   const nPend=(S.queue||[]).filter(x=>!x.done).length;
   const nNew=(S.orders||[]).filter(o=>o.status==='new'&&(!myPage()||o.page===myPage())).length;
@@ -1219,7 +1230,7 @@ function nav(){
 }
 document.addEventListener('click',e=>{const a=e.target.closest('#tabs a[data-tab]');if(!a||e.ctrlKey||e.metaKey||e.shiftKey||e.button)return;e.preventDefault();go(a.dataset.tab)});
 /* v84: bottom nav + grouped side nav + "more" sheet */
-const NAVG=[['مبيعات',['home','new','invoices','orders','customers','collect','follow']],['تشغيل',['fulfill','make','prod','work','deliver']],['مخزن ومشتريات',['products','stock','short','sup']],['مالية وإدارة',null]];
+const NAVG=[['مبيعات',['home','new','invoices','orders','customers','collect','follow']],['تشغيل',['fulfill','make','prod','work','deliver']],['مخزن ومشتريات',['products','stock','short','plan','sup']],['مالية وإدارة',null]];
 function navExtra(){try{
   const tb=$('#tabs');const as=[...tb.querySelectorAll('a[data-tab]')];
   if(as.length>6){const used=new Set(),frag=document.createDocumentFragment();
@@ -1228,7 +1239,7 @@ function navExtra(){try{
   if(role==='owner'){const dl=document.createElement('a');dl.href='/decision';dl.className='dclink';dl.textContent='🧮 مركز القرار';$('#tabs').appendChild(dl)}
   const simple=!!(ME&&['maker','stock'].includes(ME.role));const all=!ME?[]:simple?as.map(a=>a.dataset.tab).filter(Boolean):TABS.filter(x=>x[2]()).map(x=>x[0]);
   const bn=$('#bnav'),show=simple?(all.length>1&&all.length<=5):all.length>4;document.body.classList.toggle('hasbnav',show);document.body.classList.toggle('bnav-all',show&&simple);if(!bn)return;if(!show){bn.innerHTML='';bn.style.removeProperty('grid-template-columns');return}
-  if(simple){const an0=k=>as.find(a=>a.dataset.tab===k),bd=k=>{const b=an0(k)&&an0(k).querySelector('.badge');return b?`<span class="badge">${esc(b.textContent)}</span>`:''};bn.style.gridTemplateColumns=`repeat(${all.length},minmax(0,1fr))`;const sl={work:'شغلي',deliver:'التسليم',stock:'المخزن',short:'النواقص'},al=k=>{if(sl[k])return sl[k];const a=an0(k);if(!a)return tabLabel(k);const c=a.cloneNode(true);c.querySelectorAll('.badge').forEach(x=>x.remove());return c.textContent.replace(/^[^\p{L}]+/u,'').replace(/\s*\(.*\)\s*$/,'').trim()||k};bn.innerHTML=all.map(k=>`<button type="button" data-tab="${k}" class="${k===tab?'on':''}"${k===tab?' aria-current="page"':''}>${esc(al(k))}${bd(k)}</button>`).join('');return}
+  if(simple){const an0=k=>as.find(a=>a.dataset.tab===k),bd=k=>{const b=an0(k)&&an0(k).querySelector('.badge');return b?`<span class="badge">${esc(b.textContent)}</span>`:''};bn.style.gridTemplateColumns=`repeat(${all.length},minmax(0,1fr))`;const sl={work:'شغلي',deliver:'التسليم',stock:'المخزن',short:'النواقص',plan:'التخطيط'},al=k=>{if(sl[k])return sl[k];const a=an0(k);if(!a)return tabLabel(k);const c=a.cloneNode(true);c.querySelectorAll('.badge').forEach(x=>x.remove());return c.textContent.replace(/^[^\p{L}]+/u,'').replace(/\s*\(.*\)\s*$/,'').trim()||k};bn.innerHTML=all.map(k=>`<button type="button" data-tab="${k}" class="${k===tab?'on':''}"${k===tab?' aria-current="page"':''}>${esc(al(k))}${bd(k)}</button>`).join('');return}
   bn.style.removeProperty('grid-template-columns');
   const pick=['home','new','invoices','fulfill'].filter(k=>all.includes(k));for(const k of all){if(pick.length>=4)break;if(!pick.includes(k))pick.push(k)}
   const LBL={home:'الرئيسية',new:'فاتورة',invoices:'الفواتير'};
@@ -2481,7 +2492,7 @@ function render(){{const g=document.getElementById('gsBtn');if(g)g.hidden=!ME||M
   nav();
   const an=$('#appname');if(an){const MP=myPage();an.innerHTML=MP?`<i><span style="background:var(--p-${MP})"></span></i>${esc(PG[MP].name)}`:`<i>${PAGES.map(p=>`<span style="background:var(--p-${p.id})"></span>`).join('')}</i>AF Group`}
   $('#who').textContent=ME?ME.name:'';pvBtnSync();
-  const v={home:vHome,new:vNew,invoices:vInvoices,orders:()=>quotesPanel()+vOrders(),fulfill:vFulfill,customers:vCustomers,products:vProducts,stock:vStock,collect:vCollect,follow:vFollow,ads:vAds,sup:()=>vSup()+supCmp(),prod:vProd,assets:vAssets,work:vWork,deliver:vDeliver,mats:vMats,make:vMake,team:vTeam,reports:vReports,cash:vCash,users:vUsers,earn:vEarn,short:()=>mopenPanel()+vShort()}[tab];
+  const v={home:vHome,new:vNew,invoices:vInvoices,orders:()=>quotesPanel()+vOrders(),fulfill:vFulfill,customers:vCustomers,products:vProducts,stock:vStock,collect:vCollect,follow:vFollow,ads:vAds,sup:()=>vSup()+supCmp(),prod:vProd,assets:vAssets,work:vWork,deliver:vDeliver,mats:vMats,make:vMake,team:vTeam,reports:vReports,cash:vCash,users:vUsers,earn:vEarn,short:()=>mopenPanel()+vShort(),plan:vPlan}[tab];
   $('#main').innerHTML=ovrBar()+msgBar()+v();
   if(keep){const el=document.querySelector('#main '+keep)||(keep.startsWith('#')?document.querySelector(keep):null);if(el&&!el.closest('#modal')){if(keepVal){el.value=keepVal.v;try{el.setSelectionRange(keepVal.s,keepVal.s)}catch(_){}}el.focus({preventScroll:true});if(el.id==='pSearch'&&el.value.trim())drawAC()}}
 }
@@ -2856,6 +2867,96 @@ function reorderList(){
    .sort((a,b)=>a.days-b.days);
 }
 function supplierText(list){return `طلبية ${dshow(today())}\n`+list.map(x=>`• ${x.p.name} × ${x.need}`).join('\n')}
+
+/* ---------- planning: reorder point + open purchase orders (reads plan_status; never changes stock) ---------- */
+const PL={data:null,busy:false,err:null,kind:'oil',st:'act',sup:'',q:'',lim:40,po:null,cfg:false};
+async function plLoad(){if(PL.busy)return;PL.busy=true;PL.err=null;try{const d=await q(sb.rpc('plan_status'));if(!d||!Array.isArray(d.items))throw new Error('التخطيط مش متاح دلوقت. جرّب تحديث.');d.orders=d.orders||[];d.suppliers=d.suppliers||[];d.settings=d.settings||{};PL.data=d}catch(e){PL.data=null;PL.err=errMsg(e)}finally{PL.busy=false}if(tab==='plan')render()}
+const plU=(x,v)=>x.kind==='oil'?kgS(v):fmt(Math.round(v))+' قطعة';
+const plKey=x=>x.kind+':'+x.id, plFind=k=>((PL.data||{}).items||[]).find(x=>plKey(x)===k);
+const plDot={red:'🔴',yellow:'🟡',green:'🟢'},plWord={red:'اطلب النهارده',yellow:'قرّب',green:'تمام'};
+const plSupName=x=>x.sup_name||'مورد غير محدد';
+function vPlan(){
+  if(!PL.data&&!PL.busy&&!PL.err)plLoad();
+  const D2=PL.data;const head=`<div class="row" style="justify-content:space-between"><div><h2>📊 التخطيط</h2><p class="sub" style="margin:4px 0 0">اطلب إيه، كام، ومن مين — قبل ما الخامة تخلص</p></div><button class="btn sm" data-x="plRef">↻ تحديث</button></div>`;
+  if(!D2)return head+`<div class="panel"><p class="sub">${PL.err?'⚠️ '+esc(PL.err):'بحسب…'}</p></div>`;
+  const own=!!D2.owner,all=D2.items.filter(x=>!x.ign),K=(PL.st==='all'?D2.items:all).filter(x=>x.kind===PL.kind);
+  const cnt=(L,s)=>L.filter(x=>x.status===s).length,neg=all.filter(x=>x.neg).length;
+  const need=x=>x.status!=='green'&&x.qty>0;
+  const flt=K.filter(x=>PL.st==='all'?true:PL.st==='red'?x.status==='red':x.status!=='green').filter(x=>!PL.sup||(PL.sup==='-'?!x.sup:x.sup===PL.sup)).filter(x=>!PL.q||norm(x.name).includes(norm(PL.q)));
+  const shown=flt.slice(0,PL.lim);
+  const sups={};K.filter(need).forEach(x=>{const k=x.sup||'-';(sups[k]??={id:k,name:plSupName(x),n:0,red:0,cost:0,np:0});sups[k].n++;if(x.status==='red')sups[k].red++;if(x.price!=null)sups[k].cost+=x.qty*x.price;else sups[k].np++});
+  const SL=Object.values(sups).sort((a,b)=>b.red-a.red||b.n-a.n);
+  const kpi=(t,v,s,c)=>`<div class="panel kpi" ${c?`style="border-inline-start:4px solid ${c}"`:''}><small>${t}</small><b class="num">${v}</b><span>${s}</span></div>`;
+  const ords=D2.orders||[];
+  return head+
+  (neg?`<div class="mwarn"><b>⚠️ ${neg} صنف رصيده بالسالب</b><small>اتحسبوا على إن رصيدهم صفر، فالكميات المقترحة ليهم تقريبية. الأرقام هتبقى دقيقة بعد الجرد.</small></div>`:'')+
+  `<div class="grid g4">${kpi('🔴 اطلب النهارده',cnt(all,'red'),`${cnt(all.filter(x=>x.kind==='oil'),'red')} زيت · ${cnt(all.filter(x=>x.kind==='emp'),'red')} فارغ`,'var(--bad)')}${kpi('🟡 قرّب يخلص',cnt(all,'yellow'),'هيوصل لنقطة الطلب خلال 3 أيام','var(--warn)')}${kpi('🚚 طلبيات في الطريق',ords.length,ords.filter(o=>o.late).length?`${ords.filter(o=>o.late).length} متأخرة عن ميعادها`:'اتطلبت ولسه موصلتش','')}${kpi('رصيد بالسالب',neg,neg?'محتاج جرد':'كله مظبوط 👌',neg?'var(--bad)':'var(--ok)')}</div>`+
+  (ords.length?`<div class="panel"><h3 style="margin:0 0 8px">🚚 طلبيات في الطريق</h3>${ords.map(o=>`<div class="plo"><div><b>${esc(o.sup_name||'مورد غير محدد')}</b> <span class="sub">اتطلبت ${dshow(o.ordered_at)}${o.expected_at?` · متوقعة ${dshow(o.expected_at)}`:''}</span>${o.late?' <span class="chip bad">متأخرة</span>':''}<div class="sub">${o.lines.map(l=>`${esc(l.name.replace(/^زيت /,''))} ${plU(l,l.qty)}`).join(' · ')}</div></div>${own?`<div class="row" style="gap:6px;flex-wrap:nowrap"><button class="btn sm pri" data-x="plRcv" data-id="${o.id}">✅ وصلت</button><button class="btn sm ghost" data-x="plCan" data-id="${o.id}">إلغاء</button></div>`:''}</div>`).join('')}</div>`:'')+
+  `<div class="seg" role="tablist"><button class="${PL.kind==='oil'?'on':''}" data-x="plKind" data-id="oil">🧪 زيوت${cnt(all.filter(x=>x.kind==='oil'),'red')?` <b class="bad-t">${cnt(all.filter(x=>x.kind==='oil'),'red')}</b>`:''}</button><button class="${PL.kind==='emp'?'on':''}" data-x="plKind" data-id="emp">🍶 فوارغ${cnt(all.filter(x=>x.kind==='emp'),'red')?` <b class="bad-t">${cnt(all.filter(x=>x.kind==='emp'),'red')}</b>`:''}</button></div>`+
+  (SL.length?`<div class="panel"><h3 style="margin:0 0 4px">🛒 جهّز طلبية</h3><p class="sub" style="margin:0 0 8px">دوس على المورد: هتلاقي أصنافه بالكميات المقترحة، وتقدر تعدّل أي رقم قبل ما تبعت.</p><div class="plsup">${SL.map(s=>`<button class="btn" data-x="plPo" data-id="${s.id}"><b>${esc(s.name)}</b><small>${s.n} صنف${s.red?` · ${s.red} 🔴`:''}${own&&s.cost?` · ≈ ${fmt(Math.round(s.cost))} ج${s.np?' +':''}`:''}</small></button>`).join('')}</div></div>`:'')+
+  `<div class="row stbar" style="gap:6px;flex-wrap:wrap">${[['act','🔴🟡 محتاج طلب'],['red','🔴 بس'],['all','الكل']].map(([k,t])=>`<button class="chip ${PL.st===k?'on':''}" data-x="plSt" data-id="${k}">${t}</button>`).join('')}<select id="plSup" style="max-width:190px"><option value="">كل الموردين</option>${[...new Map(K.map(x=>[x.sup||'-',plSupName(x)])).entries()].sort((a,b)=>a[1].localeCompare(b[1],'ar')).map(([k,n])=>`<option value="${k}" ${PL.sup===k?'selected':''}>${esc(n)}</option>`).join('')}</select><input type="search" id="plQ" value="${esc(PL.q)}" placeholder="دوّر على صنف…" style="flex:1;min-width:140px;max-width:260px"></div>`+
+  `<div class="pll">${shown.map(x=>`<button type="button" class="plr ${x.status}" data-x="plWhy" data-id="${plKey(x)}"><div class="pln"><b>${plDot[x.status]} ${esc(x.name.replace(/^زيت /,''))}</b><span class="sub">${esc(plSupName(x))} · توريد ${fmtG(x.lead)} يوم${x.ign?' · 🚫 مستبعد':''}${x.neg?' · <span style="color:var(--bad)">رصيد بالسالب</span>':''}${x.on_order>0?` · 🚚 في الطريق ${plU(x,x.on_order)}`:''}</span></div>
+    <div class="plq"><div><small>الرصيد</small><b>${plU(x,Math.max(0,x.onhand))}</b></div><div><small>محجوز</small><b>${x.alloc?plU(x,x.alloc):'—'}</b></div><div><small>يكفي</small><b>${x.doc==null?'—':x.doc<=0?'خلص':fmtG(x.doc)+' يوم'}</b></div><div class="plm"><small>${x.status==='red'?'اطلب':x.status==='yellow'?'قرّب':'تمام'}</small><b>${x.qty>0?plU(x,x.qty):'—'}</b></div></div></button>`).join('')||'<div class="panel empty">مفيش أصناف هنا 👌</div>'}</div>`+
+  (flt.length>shown.length?`<button class="btn" data-x="plMore" style="width:100%;margin-top:8px">عرض كمان (فاضل ${flt.length-shown.length})</button>`:'')+
+  (own?`<details class="panel" ${PL.cfg?'open':''} id="plCfg"><summary><b>⚙️ أرقام الحساب</b> <span class="sub">مدة التوريد لكل مورد، أيام الأمان، وفترة التغطية</span></summary>
+    <div class="cgrid" style="margin-top:10px"><div class="field"><label>أيام الأمان (احتياطي)</label><input type="number" min="0" max="30" step="0.5" data-plset="safety_days" value="${D2.settings.safety_days}" class="qin"></div><div class="field"><label>الطلبية تغطي كام يوم بعد وصولها</label><input type="number" min="1" max="60" step="1" data-plset="review_days" value="${D2.settings.review_days}" class="qin"></div><div class="field"><label>متوسط السحب من آخر كام يوم</label><input type="number" min="7" max="120" step="1" data-plset="adu_window_days" value="${D2.settings.adu_window_days}" class="qin"></div><div class="field"><label>تقريب كمية الزيت (جم)</label><input type="number" min="1" max="5000" step="1" data-plset="oil_lot_g" value="${D2.settings.oil_lot_g}" class="qin"></div></div>
+    <h3 style="margin:14px 0 6px">مدة التوريد بالأيام</h3><div class="cgrid">${D2.suppliers.map(s=>`<div class="field"><label>${esc(s.name)}${s.actual!=null?` <span class="sub">(الفعلي ${fmtG(s.actual)} من ${s.actual_n} فاتورة)</span>`:''}</label><input type="number" min="0" max="90" step="0.5" data-pllead="${s.id}" value="${s.lead}" class="qin"></div>`).join('')}</div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn pri" data-x="plSave">احفظ الأرقام</button></div></details>`:'');
+}
+function plWhy(k){const x=plFind(k),D2=PL.data;if(!x)return;const own=!!D2.owner,S2=D2.settings,u=x.kind==='oil'?'جم':'قطعة',n=v=>fmtG(Math.round(v*10)/10);
+  const ln=(t,f,v)=>`<div class="plx"><div><b>${t}</b><div class="sub" dir="rtl">${f}</div></div><b class="num">${v}</b></div>`;
+  $('#modal').innerHTML=`<div class="mbox" style="max-width:560px"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">${plDot[x.status]} ${esc(x.name)}</h2><div class="sub">${esc(plSupName(x))} · ${plWord[x.status]}</div></div><button class="btn" data-close="1">إغلاق</button></div>
+   <div>${ln('السحب اليومي',`متوسط آخر ${n(S2.adu_window_days)} يوم`,n(x.adu)+' '+u)}
+   ${ln('المتاح',`الرصيد ${n(Math.max(0,x.onhand))}${x.neg?' (السيستم شايفه بالسالب، اتحسب صفر)':''} − محجوز للأوردرات ${n(x.alloc)} + في الطريق ${n(x.on_order)}`,n(x.avail)+' '+u)}
+   ${ln('مخزون الأمان',`${n(x.adu)} × ${n(x.sdays)} يوم`,n(x.ss)+' '+u)}
+   ${ln('نقطة إعادة الطلب',`${n(x.adu)} × مدة التوريد ${n(x.lead)} يوم + الأمان ${n(x.ss)}`,n(x.rop)+' '+u)}
+   ${ln('المستهدف بعد الطلب',`${n(x.adu)} × (${n(x.lead)} + ${n(S2.review_days)} يوم تغطية) + الأمان ${n(x.ss)}`,n(x.target)+' '+u)}
+   ${ln('الكمية المقترحة',`المستهدف ${n(x.target)} − المتاح ${n(x.avail)}، مقرّبة لأقرب ${n(x.lot)} ${u}`,x.qty>0?plU(x,x.qty):'مش محتاج')}
+   ${own&&x.price!=null&&x.qty>0?ln('تكلفة تقريبية','بآخر سعر شراء',fmt(Math.round(x.qty*x.price))+' ج'):''}</div>
+   <p class="hint" style="margin:0">${x.status==='red'?'🔴 المتاح أقل من أو يساوي نقطة إعادة الطلب.':x.status==='yellow'?'🟡 المتاح هيوصل لنقطة الطلب خلال 3 أيام بالسحب الحالي.':'🟢 المتاح فوق نقطة إعادة الطلب.'}${x.adu>0&&x.alloc>x.adu*10?' ⚠️ فيه أوردر كبير حاجز كمية أكبر من سحب 10 أيام، راجع الكمية قبل ما تطلب.':''}</p>
+   ${own?`<div class="cgrid"><div class="field"><label>المورد الأساسي</label><select id="plISup"><option value="">تلقائي (آخر مورد اشتريت منه)</option>${D2.suppliers.map(s=>`<option value="${s.id}" ${x.sup===s.id?'selected':''}>${esc(s.name)}</option>`).join('')}</select></div><div class="field"><label>تقريب الكمية (${u})</label><input type="number" min="1" id="plILot" value="${x.lot}" class="qin"></div></div>
+   <div class="row" style="justify-content:space-between"><button class="btn sm ghost" data-x="plIgn" data-id="${k}">🚫 استبعده من التنبيهات</button><button class="btn pri" data-x="plISave" data-id="${k}">احفظ</button></div>`:''}</div>`;
+  $('#modal').hidden=false}
+function plPoOpen(sid){const D2=PL.data;if(!D2)return;const L=D2.items.filter(x=>!x.ign&&x.kind===PL.kind&&x.status!=='green'&&x.qty>0&&(sid==='-'?!x.sup:x.sup===sid));if(!L.length)return;
+  PL.po={sup:sid==='-'?null:sid,name:plSupName(L[0]),lines:L.map(x=>({kind:x.kind,id:x.id,name:x.name,qty:x.qty,sug:x.qty,price:x.price,st:x.status,on:true}))};plPoDraw()}
+function plPoTot(){const P=PL.po;const L=P.lines.filter(l=>l.on&&+l.qty>0);return {n:L.length,cost:L.reduce((a,l)=>a+(l.price!=null?l.qty*l.price:0),0),np:L.filter(l=>l.price==null).length}}
+function plPoDraw(){const P=PL.po;if(!P)return;const own=!!(PL.data||{}).owner,T=plPoTot();
+  $('#modal').innerHTML=`<div class="mbox" style="max-width:600px"><div class="row" style="justify-content:space-between"><div><h2 style="margin:0">🛒 طلبية ${esc(P.name)}</h2><div class="sub">عدّل أي كمية، أو شيل العلامة من الصنف اللي مش عايزه</div></div><button class="btn" data-close="1">إغلاق</button></div>
+   <div class="plpl">${P.lines.map((l,i)=>`<div class="plpr ${l.on?'':'off'}"><label class="row" style="gap:8px;flex:1;min-width:0"><input type="checkbox" data-plon="${i}" ${l.on?'checked':''}><span style="min-width:0"><b>${plDot[l.st]} ${esc(l.name.replace(/^زيت /,''))}</b>${own&&l.price!=null?`<div class="sub" data-plc="${i}">≈ ${fmt(Math.round(l.qty*l.price))} ج</div>`:''}</span></label><div class="row" style="gap:4px;flex-wrap:nowrap"><input type="number" min="0" step="${l.kind==='oil'?50:1}" inputmode="decimal" data-plqty="${i}" value="${l.qty}" class="qin" style="width:92px"><small class="sub">${l.kind==='oil'?'جم':'قطعة'}</small></div></div>`).join('')}</div>
+   <div class="plx"><div><b id="plPoN">${T.n} صنف</b>${own?`<div class="sub">بآخر سعر شراء${T.np?` · ${T.np} صنف من غير سعر`:''}</div>`:''}</div>${own?`<b class="num" id="plPoC">≈ ${fmt(Math.round(T.cost))} ج</b>`:''}</div>
+   <div class="row" style="justify-content:flex-end;gap:6px;flex-wrap:wrap"><button class="btn" data-x="plPoCopy">📋 نسخ لواتساب</button>${own?'<button class="btn pri" data-x="plPoSave">💾 سجّل إني طلبتها</button>':''}</div>
+   ${own?'<p class="hint" style="margin:0">التسجيل مش بيزوّد المخزن. المخزن بيزيد لما تسجّل فاتورة المورد زي ما إنت متعود. فايدته إن السيستم ميقترحش نفس الصنف تاني وهو في الطريق.</p>':''}</div>`;
+  $('#modal').hidden=false}
+function plPoText(){const P=PL.po,L=P.lines.filter(l=>l.on&&+l.qty>0);return `${RLM}*طلبية AF Group — ${P.name}*\n${RLM}${dshow(today())} · ${L.length} صنف\n\n`+L.map((l,i)=>`${RLM}${i+1}. ${shNm(l.name.replace(/^زيت /,''))}${RLM} ← *${plU(l,+l.qty)}*`).join('\n')+`\n\n${RLM}شكراً 🙏`}
+document.addEventListener('input',e=>{const t=e.target;if(!t||!t.dataset)return;
+  if(t.dataset.plqty!=null&&PL.po){const l=PL.po.lines[+t.dataset.plqty];l.qty=Math.max(0,+t.value||0);const c=document.querySelector(`[data-plc="${t.dataset.plqty}"]`);if(c&&l.price!=null)c.textContent='≈ '+fmt(Math.round(l.qty*l.price))+' ج';const T=plPoTot();const a=$('#plPoN'),b=$('#plPoC');if(a)a.textContent=T.n+' صنف';if(b)b.textContent='≈ '+fmt(Math.round(T.cost))+' ج';return}
+  if(t.id==='plQ'){PL.q=t.value;PL.lim=40;clearTimeout(PL._t);PL._t=setTimeout(()=>{if(tab==='plan'){render();const i=$('#plQ');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}}},250);return}});
+document.addEventListener('change',e=>{const t=e.target;if(!t||!t.dataset)return;
+  if(t.dataset.plon!=null&&PL.po){PL.po.lines[+t.dataset.plon].on=t.checked;plPoDraw();return}
+  if(t.id==='plSup'){PL.sup=t.value;PL.lim=40;render();return}});
+document.addEventListener('click',async e=>{const b=e.target.closest('[data-x^="pl"]');if(!b)return;const x=b.dataset.x,id=b.dataset.id;
+  if(x==='plRef'){PL.data=null;PL.err=null;render();return}
+  if(x==='plKind'){PL.kind=id==='emp'?'emp':'oil';PL.sup='';PL.lim=40;render();return}
+  if(x==='plSt'){PL.st=id;PL.lim=40;render();return}
+  if(x==='plMore'){PL.lim+=40;render();return}
+  if(x==='plWhy'){plWhy(id);return}
+  if(x==='plPo'){plPoOpen(id);return}
+  if(x==='plPoCopy'){if(!PL.po||!plPoTot().n){toast('مفيش أصناف في الطلبية');return}const t=plPoText();try{await navigator.clipboard.writeText(t);toast('اتنسخت · الصقها في واتساب')}catch(er){prompt('انسخ النص:',t)}return}
+  if(x==='plPoSave'){const P=PL.po;if(!P)return;const L=P.lines.filter(l=>l.on&&+l.qty>0).map(l=>({kind:l.kind,id:l.id,qty:+l.qty}));if(!L.length){toast('مفيش أصناف في الطلبية');return}
+    const r=await act(()=>q(sb.rpc('plan_po_create',{p_supplier:P.sup,p_lines:L,p_note:null})));if(!r)return;PL.po=null;$('#modal').hidden=true;toast(`اتسجلت طلبية ${P.name} · ${L.length} صنف`);await plLoad();return}
+  if(x==='plRcv'){const o=(PL.data.orders||[]).find(y=>y.id===id);if(!o)return;const inv=(S.supInv||[]).filter(i=>!i.void&&i.supplier_id===o.sup&&i.date>=o.ordered_at).slice(0,12);
+    $('#modal').innerHTML=`<div class="mbox" style="max-width:480px"><div class="row" style="justify-content:space-between"><h2 style="margin:0">✅ الطلبية وصلت</h2><button class="btn" data-close="1">إغلاق</button></div><p class="sub" style="margin:0">${esc(o.sup_name||'')} · اتطلبت ${dshow(o.ordered_at)}. قفل الطلبية مش بيغيّر المخزن — سجّل فاتورة المورد الأول لو لسه.</p>
+     <div class="field"><label>فاتورة المورد اللي وصلت بيها (اختياري)</label><select id="plRInv"><option value="">من غير ربط</option>${inv.map(i=>`<option value="${i.id}">${dshow(i.date)}${i.number?' · '+esc(i.number):''} · ${fmt(i.total)} ج</option>`).join('')}</select><small class="sub">لو ربطتها، السيستم هيحسب مدة التوريد الحقيقية للمورد ده.</small></div>
+     <div class="row" style="justify-content:flex-end"><button class="btn pri" data-x="plRcvOk" data-id="${o.id}">اقفل الطلبية</button></div></div>`;$('#modal').hidden=false;return}
+  if(x==='plRcvOk'){const iv=($('#plRInv')||{}).value||null;const r=await act(()=>q(sb.rpc('plan_po_close',{p_id:id,p_status:'received',p_invoice:iv})));if(!r)return;$('#modal').hidden=true;toast('اتقفلت الطلبية');await plLoad();return}
+  if(x==='plCan'){if(!confirm('تلغي الطلبية دي؟ المخزن مش هيتأثر.'))return;const r=await act(()=>q(sb.rpc('plan_po_close',{p_id:id,p_status:'cancelled',p_invoice:null})));if(!r)return;toast('اتلغت الطلبية');await plLoad();return}
+  if(x==='plSave'){const st={};document.querySelectorAll('[data-plset]').forEach(i=>{const v=+i.value;if(i.value!==''&&v!==+PL.data.settings[i.dataset.plset])st[i.dataset.plset]=v});
+    const ld=[];document.querySelectorAll('[data-pllead]').forEach(i=>{const s=PL.data.suppliers.find(y=>y.id===i.dataset.pllead);if(s&&i.value!==''&&+i.value!==+s.lead)ld.push({id:s.id,lead_days:+i.value})});
+    if(!Object.keys(st).length&&!ld.length){toast('مفيش تغيير');return}
+    const ok=await act(async()=>{if(Object.keys(st).length)await q(sb.rpc('plan_set',{p:{settings:st}}));for(const s of ld)await q(sb.rpc('plan_set',{p:{supplier:s}}))});if(!ok)return;PL.cfg=true;toast('اتحفظت الأرقام');await plLoad();return}
+  if(x==='plISave'||x==='plIgn'){const it=plFind(id);if(!it)return;const lot=+(($('#plILot')||{}).value)||null,sp=($('#plISup')||{}).value||'';
+    const r=await act(()=>q(sb.rpc('plan_set',{p:{item:{kind:it.kind,id:it.id,supplier:sp,safety_days:'',lot_size:lot?String(lot):'',ignore:x==='plIgn'}}})));if(!r)return;$('#modal').hidden=true;toast(x==='plIgn'?'اتستبعد من التنبيهات':'اتحفظ');await plLoad();return}
+});
 
 /* ---------- stocktake ---------- */
 let countMode=false;
