@@ -4865,6 +4865,7 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
   function drawDraft(d){
     const el=document.createElement('div');el.className='dr';
     el.innerHTML=`<h4>🧾 مسودة فاتورة — ${esc(d.customer)}${d.page?' · '+esc(d.page):''}</h4>
+      ${d.isNew?`<div style="background:#fff7d6;color:#6b4e00;border-radius:8px;padding:6px 9px;margin:0 0 6px;font-size:.86em">🆕 عميل جديد${d.phone?' · '+esc(d.phone):' · من غير رقم'} — هيتسجل مع الفاتورة</div>`:''}
       <table><tr><th>الصنف</th><th>كمية</th><th>سعر</th><th>إجمالي</th></tr>${(d.lines||[]).map(l=>`<tr><td>${esc(l.name)}${l.F?` <small>F${esc(l.F)}${l.g?` · ${esc(l.g)} جم`:''}</small>`:''}</td><td>${nf(l.qty)}</td><td>${nf(l.price)}<small>${esc(l.src||'')}</small></td><td>${nf(l.qty*l.price)}</td></tr>`).join('')}</table>
       <div class="tot"><span>الإجمالي</span><span>${nf(d.total)}</span></div>
       <div class="act"><button type="button" class="ok">✅ سجّل الفاتورة</button><button type="button" class="no">إلغاء</button></div><div class="st"></div>`;
@@ -4874,7 +4875,7 @@ body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
     ok.onclick=async()=>{ok.disabled=no.disabled=true;ok.textContent='بسجّل…';
       const {data,error}=await sb.rpc('ag_commit_draft',{p_id:d.id});
       if(error){ok.disabled=no.disabled=false;ok.textContent='✅ سجّل الفاتورة';st.textContent='⚠️ '+(error.message==='draft_expired'?'المسودة قديمة، اطلبها تاني':error.message);return}
-      act.remove();st.innerHTML=`✅ اتسجلت الفاتورة <b>${esc(data.no||'')}</b>${data.already?' (كانت متسجلة قبل كده)':''}. الدفع سجّله من الفاتورة لو اتدفع حاجة.`;
+      act.remove();st.innerHTML=`✅ اتسجلت الفاتورة <b>${esc(data.no||'')}</b>${data.already?' (كانت متسجلة قبل كده)':''}.${d.isNew&&!data.already?' والعميل الجديد اتضاف.':''} الدفع سجّله من الفاتورة لو اتدفع حاجة.`;
       AG.hist.push({role:'assistant',content:`تم: اتسجلت الفاتورة ${data.no} لـ ${d.customer}.`});
       try{if(typeof loadAll==='function'){await loadAll();if(typeof render==='function')render()}}catch(e){}
     };
