@@ -2512,6 +2512,14 @@ addEventListener('pointerdown',()=>{ptrDown=true},true);
 ['pointerup','pointercancel'].forEach(ev=>addEventListener(ev,()=>setTimeout(()=>{ptrDown=false;if(pendR){pendR=false;render()}},0),true));
 function soft(){if(ptrDown){pendR=true;return}setTimeout(()=>{if(ptrDown)pendR=true;else render()},0)}
 function focusKey(el){if(!el||el===document.body)return null;if(el.id)return '#'+el.id;for(const k of ['sg','ln','lq','lp','lg','pp','pc','spv','pru','trk','mc','madj','fa','conc','oc','xc','cnt','ocnt']){if(el.dataset&&el.dataset[k]!=null)return `[data-${k}="${el.dataset[k]}"]`}return null}
+/* v97: label the cells of wide tables so the phone layout can show them as cards */
+function tblCards(root){try{(root||document).querySelectorAll('#main .tbl>table:not(.nocard)').forEach(t=>{
+  const th=[...t.querySelectorAll(':scope>thead th')];if(th.length<4||t.querySelector('input,select,textarea')){t.classList.remove('tc');return}
+  const L=th.map(h=>h.textContent.trim());t.classList.add('tc');
+  t.querySelectorAll(':scope>tbody>tr').forEach(r=>{[...r.children].forEach((d,i)=>{if(d.colSpan>1)return;if(d.dataset.l==null)d.dataset.l=L[i]||'';if((d.textContent||'').trim().length>34&&i>0)d.classList.add('w2')})})})}catch(e){}}
+(()=>{let q=0;const run=()=>{q=0;tblCards()};const go=()=>{if(!q)q=requestAnimationFrame(run)};
+  const start=()=>{const m=document.getElementById('main');if(!m)return;new MutationObserver(go).observe(m,{childList:true,subtree:true});go()};
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',start);else start()})();
 function render(){{const g=document.getElementById('gsBtn');if(g)g.hidden=!ME||ME.role==='maker'}
   const ae=document.activeElement;const keep=focusKey(ae);
   const keepVal=ae&&(ae.tagName==='INPUT'||ae.tagName==='TEXTAREA')&&['pSearch','pQty','pPrice','pasteTxt','npN','npB','npP','buyN','buyQ','buyC','paid','ship','prev','gAll','ePrice','mbQ','mbT','maN','rcS','rbG','rbX'].includes(ae.id)?{v:ae.value,s:ae.selectionStart}:null;
@@ -4782,6 +4790,23 @@ startApp();
 <style>
 #agFab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;height:50px;padding:0 18px 0 14px;border-radius:25px;border:0;background:var(--accent,#C9A45C);color:#1b1204;font:600 15px var(--ui,inherit);display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
 #agFab[hidden]{display:none}
+/* v97 (design stage 3): on phones wide tables become stacked cards. The header text of each column is copied
+   to data-l on its cells by tblCards(); tables with inputs or with 3 columns or fewer stay as they are. */
+@media(max-width:640px){
+ .tbl:has(>table.tc){overflow:visible!important;max-height:none!important;height:auto!important;border:0;background:none;border-radius:0}
+ table.tc,table.tc tbody{display:block;width:100%}
+ table.tc thead{display:none}
+ table.tc tr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;padding:12px 14px;margin-bottom:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px}
+ table.tc td{display:flex;flex-direction:column;align-items:flex-start;gap:2px;overflow-wrap:anywhere;padding:0!important;border:0!important;text-align:start!important;min-width:0;max-width:none!important;white-space:normal;font-size:14px}
+ table.tc td::before{content:attr(data-l);color:var(--muted);font-size:11px;font-weight:500;flex:none}
+ table.tc td,table.tc tr:hover td{background:none!important}
+ table.tc td:first-child{grid-column:1/-1;flex-direction:row;flex-wrap:wrap;align-items:baseline;gap:4px 10px;font-size:15px;font-weight:700;padding-bottom:6px!important;border-bottom:1px solid var(--line)!important;margin-bottom:2px}
+ table.tc td:first-child::before,table.tc td[data-l=""]::before{display:none}
+ table.tc td[data-l=""]{grid-column:1/-1;flex-direction:row;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+ table.tc td.w2{grid-column:1/-1}
+ table.tc td:empty{display:none}
+ table.tc tr>td[colspan]{grid-column:1/-1;display:block}
+}
 /* v96 nav icons */
 .dk:not(.hero) b{font-size:clamp(20px,2vw,28px)}
 @media(min-width:1100px){.tabs button,.tabs a{padding-block:9px}}
