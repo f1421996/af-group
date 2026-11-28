@@ -3599,7 +3599,7 @@ async function loadMaker(){spin(true);try{
   S.ranks=Object.fromEntries(((await q(sb.rpc('work_ranks')).catch(()=>[]))||[]).map(r=>[r.id,+r.rank]));
   S.queue=(queue||[]).map(x=>({...x,ship:0,paid:0,ret:0,lines:(x.lines||[]).map(l=>({...l,qty:+l.qty,price:0,g:l.g==null?null:+l.g}))}));
   ['customers','invoices','payments','returns','orders','links','expenses','recurring','moves','purAll','purchases','cancelled','complaints','audit','materials','low','daily','oilBuys','mlog'].forEach(k=>S[k]=[]);
-  S.recipes={};S.conc={};S.mcost={};S.profiles={};S.alias={};S.next={};PIDX=null;lastLoad=Date.now();await loadShort();await loadAssign();await loadMsgs();
+  S.recipes={};S.conc={};S.mcost={};S.profiles={};S.alias={};S.next={};PIDX=null;lastLoad=Date.now();SH.at=0;await loadShort();await loadAssign();await loadMsgs();
  }finally{spin(false)}}
 let wkMode='orders';
 async function loadShort(){try{const [a,b]=await Promise.all([q(sb.rpc('short_lines')),q(sb.rpc('list_overrides'))]);S.short=a||{};S.ovr=b||[]}catch(e){S.short=S.short||{};S.ovr=S.ovr||[]}}
@@ -3952,7 +3952,7 @@ document.addEventListener('change',e=>{if(!SI)return;const t=e.target,k=t.datase
 let SH={ex:null,data:null,busy:false,at:0,f:''};
 function shEx(){if(!SH.ex){let a=[];try{a=JSON.parse(localStorage.getItem('af-sh-ex')||'[]')}catch(_){}SH.ex=new Set(a)}return SH.ex}
 function shSaveEx(){try{localStorage.setItem('af-sh-ex',JSON.stringify([...shEx()]))}catch(_){}}
-async function shLoad(){if(SH.busy)return;SH.busy=true;try{SH.data=await q(sb.rpc('shortage_report',{p_exclude:[...shEx()]}));SH.at=Date.now()}catch(e){toast(errMsg(e))}finally{SH.busy=false}if(tab==='short')render()}
+async function shLoad(){if(SH.busy)return;SH.busy=true;try{SH.data=await q(sb.rpc('shortage_report',{p_exclude:[...shEx()]}))}catch(e){toast(errMsg(e))}finally{SH.busy=false;SH.at=Date.now()}if(tab==='short')render()}
 /* v83: manual opens awaiting settlement + negative stock alert */
 function mopenPanel(){if(role!=='owner')return '';const L=S.mopens||[];const neg=(S.products||[]).filter(p=>p.track&&!p.stock_of&&p.stock<0).sort((a,b)=>a.stock-b.stock);const negM=(S.materials||[]).filter(m=>m.stock<0);
   if(!L.length&&!neg.length&&!negM.length)return '';
@@ -3961,7 +3961,7 @@ function mopenPanel(){if(role!=='owner')return '';const L=S.mopens||[];const neg
   <div class="tbl"><table><thead><tr><th>الخامة</th><th>الكمية</th><th>الأوردر</th><th>السبب</th><th></th></tr></thead><tbody>${L.map(m=>`<tr><td><b>${esc(nm(m))}</b></td><td class="n">${fmt(m.qty)}${m.kind==='oil'?' جم':''}</td><td>${esc(m.invoice_no||'')} <span class="sub">${esc(m.line_name||'')}</span></td><td><span class="sub">${esc(m.note||'')} · ${tAgo(m.created_at)}</span></td><td style="white-space:nowrap"><button class="btn sm pri" data-x="moSettle" data-d="1" data-id="${m.id}">🧾 اتسجلت الفاتورة (اخصم)</button> <button class="btn sm ghost" data-x="moSettle" data-d="0" data-id="${m.id}">تصحيح جرد (سيبها)</button></td></tr>`).join('')}</tbody></table></div></div>`:''}
   ${neg.length||negM.length?`<details class="panel" style="margin-bottom:12px"><summary><b>⚠️ أرصدة بالسالب</b> <span class="chip bad">${neg.length+negM.length}</span> <span class="sub">يعني اتباع أو اتحجز أكتر من المسجل. محتاجة جرد أو فاتورة شراء.</span></summary><div class="tbl" style="margin-top:8px"><table><tbody>${neg.map(p=>`<tr><td>فارغ <b>${esc(p.name)}</b></td><td class="n" style="color:var(--bad)">${fmt(p.stock)}</td></tr>`).join('')}${negM.map(m=>`<tr><td>${esc(m.name)}</td><td class="n" style="color:var(--bad)">${fmt(m.stock)}</td></tr>`).join('')}</tbody></table></div></details>`:''}`}
 function vShort(){
-  if(!SH.data&&!SH.busy){shLoad()}
+  if(!SH.busy&&Date.now()-SH.at>30000){shLoad()}   /* the report was cached for the whole session: closed orders kept showing until a manual refresh */
   const D2=SH.data;const cost=can('purchaseCost');
   if(!D2)return `<h2>🧾 النواقص والشراء</h2><div class="panel"><p class="sub">بحسب النواقص…</p></div>`;
   shEx().forEach(id=>{if(!D2.invoices.find(i=>i.id===id))shEx().delete(id)});
@@ -3990,10 +3990,10 @@ function shTable(t,L,u,cost){if(!L.length)return `<div class="panel"><h3>${t}</h
 function shHTML(){const D2=SH.data;if(!D2)return '';const ex=shEx();const inc=D2.invoices.filter(i=>!ex.has(i.id)),exc=D2.invoices.filter(i=>ex.has(i.id));
   const T=(t,L,u)=>L.length?`<h2 style="margin:14px 0 6px;font-size:15px">${t} · ${L.length} · إجمالي الناقص ${u==='g'?fmt(Math.round(L.reduce((a,x)=>a+(+x.short),0)))+' جم':fmt(L.reduce((a,x)=>a+(+x.short),0))+' قطعة'}</h2><table style="width:100%;border-collapse:collapse" border="1" cellpadding="5"><thead><tr><th>#</th><th>الصنف</th><th>مطلوب</th><th>موجود</th><th>ناقص</th></tr></thead><tbody>${L.map((x,i)=>`<tr><td>${i+1}</td><td>${esc(x.name)}</td><td>${fmt(+x.need)}</td><td>${fmt(+x.have)}</td><td><b>${fmt(+x.short)}</b></td></tr>`).join('')}</tbody></table>`:'';
   return `<div class="a4" dir="rtl" style="padding:12mm;color:#000;background:#fff"><h1 style="margin:0 0 4px;font-size:20px">نواقص الفوارغ والزيوت</h1><div style="font-size:12px;color:#444">${dshow(today())} · محسوبة على ${inc.length} أوردر: ${inc.map(i=>esc(i.no)).join('، ')}${exc.length?` · مستبعد: ${exc.map(i=>esc(i.no+' '+(i.cust||''))).join('، ')}`:''}</div>${T('الفوارغ (قطعة)',D2.empties,'pc')}${T('الزيوت (جرام)',D2.oils,'g')}</div>`}
-document.addEventListener('change',e=>{const t=e.target;if(t.dataset.sh==='inv'){const ex=shEx();if(t.checked)ex.delete(t.value);else ex.add(t.value);shSaveEx();SH.data=null;render()}});
+document.addEventListener('change',e=>{const t=e.target;if(t.dataset.sh==='inv'){const ex=shEx();if(t.checked)ex.delete(t.value);else ex.add(t.value);shSaveEx();SH.data=null;SH.at=0;render()}});
 document.addEventListener('input',e=>{if(e.target.id==='shF'){SH.f=e.target.value;const p=e.target.selectionStart;render();const el=$('#shF');if(el){el.focus();try{el.setSelectionRange(p,p)}catch(_){}}}});
 document.addEventListener('click',async e=>{if(OP)return;const b=e.target.closest('[data-x]');if(!b)return;const x=b.dataset.x;
-  if(x==='shRef'){SH.data=null;render();return}
+  if(x==='shRef'){SH.data=null;SH.at=0;render();return}
   if(x==='shPrint'){printHTML(shHTML(),'نواقص '+today());return}
   if(x==='shWA'||x==='shCopy'){const D2=SH.data;if(!D2)return;const wk=x==='shWA'?(b.dataset.k||'e'):null;if(wk&&!(wk==='e'?D2.empties:D2.oils).length){toast(wk==='e'?'مفيش فوارغ ناقصة':'مفيش زيوت ناقصة');return}const t=wk?shWAText(D2,wk):shText(D2);if(x==='shCopy'){try{await navigator.clipboard.writeText(t);toast('اتنسخت القايمة')}catch(e){toast('مقدرتش أنسخ')}return}window.open('https://wa.me/?text='+encodeURIComponent(t),'_blank');return}
 });
