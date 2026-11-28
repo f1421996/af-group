@@ -213,12 +213,13 @@ body.busy::after{content:"";position:fixed;top:0;left:0;right:0;height:3px;backg
 .dk-h{display:flex;align-items:center;gap:8px}.dk-i{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--accent-soft);font-size:15px;flex:none}
 .dk.hero .dk-i{background:rgba(255,255,255,.32)}
 .dk small{color:var(--muted);font-weight:600;font-size:13px}
-.dk b{font-size:28px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums}
+.dk b{font-size:28px;font-weight:800;line-height:1.15;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cu{font-size:.5em;font-weight:600;opacity:.75;margin-inline-start:.3em;letter-spacing:0}.ms .cu{font-size:.68em}
 .dk-s{font-size:12.5px;color:var(--muted)}
 .ms-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-top:10px}
 .ms{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;text-align:start;font:inherit;color:inherit}
 button.ms{cursor:pointer}button.ms:hover{border-color:var(--accent)}
-.ms b{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums}.ms small{color:var(--muted);font-size:12px}
+.ms b{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}.ms small{color:var(--muted);font-size:12px}
 .sec-t{display:flex;align-items:center;gap:10px;margin:22px 0 2px;color:var(--muted);font-weight:700;font-size:13px}
 .sec-t::after{content:'';flex:1;height:1px;background:var(--line)}
 @media (max-width:640px){.dk-row{grid-template-columns:1fr 1fr;gap:8px}.dk{padding:12px 14px}.dk b{font-size:20px}.dk .dk-s{font-size:11.5px}.ms-row{grid-template-columns:repeat(3,1fr)}.ms b{font-size:16px}}
@@ -1500,8 +1501,9 @@ function vHome(){
   const pend=(S.queue||[]).filter(x=>!x.done&&(!MP||x.page===MP));
   const newO=(S.orders||[]).filter(o=>o.status==='new'&&(!MP||o.page===MP)).length;
   const buyers=new Set(inv.map(i=>i.custId)).size,avg=inv.length?Math.round(inv.reduce((a,i)=>a+invTot(i),0)/inv.length):0;
-  const hk=(ic,t,v,sub,cls)=>`<div class="dk ${cls||''}"><div class="dk-h"><span class="dk-i">${ic}</span><small>${t}</small></div><b class="num">${v}</b>${sub?`<div class="dk-s">${sub}</div>`:''}</div>`;
-  const mk=(t,v,tab)=>tab?`<button class="ms" data-tab="${tab}"><b class="num">${v}</b><small>${t}</small></button>`:`<div class="ms"><b class="num">${v}</b><small>${t}</small></div>`;
+  const cu=v=>String(v).replace(/ ج(?=<|$)/g,'<span class="cu">ج</span>');   /* v95: the currency never wraps under the number */
+  const hk=(ic,t,v,sub,cls)=>`<div class="dk ${cls||''}"><div class="dk-h"><span class="dk-i">${ic}</span><small>${t}</small></div><b class="num">${cu(v)}</b>${sub?`<div class="dk-s">${sub}</div>`:''}</div>`;
+  const mk=(t,v,tab)=>tab?`<button class="ms" data-tab="${tab}"><b class="num">${cu(v)}</b><small>${t}</small></button>`:`<div class="ms"><b class="num">${cu(v)}</b><small>${t}</small></div>`;
   let hero='',mini='';
   if(role==='stock'){const left=pend.reduce((a,i)=>{const g=invPct(i);return a+g.t-g.d},0);
     hero=hk('📦','قطع في المخزن',fmt(stockPcs),`${S.products.length} صنف`)+hk('⚠️','قرب يخلص',(S.low||[]).length,'على حسب استهلاك آخر 30 يوم',(S.low||[]).length?'warn':'ok')+hk('🔧','أوردرات في التجهيز',pend.length,`${fmt(left)} قطعة فاضلة`);
@@ -1509,8 +1511,8 @@ function vHome(){
     hero+=hk('💵','المبيعات · '+periodLabel(period),pv(fmt(sales)+' ج'),`${inv.length} فاتورة · من غير الشحن`,'hero');
     if(can('profit'))hero+=hk('📈','مجمل الربح',pv(fmt(profit)+' ج'),pvLocked()?'دوس على الرقم واكتب الـ PIN':miss?`<button class="chip warn" data-x="stGo" data-id="prices:miss" style="border:0;cursor:pointer">⚠️ محسوب على ${cov}% من المبيعات · ${miss} سطر ناقص تكلفة</button>`:`هامش ربح ${margin}%`,'ok');
     if(can('profit')){let pP=0,pQ=0;inv.forEach(i=>{i.lines.forEach(l=>{if(l.cost!=null&&l.price>0){pP+=l.qty*(l.price-l.cost);pQ+=l.qty}});(S.returns||[]).filter(r=>r.invId===i.id).forEach(r=>r.lines.forEach(l=>{if(l.cost!=null&&l.price>0){pP-=l.qty*(l.price-l.cost);pQ-=l.qty}}))});
-      const app=pQ>0?pP/pQ:0;hero+=hk('🧴','متوسط ربح القطعة',pv((pQ?fmt(Math.round(app*10)/10):'—')+' ج'),pvLocked()?'🔒 مخفي':pQ?`على ${fmt(pQ)} قطعة${pQ<pcs?' متسعّرة ليها تكلفة':''}`:'مفيش قطع ليها تكلفة في الفترة','ok')}
-    if(role==='owner')hero+=hk('🧾','صافي بعد المصاريف',pv(fmt(profit-exP)+' ج'),pvLocked()?'🔒 مخفي':exP?`مصاريف وإعلانات ${fmt(exP)} ج`:'مفيش مصاريف متسجلة في الفترة',pvLocked()?'':profit-exP<0?'bad':'');
+      const app=pQ>0?pP/pQ:0;hero+=hk('🧴','متوسط ربح القطعة',pv((pQ?fmt(Math.round(app*10)/10):'—')+' ج'),pvLocked()?'':pQ?`على ${fmt(pQ)} قطعة${pQ<pcs?' متسعّرة ليها تكلفة':''}`:'مفيش قطع ليها تكلفة في الفترة','ok')}
+    if(role==='owner')hero+=hk('🧾','صافي بعد المصاريف',pv(fmt(profit-exP)+' ج'),pvLocked()?'':exP?`مصاريف وإعلانات ${fmt(exP)} ج`:'مفيش مصاريف متسجلة في الفترة',pvLocked()?'':profit-exP<0?'bad':'');
     hero+=hk('🤝','فلوس عند العملاء',fmt(owedSum)+' ج',`${owed.length} عميل عليهم فلوس`,owedSum?'bad':'');
     if(MP&&S.earn&&S.earn.pages&&S.earn.pages[0]){const pe=S.earn.pages[0];hero+=`<button class="dk ok" data-tab="earn" style="cursor:pointer;text-align:start"><div class="dk-h"><span class="dk-i">💰</span><small>ربحك الشهر ده</small></div><b class="num">${fmt(pe.live_earning||0)} ج</b><div class="dk-s">بيتجمّع من الفواتير أول بأول</div></button>`}
     mini+=mk('فاتورة',inv.length,'invoices')+mk('قطعة مباعة',fmt(pcs))+mk('متوسط الفاتورة',pv(fmt(avg)+' ج'))+mk('عميل اشترى',buyers,'customers')+mk('في التجهيز',pend.length,'fulfill')+(newO&&can('invoice')?mk('طلب جديد',newO,'orders'):'')+(can('cost')?mk('قيمة المخزن',fmt(stockVal)+' ج','stock'):'')+(owedSum?mk('تحصيل',owed.length+' عميل','collect'):'');
@@ -4770,6 +4772,11 @@ startApp();
 <style>
 #agFab{position:fixed;left:16px;bottom:calc(16px + env(safe-area-inset-bottom,0px));z-index:60;height:50px;padding:0 18px 0 14px;border-radius:25px;border:0;background:var(--accent,#C9A45C);color:#1b1204;font:600 15px var(--ui,inherit);display:flex;align-items:center;gap:6px;box-shadow:0 6px 18px rgba(0,0,0,.45);cursor:pointer}
 #agFab[hidden]{display:none}
+/* v95 polish (stage 1): the assistant button no longer sits on top of the content */
+#agFab{height:48px;width:48px;padding:0;justify-content:center;font-size:20px;left:12px}
+#agFab span{display:none}
+@media(max-width:1099px){#agFab{height:46px;width:46px;font-size:19px;opacity:.96}body.hasbnav main{padding-bottom:140px}}
+@media(min-width:1100px){main{padding-bottom:40px;padding-inline-end:44px}}
 #agFab.dot::after{content:"";position:absolute;top:2px;right:4px;width:11px;height:11px;border-radius:50%;background:#e5484d;border:2px solid var(--bg,#131210)}
 #agLog .m.brief{border-color:var(--accent,#C9A45C)}
 body.hasbnav #agFab{bottom:calc(78px + env(safe-area-inset-bottom,0px))}
